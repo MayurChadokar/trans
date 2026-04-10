@@ -43,22 +43,16 @@ function InvoiceModal({ mode, businesses, users, existing, onSave, onClose }) {
           <h3 style={{ margin: 0, fontWeight: 900 }}>{existing ? 'Invoice Details' : 'View Invoice'}</h3>
           <button className="btn-icon" onClick={onClose}><X size={20} /></button>
         </div>
-        <form onSubmit={handleSave} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <form style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
           <div className="form-group">
             <label className="form-label">ASSOCIATED BUSINESS *</label>
-            <select className="form-input" required value={form.businessId} onChange={e => setForm({ ...form, businessId: e.target.value })}>
-              <option value="">Select Business</option>
-              {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <input type="text" className="form-input" disabled value={form.businessName || 'N/A'} />
           </div>
 
           <div className="form-group">
             <label className="form-label">{isTransport ? 'TRANSPORTER / OWNER *' : 'OWNER / CUSTOMER *'}</label>
-            <select className="form-input" required value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })}>
-              <option value="">Select User</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
+            <input type="text" className="form-input" disabled value={form.userName || 'N/A'} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16 }}>
@@ -66,12 +60,12 @@ function InvoiceModal({ mode, businesses, users, existing, onSave, onClose }) {
               <label className="form-label">TOTAL AMOUNT (₹) *</label>
               <div className="input-group">
                 <IndianRupee className="input-icon" size={16} />
-                <input type="number" className="form-input" disabled placeholder="0.00" required value={form.total} onChange={e => setForm({ ...form, total: e.target.value })} />
+                <input type="number" className="form-input" disabled placeholder="0.00" value={form.total} />
               </div>
             </div>
             <div className="form-group">
               <label className="form-label">PAYMENT STATUS</label>
-              <select className="form-input" disabled value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+              <select className="form-input" disabled value={form.status}>
                 <option value="Paid">Paid</option>
                 <option value="Pending">Pending</option>
                 <option value="Partial">Partial</option>
@@ -81,7 +75,7 @@ function InvoiceModal({ mode, businesses, users, existing, onSave, onClose }) {
 
           <div className="form-group">
             <label className="form-label">NOTES (OPTIONAL)</label>
-            <textarea className="form-input" style={{ height: 60, resize: 'none' }} placeholder="Additional details..." value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+            <textarea className="form-input" disabled style={{ height: 60, resize: 'none' }} placeholder="No additional details..." value={form.notes} />
           </div>
 
           {existing?.items && existing.items.length > 0 && (

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Wrench, Search, Filter, Calendar, FileText, User, Car, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Wrench, Search, Filter, Calendar, FileText, User, Car, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
 
 const ITEMS_PER_PAGE = 8
@@ -17,6 +17,7 @@ export default function GarageServiceLogs() {
 
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [selectedLog, setSelectedLog] = useState(null)
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -83,15 +84,14 @@ export default function GarageServiceLogs() {
                       <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{log.businessName}</div>
                       <div style={{ fontSize: '0.7rem', color: accentColor, fontWeight: 700 }}>VERIFIED WORKSHOP</div>
                    </td>
-                   <td style={{ padding: '16px 24px', minWidth: 260 }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {log.items.map((it, idx) => (
-                           <div key={idx} style={{ padding: '4px 8px', background: 'var(--bg)', borderRadius: 6, fontSize: '0.75rem', fontWeight: 650, display: 'flex', justifyContent: 'space-between' }}>
-                              <span>{it.description}</span>
-                              <span style={{ color: 'var(--text-muted)' }}>₹{it.amount}</span>
-                           </div>
-                        ))}
-                      </div>
+                   <td style={{ padding: '16px 24px', minWidth: 140 }}>
+                      <button 
+                        className="btn btn-ghost" 
+                        style={{ fontSize: '0.75rem', fontWeight: 700, borderColor: `${accentColor}40`, color: accentColor, height: 36, padding: '0 16px' }}
+                        onClick={() => setSelectedLog(log)}
+                      >
+                        <FileText size={14} style={{ marginRight: 6 }} /> Details
+                      </button>
                    </td>
                    <td style={{ padding: '16px 24px', fontSize: '0.85rem', fontWeight: 600 }}>{log.userName}</td>
                    <td style={{ padding: '16px 24px' }}>
@@ -120,6 +120,47 @@ export default function GarageServiceLogs() {
            </div>
         </div>
       </div>
+      {/* Details Modal */}
+      {selectedLog && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(6px)' }}>
+          <div className="card animate-scaleIn" style={{ width: '90%', maxWidth: 450, padding: 0, border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <div>
+                 <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.25rem' }}>Service Breakdown</h3>
+                 <p style={{ margin: '4px 0 0', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Invoice ID: {selectedLog.id}</p>
+               </div>
+               <button className="btn-icon" onClick={() => setSelectedLog(null)} style={{ background: 'var(--bg-alt)' }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ padding: '24px' }}>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 850, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Itemized Services</p>
+                  {selectedLog.items.map((it, idx) => (
+                    <div key={idx} style={{ padding: '16px', background: 'var(--bg-alt)', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+                       <div style={{ display: 'flex', flexDirection: 'column' }}>
+                         <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{it.description}</span>
+                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Qty: {it.qty || 1}</span>
+                       </div>
+                       <span style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--text-main)' }}>₹{(Number(it.amount) || 0).toLocaleString()}</span>
+                    </div>
+                  ))}
+               </div>
+               
+               <div style={{ marginTop: 24, padding: '20px 16px', background: '#F0FDF4', borderRadius: 16, border: '1px dashed #16A34A40', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.9rem' }}>Final Amount</span>
+                  <span style={{ fontWeight: 900, fontSize: '1.5rem', color: '#16A34A' }}>₹{Number(selectedLog.total).toLocaleString()}</span>
+               </div>
+               
+               <button className="btn btn-primary btn-full" style={{ marginTop: 24, background: accentColor, height: 48, fontSize: '0.9rem', fontWeight: 800 }} onClick={() => setSelectedLog(null)}>Close Breakdown</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .animate-scaleIn { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+      `}</style>
     </div>
   )
 }

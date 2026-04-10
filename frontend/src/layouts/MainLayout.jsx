@@ -22,14 +22,22 @@ const pageMeta = {
   '/admin/ads':           { title: 'Advertisements', subtitle: 'Manage banner ads' },
   '/admin/billing':       { title: 'Billing Monitor',subtitle: 'All system bills' },
   '/admin/reports':       { title: 'Reports',        subtitle: 'Revenue & usage analytics' },
-  '/admin/settings':      { title: 'System Settings',subtitle: 'Global app configuration' },
+  '/admin/software-sales': { title: null, subtitle: null }, // Handled dynamically
 }
 
 export default function MainLayout() {
   const { sidebarCollapsed, mobileMenuOpen, closeMobileMenu } = useApp()
   const location = useLocation()
+  const isTransport = (localStorage.getItem('view_mode') || 'transport') === 'transport'
 
-  const meta = pageMeta[location.pathname] || { title: 'TRANS', subtitle: null }
+  let meta = pageMeta[location.pathname] || { title: 'TRANS', subtitle: null }
+
+  if (location.pathname === '/admin/software-sales') {
+    meta = {
+      title: isTransport ? 'Transporter Sales' : 'Garage Sales',
+      subtitle: `Manage ${isTransport ? 'transporter' : 'garage'} deals & payments`
+    }
+  }
 
   // On bill detail pages, show back arrow
   const showBack = location.pathname !== '/dashboard' &&

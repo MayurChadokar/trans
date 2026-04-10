@@ -3,7 +3,7 @@ import {
   Users, Search, Filter, UserPlus, X,
   User, Phone, Mail, Shield, Trash2, Edit3,
   ChevronLeft, ChevronRight, CheckCircle, Clock,
-  Truck, Wrench, Building2, MoreVertical
+  Truck, Wrench, Building2, MoreVertical, CreditCard, MapPin, Eye, FileText
 } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
 import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateUser } from '../../api/adminApi'
@@ -94,12 +94,12 @@ function UserModal({ mode, existing, onSave, onClose }) {
 }
 
 export default function UserManagement() {
-  const { mode } = useAdmin()
+  const { mode, vehicles, invoices, users: contextUsers } = useAdmin()
   const isTransport = mode === 'transport'
   const accentColor = '#7C3AED'
   const roles = isTransport ? ROLES_T : ROLES_G
 
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState(contextUsers || [])
   const [fetching, setFetching] = useState(false)
   const [apiError, setApiError] = useState('')
 
@@ -108,6 +108,9 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState('All')
   const [page, setPage] = useState(1)
   const [modal, setModal] = useState(null) // null | 'add' | { ...user }
+  const [history, setHistory] = useState(null) // null | { name, invoices, isTransport }
+  const [showVehicles, setShowVehicles] = useState(null) // null | { name, list }
+  const [viewDetails, setViewDetails] = useState(null) // null | { ...user }
 
   const loadUsers = async ({ q } = {}) => {
     setFetching(true)
@@ -127,12 +130,19 @@ export default function UserManagement() {
         role: fromBackendRole(mode, u.role),
         status: u.setupComplete ? 'Active' : 'Inactive',
         joinedAt: toJoinedAt(u.createdAt),
+        documents: u.documents || []
       }))
-      setUsers(rows)
+      
+      // If API returns data, use it. If not, stick with context/dummy data.
+      if (rows.length > 0) {
+        setUsers(rows)
+      } else {
+        setUsers(contextUsers)
+      }
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'Failed to load users'
       setApiError(msg)
-      setUsers([])
+      setUsers(contextUsers) // Fallback to dummy data on error
     } finally {
       setFetching(false)
     }
@@ -143,9 +153,10 @@ export default function UserManagement() {
     setSearch('')
     setStatusFilter('All')
     setRoleFilter('All')
+    setUsers(contextUsers)
     loadUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode])
+  }, [mode, contextUsers])
 
   const filtered = useMemo(() => {
     return users.filter(u => {
@@ -198,9 +209,6 @@ export default function UserManagement() {
             Manage {isTransport ? 'transporters, drivers & staff' : 'garage owners, mechanics & staff'}
           </p>
         </div>
-        <button className="btn btn-primary" style={{ background: accentColor, borderColor: accentColor }} onClick={() => setModal('add')}>
-          <UserPlus size={18} /> Add User
-        </button>
       </div>
 
       {/* Stats Row */}
@@ -233,10 +241,6 @@ export default function UserManagement() {
             <option value="All">All Status</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
-          </select>
-          <select className="form-input" style={{ height: 44, minWidth: 160, fontWeight: 700 }} value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1) }}>
-            <option value="All">All Roles</option>
-            {roles.map(r => <option key={r}>{r}</option>)}
           </select>
         </div>
 
@@ -288,21 +292,15 @@ export default function UserManagement() {
                   <td style={{ padding: '14px 20px' }}>
                     <button
                       onClick={async () => {
-                        try {
-                          const nextActive = user.status !== 'Active'
-                          await adminUpdateUser(user.id, { setupComplete: nextActive })
-                          await loadUsers({ q: search })
-                        } catch (e) {
-                          const msg = e?.response?.data?.message || e?.message || 'Update failed'
-                          setApiError(msg)
-                        }
+                        return // Read-only
                       }}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99,
-                        border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase',
+                        border: 'none', cursor: 'default', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase',
                         background: user.status === 'Active' ? 'var(--success-light)' : '#FEE2E2',
                         color: user.status === 'Active' ? 'var(--success)' : 'var(--danger)',
-                        transition: 'filter 0.2s'
+                        transition: 'filter 0.2s',
+                        opacity: 0.8
                       }}
                     >
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: user.status === 'Active' ? 'var(--success)' : 'var(--danger)' }} />
@@ -314,20 +312,36 @@ export default function UserManagement() {
                   </td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setModal(user)} title="Edit">
-                        <Edit3 size={15} />
+                      <button className="btn btn-ghost btn-sm btn-icon" style={{ color: accentColor }} 
+                        onClick={() => setViewDetails(user)}
+                        title="View Details"
+                      >
+                        <Eye size={15} />
                       </button>
-                      <button className="btn btn-sm btn-icon" onClick={async () => {
-                        try {
-                          await adminDeleteUser(user.id)
-                          await loadUsers({ q: search })
-                        } catch (e) {
-                          const msg = e?.response?.data?.message || e?.message || 'Delete failed'
-                          setApiError(msg)
-                        }
-                      }} style={{ color: 'var(--danger)', background: '#FEE2E2', border: 'none' }} title="Delete">
-                        <Trash2 size={15} />
+                      <button className="btn btn-ghost btn-sm btn-icon" style={{ color: accentColor }} 
+                        onClick={() => {
+                          const userBills = invoices.filter(i => (i.userName === user.name || i.userId === user.id))
+                          setHistory({
+                            name: user.name,
+                            isTransport: isTransport,
+                            invoices: userBills
+                          })
+                        }}
+                        title={isTransport ? "Trip History" : "Service History"}
+                      >
+                        {isTransport ? <MapPin size={15} /> : <CreditCard size={15} />}
                       </button>
+                      {isTransport && (
+                        <button className="btn btn-ghost btn-sm btn-icon" style={{ color: '#10B981' }} 
+                           onClick={() => {
+                             const list = vehicles.filter(v => (v.ownerName === user.name || v.ownerId === user.id))
+                             setShowVehicles({ name: user.name, list })
+                           }}
+                           title="Registered Vehicles"
+                        >
+                           <Truck size={15} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -337,13 +351,8 @@ export default function UserManagement() {
                   <Users size={44} color="var(--text-muted)" strokeWidth={1.5} style={{ margin: '0 auto 14px' }} />
                   <h3 style={{ margin: 0, fontWeight: 800, color: 'var(--text-secondary)' }}>No users found</h3>
                   <p style={{ margin: '6px 0 16px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    {users.length === 0 ? `Add your first ${isTransport ? 'transporter' : 'garage owner'}` : 'Try adjusting filters'}
+                    {users.length === 0 ? `No ${isTransport ? 'transporters' : 'garage owners'} registered yet` : 'Try adjusting filters'}
                   </p>
-                  {users.length === 0 && (
-                    <button className="btn btn-primary" onClick={() => setModal('add')} style={{ background: accentColor, borderColor: accentColor }}>
-                      <UserPlus size={16} /> Add First User
-                    </button>
-                  )}
                 </td></tr>
               )}
             </tbody>
@@ -375,6 +384,169 @@ export default function UserManagement() {
           onSave={handleSave}
           onClose={() => setModal(null)}
         />
+      )}
+
+      {history && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card animate-scaleIn" style={{ width: '100%', maxWidth: 650, padding: 0, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 900 }}>{history.isTransport ? 'Trip History' : 'Service History'}</h3>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{history.name}</p>
+              </div>
+              <button className="btn-icon" onClick={() => setHistory(null)}><X size={20} /></button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+              {history.invoices.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  {history.isTransport ? <Truck size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} /> : <CreditCard size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} />}
+                  <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>No {history.isTransport ? 'trips' : 'services'} recorded yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {history.invoices.map(inv => (
+                    <div key={inv.id} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--bg-alt)', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.85rem' }}>{inv.id} — {inv.date}</span>
+                        <span style={{ fontWeight: 900, color: accentColor }}>₹{Number(inv.total).toLocaleString()}</span>
+                      </div>
+                      <div style={{ padding: 12 }}>
+                        {inv.items && inv.items.map((it, i) => (
+                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '4px 0', borderBottom: i < inv.items.length-1 ? '1px dashed #eee' : 'none' }}>
+                             <span style={{ fontWeight: 600 }}>{it.description} (x{it.qty})</span>
+                             <span style={{ color: 'var(--text-secondary)' }}>₹{Number(it.amount).toLocaleString()}</span>
+                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
+              <button className="btn btn-primary btn-full" onClick={() => setHistory(null)}>Close History</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showVehicles && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card animate-scaleIn" style={{ width: '100%', maxWidth: 650, padding: 0, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 900 }}>Registered Fleet</h3>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{showVehicles.name}</p>
+              </div>
+              <button className="btn-icon" onClick={() => setShowVehicles(null)}><X size={20} /></button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+              {showVehicles.list.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Truck size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} />
+                  <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>No vehicles registered yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  {showVehicles.list.map(v => (
+                    <div key={v.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, background: 'white', position: 'relative' }}>
+                       <div style={{ position: 'absolute', right: 12, top: 12, fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px', borderRadius: 4, background: v.status === 'Active' ? '#D1FAE5' : '#FEF3C7', color: v.status === 'Active' ? '#059669' : '#D97706' }}>{v.status}</div>
+                       <div style={{ fontWeight: 900, fontSize: '1rem', color: accentColor }}>{v.plateNo}</div>
+                       <div style={{ fontSize: '0.8rem', fontWeight: 700, margin: '4px 0' }}>{v.model}</div>
+                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Type: {v.type}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
+              <button className="btn btn-primary btn-full" onClick={() => setShowVehicles(null)}>Close List</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewDetails && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card animate-scaleIn" style={{ width: '100%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+               <h3 style={{ margin: 0, fontWeight: 900 }}>User Profile Details</h3>
+               <button className="btn-icon" onClick={() => setViewDetails(null)}><X size={20} /></button>
+            </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--bg-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 900, color: accentColor }}>
+                     {(viewDetails.name || '?')[0].toUpperCase()}
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '1.25rem', fontWeight: 900 }}>{viewDetails.name}</div>
+                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: {viewDetails.id}</div>
+                  </div>
+               </div>
+
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                  <div>
+                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Contact Phone</div>
+                     <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{viewDetails.phone || 'N/A'}</div>
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Email Address</div>
+                     <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{viewDetails.email || 'N/A'}</div>
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Current Role</div>
+                     <div style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'capitalize' }}>{viewDetails.role}</div>
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Account Status</div>
+                     <div style={{ fontSize: '0.9rem', fontWeight: 700, color: viewDetails.status === 'Active' ? 'var(--success)' : 'var(--danger)' }}>{viewDetails.status}</div>
+                  </div>
+                  <div>
+                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Joined At</div>
+                     <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{viewDetails.joinedAt}</div>
+                  </div>
+               </div>
+
+               <div>
+                 <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Uploaded Documents</div>
+                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                   {(!viewDetails.documents || viewDetails.documents.length === 0) ? (
+                     <div style={{ padding: '12px', border: '1px dashed var(--border)', borderRadius: 8, width: '100%', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                       No documents uploaded for this user.
+                     </div>
+                   ) : (
+                     viewDetails.documents.map((doc, idx) => (
+                       <a key={idx} href={doc.url} target="_blank" rel="noreferrer" 
+                          style={{ 
+                            textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', 
+                            background: 'var(--bg-alt)', border: '1px solid var(--border)', borderRadius: 8, 
+                            color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 700,
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = accentColor; e.currentTarget.style.color = accentColor }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                       >
+                          <FileText size={14} />
+                          {doc.label}
+                       </a>
+                     ))
+                   )}
+                 </div>
+               </div>
+               
+               <button className="btn btn-primary btn-full" onClick={() => setViewDetails(null)}>Close Profile</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`

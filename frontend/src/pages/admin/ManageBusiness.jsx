@@ -223,18 +223,17 @@ export default function ManageBusiness() {
                   <td style={{ padding: '14px 20px', fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 500 }}>{biz.joinedAt || '—'}</td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      {!isTransport && (
-                        <button className="btn btn-ghost btn-sm btn-icon" style={{ color: accentColor }} 
-                          onClick={() => setHistory({ 
-                            id: biz.id, 
-                            name: biz.name, 
-                            invoices: useAdmin().invoices.filter(i => i.businessId === biz.id) 
-                          })} 
-                          title="Service History"
-                        >
-                          <CreditCard size={15} />
-                        </button>
-                      )}
+                      <button className="btn btn-ghost btn-sm btn-icon" style={{ color: accentColor }} 
+                        onClick={() => setHistory({ 
+                          id: biz.id, 
+                          name: biz.name, 
+                          isTransport: isTransport,
+                          invoices: useAdmin().invoices.filter(i => (i.businessId === biz.id || i.businessName === biz.name)) 
+                        })} 
+                        title={isTransport ? "Trip History" : "Service History"}
+                      >
+                        {isTransport ? <MapPin size={15} /> : <CreditCard size={15} />}
+                      </button>
                       <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setModal(biz)} title="Edit"><Edit3 size={15} /></button>
                       <button className="btn btn-sm btn-icon" onClick={() => deleteBusiness(biz.id)} style={{ color: 'var(--danger)', background: '#FEE2E2', border: 'none' }} title="Delete"><Trash2 size={15} /></button>
                     </div>
@@ -289,7 +288,7 @@ export default function ManageBusiness() {
           <div className="card animate-scaleIn" style={{ width: '100%', maxWidth: 650, padding: 0, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontWeight: 900 }}>Service History</h3>
+                <h3 style={{ margin: 0, fontWeight: 900 }}>{history.isTransport ? 'Trip History' : 'Service History'}</h3>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{history.name}</p>
               </div>
               <button className="btn-icon" onClick={() => setHistory(null)}><X size={20} /></button>
@@ -297,8 +296,8 @@ export default function ManageBusiness() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
               {history.invoices.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <CreditCard size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} />
-                  <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>No services recorded yet.</p>
+                  {history.isTransport ? <Truck size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} /> : <CreditCard size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} />}
+                  <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>No {history.isTransport ? 'trips' : 'services'} recorded yet.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

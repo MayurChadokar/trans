@@ -1,0 +1,440 @@
+import React, { useState, useMemo } from 'react'
+import { 
+  CreditCard, Search, Plus, Trash2, Calendar, 
+  Phone, User, Building2, ChevronLeft, ChevronRight,
+  X, CheckCircle, Clock, AlertCircle, IndianRupee,
+  History, Wallet, ArrowUpRight, TrendingUp, Settings,
+  Layers, Zap
+} from 'lucide-react'
+import { useAdmin } from '../../context/AdminContext'
+
+const ITEMS_PER_PAGE = 8
+
+function PlanManagerModal({ plans, onAdd, onUpdate, onDelete, onClose, isTransport }) {
+   const [editPlan, setEditPlan] = useState(null) // null or { id, name, interval, price, features }
+   const [form, setForm] = useState({ name: '', interval: 'Monthly', price: '', features: '' })
+
+   const handleSave = (e) => {
+      e.preventDefault()
+      if (editPlan) onUpdate(editPlan.id, form)
+      else onAdd(form)
+      setForm({ name: '', interval: 'Monthly', price: '', features: '' })
+      setEditPlan(null)
+   }
+
+   return (
+      <div style={{
+         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(4px)'
+       }}>
+         <div className="card animate-scaleIn" style={{ width: '100%', maxWidth: 700, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+               <div>
+                  <h3 style={{ margin: 0, fontWeight: 900 }}>{isTransport ? 'Transporter' : 'Garage'} Plan Master</h3>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Define monthly and yearly software packages</p>
+               </div>
+               <button className="btn-icon" onClick={onClose}><X size={20} /></button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', flex: 1, overflow: 'hidden' }}>
+               {/* Left: Form */}
+               <div style={{ padding: '24px', borderRight: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
+                  <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                     <h4 style={{ margin: '0 0 5px', fontSize: '0.85rem', fontWeight: 800 }}>{editPlan ? 'Edit Plan' : 'Create New Plan'}</h4>
+                     <input 
+                        className="form-input" placeholder="Plan Name (e.g. Silver)" required 
+                        value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                     />
+                     <select className="form-input" value={form.interval} onChange={e => setForm(p => ({ ...p, interval: e.target.value }))}>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Yearly">Yearly</option>
+                     </select>
+                     <div className="input-group">
+                        <IndianRupee className="input-icon" size={16} />
+                        <input 
+                           type="number" className="form-input" placeholder="Price" required 
+                           value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
+                        />
+                     </div>
+                     <textarea 
+                        className="form-input" placeholder="Features (comma separated)" style={{ height: 80, fontSize: '0.8rem' }}
+                        value={form.features} onChange={e => setForm(p => ({ ...p, features: e.target.value }))}
+                     />
+                     <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="submit" className="btn btn-primary btn-full">{editPlan ? 'Update' : 'Add Plan'}</button>
+                        {editPlan && <button type="button" className="btn btn-ghost" onClick={() => { setEditPlan(null); setForm({ name: '', interval: 'Monthly', price: '', features: '' }) }}><X size={16} /></button>}
+                     </div>
+                  </form>
+               </div>
+
+               {/* Right: List */}
+               <div style={{ overflowY: 'auto', padding: '12px' }}>
+                  {plans.map(p => (
+                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'white', borderRadius: 12, border: '1px solid var(--border)', marginBottom: 10 }}>
+                        <div>
+                           <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{p.name} <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: '#F3F4F6', borderRadius: 4, marginLeft: 6 }}>{p.interval}</span></div>
+                           <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7C3AED' }}>₹{Number(p.price).toLocaleString()}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                           <button className="btn-icon btn-sm" onClick={() => { setEditPlan(p); setForm(p) }}><History size={14} /></button>
+                           <button className="btn-icon btn-sm" onClick={() => onDelete(p.id)} style={{ color: '#EF4444' }}><Trash2 size={14} /></button>
+                        </div>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
+      </div>
+   )
+}
+
+function SaleModal({ plans, existing, onSave, onClose, isTransport }) {
+  const [form, setForm] = useState(existing || {
+    transporterName: '', businessName: '', phone: '', 
+    totalAmount: '', amountPaid: '', paymentMode: 'Cash',
+    planId: ''
+  })
+
+  const set = k => e => {
+     const val = e.target.value
+     if (k === 'planId') {
+        const selected = plans.find(p => p.id === val)
+        if (selected) {
+           setForm(p => ({ ...p, planId: val, totalAmount: selected.price }))
+           return
+        }
+     }
+     setForm(p => ({ ...p, [k]: val }))
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+    }}>
+      <div className="card animate-scaleIn" style={{ width: '100%', maxWidth: 520, padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0, fontWeight: 900 }}>{existing ? 'Edit Sale' : `Onboard New ${isTransport ? 'Transporter' : 'Garage'}`}</h3>
+          <button className="btn-icon" onClick={onClose}><X size={20} /></button>
+        </div>
+        <form onSubmit={e => { e.preventDefault(); onSave(form) }} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          
+          <div className="form-group">
+            <label className="form-label">SELECT SUBSCRIPTION PLAN</label>
+            <div className="input-group">
+               <Zap className="input-icon" size={18} />
+               <select className="form-input" value={form.planId} onChange={set('planId')} style={{ paddingLeft: 44 }}>
+                  <option value="">-- Choose a Plan --</option>
+                  {plans.map(p => <option key={p.id} value={p.id}>{p.name} ({p.interval}) - ₹{p.price}</option>)}
+               </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">{isTransport ? 'TRANSPORTER' : 'GARAGE'} OWNER NAME *</label>
+            <div className="input-group">
+              <User className="input-icon" size={18} />
+              <input type="text" className="form-input" placeholder={isTransport ? "Owner Name" : "Garage Owner"} required value={form.transporterName} onChange={set('transporterName')} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+             <div className="form-group">
+                <label className="form-label">BUSINESS NAME</label>
+                <div className="input-group">
+                   <Building2 className="input-icon" size={18} />
+                   <input type="text" className="form-input" placeholder="Company Name" value={form.businessName} onChange={set('businessName')} />
+                </div>
+             </div>
+             <div className="form-group">
+                <label className="form-label">PHONE *</label>
+                <div className="input-group">
+                   <Phone className="input-icon" size={18} />
+                   <input type="tel" className="form-input" placeholder="Mobile" required value={form.phone} onChange={set('phone')} />
+                </div>
+             </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+             <div className="form-group">
+                <label className="form-label">FINAL DEAL PRICE *</label>
+                <div className="input-group">
+                   <IndianRupee className="input-icon" size={18} />
+                   <input type="number" className="form-input" placeholder="Total Cost" required value={form.totalAmount} onChange={set('totalAmount')} />
+                </div>
+             </div>
+             <div className="form-group">
+                <label className="form-label">INITIAL PAYMENT *</label>
+                <div className="input-group">
+                   <Wallet className="input-icon" size={18} />
+                   <input type="number" className="form-input" placeholder="Paid Now" required value={form.amountPaid} onChange={set('amountPaid')} />
+                </div>
+             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">PAYMENT MODE</label>
+            <select className="form-input" value={form.paymentMode} onChange={set('paymentMode')}>
+              <option value="Cash">Cash</option>
+              <option value="UPI / PhonePe">UPI / PhonePe</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Cheque">Cheque</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <button type="button" className="btn btn-ghost btn-full" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary btn-full">{existing ? 'Update' : 'Register Sale'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function PaymentLogModal({ sale, onAddPayment, onClose }) {
+   const [payment, setPayment] = useState({ amount: '', mode: 'Cash' })
+   
+   return (
+      <div style={{
+         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+       }}>
+         <div className="card animate-scaleIn" style={{ width: '100%', maxWidth: 580, padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+               <div>
+                  <h3 style={{ margin: 0, fontWeight: 900 }}>Payment Collections</h3>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{sale.businessName} · {sale.transporterName}</p>
+               </div>
+               <button className="btn-icon" onClick={onClose}><X size={20} /></button>
+            </div>
+            
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', background: 'var(--bg-alt)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                   <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Deal</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900 }}>₹{sale.totalAmount.toLocaleString()}</div>
+                   </div>
+                   <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10B981', textTransform: 'uppercase' }}>Total Paid</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10B981' }}>₹{sale.amountPaid.toLocaleString()}</div>
+                   </div>
+                   <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase' }}>Balance Due</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#EF4444' }}>₹{sale.pendingAmount.toLocaleString()}</div>
+                   </div>
+                </div>
+            </div>
+
+            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: 'var(--bg)', borderBottom: '1px solid var(--border)', zIndex: 1 }}>
+                     <tr>
+                        {['Date', 'Amount', 'Method'].map(h => <th key={h} style={{ padding: '10px 24px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</th>)}
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {sale.paymentHistory.map((h, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                           <td style={{ padding: '12px 24px', fontSize: '0.85rem', fontWeight: 600 }}>{h.date}</td>
+                           <td style={{ padding: '12px 24px', fontSize: '0.85rem', fontWeight: 800, color: '#10B981' }}>₹{h.amount.toLocaleString()}</td>
+                           <td style={{ padding: '12px 24px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>{h.mode}</td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+
+            {sale.pendingAmount > 0 && (
+               <div style={{ padding: '24px', borderTop: '2px dashed var(--border)', background: 'var(--bg-alt)' }}>
+                  <h4 style={{ margin: '0 0 14px', fontSize: '0.85rem', fontWeight: 800 }}>Collect Pending Payment</h4>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                     <div className="input-group" style={{ flex: 1 }}>
+                        <IndianRupee className="input-icon" size={16} />
+                        <input 
+                           type="number" className="form-input" placeholder="Amount" 
+                           value={payment.amount} onChange={e => setPayment(p => ({ ...p, amount: e.target.value }))} 
+                        />
+                     </div>
+                     <select 
+                        className="form-input" style={{ width: 140 }}
+                        value={payment.mode} onChange={e => setPayment(p => ({ ...p, mode: e.target.value }))}
+                     >
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Bank">Bank</option>
+                     </select>
+                     <button 
+                        className="btn btn-primary" disabled={!payment.amount}
+                        onClick={() => { onAddPayment(sale.id, payment); setPayment({ amount: '', mode: 'Cash' }) }}
+                     >Collect</button>
+                  </div>
+               </div>
+            )}
+         </div>
+      </div>
+   )
+}
+
+export default function SoftwareSales() {
+  const { 
+     mode,
+     softwareSales, addSoftwareSale, updateSoftwareSale, deleteSoftwareSale, addSalePayment,
+     plans, addPlan, updatePlan, deletePlan
+  } = useAdmin()
+  const isTransport = mode === 'transport'
+  const accentColor = '#7C3AED'
+
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('All')
+  const [page, setPage] = useState(1)
+  const [modal, setModal] = useState(null)
+  const [historyModal, setHistoryModal] = useState(null)
+  const [showPlanMgr, setShowPlanMgr] = useState(false)
+
+  const stats = useMemo(() => {
+     const total = softwareSales.reduce((s, x) => s + x.totalAmount, 0)
+     const paid = softwareSales.reduce((s, x) => s + x.amountPaid, 0)
+     const pending = softwareSales.reduce((s, x) => s + x.pendingAmount, 0)
+     return { total, paid, pending }
+  }, [softwareSales])
+
+  const filtered = useMemo(() => {
+    return softwareSales.filter(s => {
+      const q = search.toLowerCase()
+      const matchSearch = !q || s.transporterName.toLowerCase().includes(q) || s.businessName.toLowerCase().includes(q) || s.phone.includes(q)
+      const matchFilter = filter === 'All' || s.status === filter
+      return matchSearch && matchFilter
+    })
+  }, [softwareSales, search, filter])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
+  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+
+  const handleSave = (form) => {
+     if (modal?.id) updateSoftwareSale(modal.id, form)
+     else addSoftwareSale(form)
+     setModal(null)
+  }
+
+  const handleAddPayment = (id, p) => {
+     addSalePayment(id, p)
+     setHistoryModal(p => ({ ...p })) 
+  }
+
+  return (
+    <div className="animate-fadeIn">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <TrendingUp size={16} color={accentColor} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+               {isTransport ? 'Transporter' : 'Garage'} Growth · Acquisition Logic
+            </span>
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 900, margin: 0 }}>{isTransport ? 'Transporter' : 'Garage'} Sales & Tracking</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 4 }}>
+            Manage {plans.length} active {isTransport ? 'transporter' : 'garage'} plans and track collections.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+           <button className="btn btn-ghost" onClick={() => setShowPlanMgr(true)}>
+              <Settings size={18} /> Manage Plans
+           </button>
+           <button className="btn btn-primary" style={{ background: accentColor, borderColor: accentColor }} onClick={() => setModal('add')}>
+             <Plus size={18} /> New Sales Record
+           </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20, marginBottom: 32 }}>
+          {[
+             { label: 'Total Deal Value', val: stats.total, color: accentColor, bg: '#F5F3FF', icon: TrendingUp },
+             { label: 'Payments Collected', val: stats.paid, color: '#10B981', bg: '#F0FDF4', icon: CheckCircle },
+             { label: 'Outstanding Dues', val: stats.pending, color: '#EF4444', bg: '#FEF2F2', icon: AlertCircle },
+          ].map(c => (
+             <div key={c.label} className="card" style={{ padding: '24px', border: 'none', background: 'white', position: 'relative' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: c.bg, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                   <c.icon size={22} />
+                </div>
+                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>₹{c.val.toLocaleString()}</div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 4, letterSpacing: '0.04em' }}>{c.label}</div>
+             </div>
+          ))}
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div className="input-group" style={{ flex: '2 1 280px' }}>
+            <Search className="input-icon" size={18} />
+            <input 
+              type="text" className="form-input" placeholder="Search client name, business, or phone..." 
+              value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} 
+              style={{ paddingLeft: 44, height: 44 }} 
+            />
+          </div>
+          <select className="form-input" style={{ width: 160, fontWeight: 700 }} value={filter} onChange={e => { setFilter(e.target.value); setPage(1) }}>
+             <option value="All">All Status</option>
+             <option value="Paid">Fully Paid</option>
+             <option value="Partial">Partial Payment</option>
+             <option value="Pending">Pending</option>
+          </select>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: 'var(--bg-alt)', borderBottom: '1px solid var(--border)' }}>
+              <tr>
+                {[isTransport ? 'Transporter / Business' : 'Garage / Business', 'Total Deal', 'Paid', 'Pending', 'Status', 'Actions'].map(h => (
+                   <th key={h} style={{ padding: '14px 24px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.map(sale => (
+                <tr key={sale.id} className="table-row-hover" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>{sale.transporterName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                       <Building2 size={12} /> {sale.businessName || 'N/A'}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px 24px', fontWeight: 800, fontSize: '0.95rem' }}>₹{sale.totalAmount.toLocaleString()}</td>
+                  <td style={{ padding: '16px 24px', fontWeight: 800, fontSize: '0.95rem', color: '#10B981' }}>₹{sale.amountPaid.toLocaleString()}</td>
+                  <td style={{ padding: '16px 24px', fontWeight: 900, fontSize: '0.95rem', color: sale.pendingAmount > 0 ? '#EF4444' : '#111' }}>
+                     ₹{sale.pendingAmount.toLocaleString()}
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                     <span style={{
+                        padding: '4px 10px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase',
+                        background: sale.status === 'Paid' ? '#D1FAE5' : (sale.status === 'Partial' ? '#FEF3C7' : '#FEE2E2'),
+                        color: sale.status === 'Paid' ? '#059669' : (sale.status === 'Partial' ? '#D97706' : '#EF4444')
+                     }}>{sale.status}</span>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                       <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setHistoryModal(sale)} title="Payment History"><History size={16} /></button>
+                       <button className="btn btn-sm btn-icon" style={{ background: '#FEE2E2', color: '#EF4444', border: 'none' }} onClick={() => deleteSoftwareSale(sale.id)}><Trash2 size={16} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Records: {filtered.length}</p>
+           <div style={{ display: 'flex', gap: 8 }}>
+             <button className="btn btn-ghost btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} /></button>
+             <button className="btn btn-ghost btn-sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
+           </div>
+        </div>
+      </div>
+
+      {modal && <SaleModal plans={plans} existing={modal === 'add' ? null : modal} onSave={handleSave} onClose={() => setModal(null)} isTransport={isTransport} />}
+      {historyModal && <PaymentLogModal sale={historyModal} onAddPayment={handleAddPayment} onClose={() => setHistoryModal(null)} />}
+      {showPlanMgr && <PlanManagerModal plans={plans} onAdd={addPlan} onUpdate={updatePlan} onDelete={deletePlan} onClose={() => setShowPlanMgr(false)} isTransport={isTransport} />}
+    </div>
+  )
+}

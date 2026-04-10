@@ -2,15 +2,87 @@ import { useMemo, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Building2, Receipt,
-  BarChart2, Bell, ShieldCheck, Settings,
+  BarChart2, Bell, ShieldCheck,
   LogOut, ChevronLeft, ChevronRight, Truck,
-  Wrench, HelpCircle, ShieldAlert, Monitor,
-  Plus, ChevronDown, UserCircle, MapPin, Banknote
+  Wrench, Monitor,
+  Plus, ChevronDown, UserCircle, MapPin, Banknote, CreditCard
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
 import { useAdmin } from '../../context/AdminContext'
 import logo from '../../assets/trans-logo.png'
+
+function NavItem({ item, expanded, toggleSection, sidebarCollapsed, mobileMenuOpen, closeMobileMenu, accentColor, level = 0 }) {
+  if (item.isCollapsible) {
+    return (
+      <div className="nav-collapsible" style={{ marginBottom: 4 }}>
+        <button
+          className="nav-item w-full"
+          onClick={() => toggleSection(item.id)}
+          style={{ 
+            background: 'none', border: 'none', textAlign: 'left', 
+            display: 'flex', alignItems: 'center', gap: 12, 
+            padding: `12px 12px 12px ${12 + (level * 20)}px`, 
+            borderRadius: 10, position: 'relative' 
+          }}
+        >
+          {item.icon && <item.icon size={20} className="nav-icon" color="rgba(255,255,255,0.6)" />}
+          {!sidebarCollapsed && (
+            <>
+              <span className="nav-label" style={{ flex: 1, fontSize: level === 0 ? '0.875rem' : '0.8rem', fontWeight: 650, color: 'rgba(255,255,255,0.8)' }}>{item.label}</span>
+              <ChevronDown size={14} color="rgba(255,255,255,0.4)" style={{ transform: expanded[item.id] ? 'rotate(180deg)' : 'none', transition: '0.3s' }} />
+            </>
+          )}
+        </button>
+        {expanded[item.id] && !sidebarCollapsed && (
+          <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {item.children.map(child => (
+              <NavItem 
+                key={child.id || child.to} 
+                item={child} 
+                expanded={expanded} 
+                toggleSection={toggleSection} 
+                sidebarCollapsed={sidebarCollapsed} 
+                mobileMenuOpen={mobileMenuOpen}
+                closeMobileMenu={closeMobileMenu}
+                accentColor={accentColor} 
+                level={level + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      onClick={closeMobileMenu}
+      className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+      style={({ isActive }) => ({
+        display: 'flex', alignItems: 'center', gap: 12, 
+        padding: `12px 12px 12px ${12 + (level * 20)}px`, 
+        borderRadius: 10,
+        background: isActive ? accentColor : 'transparent',
+        marginBottom: 4, transition: '0.2s', position: 'relative',
+        boxShadow: isActive ? `0 4px 15px ${accentColor}40` : 'none'
+      })}
+    >
+      {({ isActive }) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+          {item.icon && <item.icon size={20} className="nav-icon" color={isActive ? 'white' : 'rgba(255,255,255,0.6)'} />}
+          {(!sidebarCollapsed || mobileMenuOpen) && (
+            <span className="nav-label" style={{ fontSize: level === 0 ? '0.875rem' : '0.8rem', fontWeight: 650, color: isActive ? 'white' : 'rgba(255,255,255,0.8)' }}>
+              {item.label}
+            </span>
+          )}
+        </div>
+      )}
+    </NavLink>
+  )
+}
 
 export default function Sidebar() {
   const { logout, user, isAdmin } = useAuth()
@@ -20,6 +92,7 @@ export default function Sidebar() {
 
   const [expanded, setExpanded] = useState({
     userMgmt: false,
+    transporterMgmt: false,
     bizMgmt: false
   })
 
@@ -58,54 +131,13 @@ export default function Sidebar() {
   // Navigation for Admins
   const adminItems = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Admin Dashboard' },
-    {
-      id: 'userMgmt',
-      icon: Users,
-      label: 'User Management',
-      isCollapsible: true,
-      children: [
-        { to: '/admin/users', label: isTransport ? 'Transporters' : 'Garage Owners' },
-        { to: '/admin/drivers', label: isTransport ? 'Drivers' : 'Mechanics' },
-        { to: '/admin/staff', label: 'Staff' }
-      ]
-    },
-    {
-      id: 'bizMgmt',
-      icon: Building2,
-      label: 'Business Mgmt',
-      isCollapsible: true,
-      children: [
-        { to: '/admin/manage', label: isTransport ? 'Transport Businesses' : 'Garage Businesses' },
-        { to: '/admin/onboarding', label: 'Recent Registrations' }
-      ]
-    },
+    { to: '/admin/users', icon: Users, label: isTransport ? 'Transporter List' : 'Garage Owners' },
+    { to: '/admin/manage', icon: Building2, label: isTransport ? 'Transport Businesses' : 'Garage Businesses' },
     { to: '/admin/billing', icon: Receipt, label: 'Billing Monitor' },
-    // Only show Service Management in Garage Mode
-    ...(!isTransport ? [{
-      id: 'svcMgmt',
-      icon: Wrench,
-      label: 'Service Management',
-      isCollapsible: true,
-      children: [
-        { to: '/admin/services/garage', label: 'Garage Service Logs' }
-      ]
-    }] : []),
+    { to: '/admin/software-sales', icon: CreditCard, label: isTransport ? 'Transporter Sales' : 'Garage Sales' },
     
     // Only show Trip Management in Transport Mode
-    ...(isTransport ? [{
-      id: 'tripMgmt',
-      icon: MapPin,
-      label: 'Trip Management',
-      isCollapsible: true,
-      children: [
-        { to: '/admin/trips/history', label: 'Trip History' }
-      ]
-    }] : []),
-    { to: '/admin/reports', icon: BarChart2, label: 'Reports & Analytics' },
-    { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
-    { to: '/admin/support', icon: HelpCircle, label: 'Support & Helpdesk' },
-    { to: '/admin/security', icon: ShieldAlert, label: 'Security & Logs' },
-    { to: '/admin/settings', icon: Settings, label: 'Settings' },
+    ...(isTransport ? [{ to: '/admin/trips/history', icon: MapPin, label: 'Trip History' }] : []),
   ]
 
   const navItems = isAdmin ? adminItems : (user?.role === 'transport' ? transportItems : garageItems)
@@ -193,66 +225,18 @@ export default function Sidebar() {
           textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 12px', marginBottom: 12, marginTop: 16
         }}>Main Navigation</p>
 
-        {navItems.map(item => {
-          if (item.isCollapsible) {
-            return (
-              <div key={item.id} className="nav-collapsible" style={{ marginBottom: 4 }}>
-                <button
-                  className="nav-item w-full"
-                  onClick={() => toggleSection(item.id)}
-                  style={{ background: 'none', border: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '12px', borderRadius: 10, position: 'relative' }}
-                >
-                  <item.icon size={20} className="nav-icon" color="rgba(255,255,255,0.6)" />
-                  {!sidebarCollapsed && (
-                    <>
-                      <span className="nav-label" style={{ flex: 1, fontSize: '0.875rem', fontWeight: 650, color: 'rgba(255,255,255,0.8)' }}>{item.label}</span>
-                      <ChevronDown size={14} color="rgba(255,255,255,0.4)" style={{ transform: expanded[item.id] ? 'rotate(180deg)' : 'none', transition: '0.3s' }} />
-                    </>
-                  )}
-                </button>
-                {expanded[item.id] && !sidebarCollapsed && (
-                  <div style={{ marginLeft: 32, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {item.children.map(child => (
-                      <NavLink key={child.to} to={child.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-                        style={({ isActive }) => ({
-                          fontSize: '0.8rem', padding: '10px 12px', borderRadius: 8, color: isActive ? 'white' : 'rgba(255,255,255,0.4)',
-                          background: isActive ? accentColor : 'transparent', fontWeight: 700
-                        })}
-                      >
-                        {child.label}
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          }
-
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-              style={({ isActive }) => ({
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px', borderRadius: 10,
-                background: isActive ? accentColor : 'transparent',
-                marginBottom: 4, transition: '0.2s', position: 'relative',
-                boxShadow: isActive ? `0 4px 15px ${accentColor}40` : 'none'
-              })}
-            >
-              {({ isActive }) => (
-                <div onClick={closeMobileMenu} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                  <item.icon size={20} className="nav-icon" color={isActive ? 'white' : 'rgba(255,255,255,0.6)'} />
-                  {(!sidebarCollapsed || mobileMenuOpen) && (
-                    <span className="nav-label" style={{ fontSize: '0.875rem', fontWeight: 650, color: isActive ? 'white' : 'rgba(255,255,255,0.8)' }}>
-                      {item.label}
-                    </span>
-                  )}
-                </div>
-              )}
-            </NavLink>
-          )
-        })}
+        {navItems.map(item => (
+          <NavItem 
+            key={item.id || item.to} 
+            item={item} 
+            expanded={expanded} 
+            toggleSection={toggleSection} 
+            sidebarCollapsed={sidebarCollapsed}
+            mobileMenuOpen={mobileMenuOpen}
+            closeMobileMenu={closeMobileMenu}
+            accentColor={accentColor} 
+          />
+        ))}
       </nav>
 
       {/* ── Footer ── */}

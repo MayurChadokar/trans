@@ -49,14 +49,14 @@ const InsuranceForm = lazy(() => import('../pages/insurance/InsuranceForm'))
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'))
 const AdminUsers     = lazy(() => import('../pages/admin/UserManagement'))
 const AdminBilling   = lazy(() => import('../pages/admin/BillingMonitor'))
-const AdminReports   = lazy(() => import('../pages/admin/SystemReports'))
 const AdminSettings  = lazy(() => import('../pages/admin/SystemSettings'))
 const AdminManage    = lazy(() => import('../pages/admin/ManageBusiness'))
 const Specialized    = lazy(() => import('../pages/admin/SpecializedManagement'))
 const AdminNotifications = lazy(() => import('../pages/admin/AdminNotifications'))
 const GarageServiceLogs  = lazy(() => import('../pages/admin/GarageServiceLogs'))
 const TripHistoryLogs    = lazy(() => import('../pages/admin/TripHistoryLogs'))
-const RecentRegistrations = lazy(() => import('../pages/admin/RecentRegistrations'))
+const AdminFinance     = lazy(() => import('../pages/admin/finance/FinanceModule'))
+const SoftwareSales     = lazy(() => import('../pages/admin/SoftwareSales'))
 
 // Loader fallback
 const PageLoader = () => (
@@ -145,15 +145,15 @@ export default function AppRouter() {
               <Route path="/admin/staff"      element={<Specialized />} />
               <Route path="/admin/manage"     element={<AdminManage />} />
               <Route path="/admin/billing"    element={<AdminBilling />} />
-              <Route path="/admin/reports"    element={<AdminReports />} />
               <Route path="/admin/settings"   element={<AdminSettings />} />
+              <Route path="/admin/finance"    element={<AdminFinance />} />
+              <Route path="/admin/software-sales" element={<SoftwareSales />} />
               {/* Backwards compatibility / Catch-alls */}
               <Route path="/admin/transport"  element={<AdminManage />} />
               <Route path="/admin/garage"     element={<AdminManage />} />
               <Route path="/admin/notifications" element={<AdminNotifications />} />
               <Route path="/admin/services/garage" element={<GarageServiceLogs />} />
               <Route path="/admin/trips/history" element={<TripHistoryLogs />} />
-              <Route path="/admin/onboarding"    element={<RecentRegistrations />} />
               <Route path="/admin/support"       element={<AdminSettings />} />
               <Route path="/admin/security"      element={<AdminSettings />} />
             </Route>
