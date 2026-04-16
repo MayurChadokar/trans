@@ -1,17 +1,17 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBills } from '../../context/BillContext'
 import { useAuth } from '../../context/AuthContext'
-import { ArrowLeft, Printer, Trash2, Truck, Wrench, CreditCard, Download, FileText } from 'lucide-react'
+import { ArrowLeft, Printer, Trash2, Truck, Wrench, CreditCard, Download, FileText, Pencil } from 'lucide-react'
 import dayjs from 'dayjs'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { PDFInvoice } from '../../components/billing/PDFInvoice'
 import PaymentModal from '../../components/billing/PaymentModal'
-import { useState } from 'react'
 
 // ── Transport Consolidated Invoice Layout ────────────────────────────────────
 function TransportInvoice({ bill, business, onPayOnline }) {
   const items = bill.items || []
+  const displayDate = bill.billingDate || bill.billDate || bill.createdAt
   const accent = '#F3811E' // Radhe Tempo Orange
 
   return (
@@ -37,13 +37,13 @@ function TransportInvoice({ bill, business, onPayOnline }) {
            </div>
         </div>
         <div style={{ borderLeft: '1px solid #ccc' }}>
-           <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', borderBottom: '1px solid #ccc' }}>
-             <div style={{ padding: '8px 4px', background: '#fff', fontWeight: 600, fontSize: '0.65rem', textAlign: 'right' }}>Bill No.:</div>
-             <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{bill.invoiceNo}</div>
-           </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', borderBottom: '1px solid #ccc' }}>
+              <div style={{ padding: '8px 4px', background: '#fff', fontWeight: 600, fontSize: '0.65rem', textAlign: 'right' }}>Bill No.:</div>
+              <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{bill.billNumber || 'Draft'}</div>
+            </div>
            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr' }}>
              <div style={{ padding: '8px 4px', background: '#fff', fontWeight: 600, fontSize: '0.65rem', textAlign: 'right' }}>Date :</div>
-             <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{dayjs(bill.billDate).format('DD/MM/YYYY')}</div>
+             <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{dayjs(displayDate).format('DD/MM/YYYY')}</div>
            </div>
         </div>
       </div>
@@ -139,6 +139,10 @@ function TransportInvoice({ bill, business, onPayOnline }) {
            <div style={{ padding: '8px 12px', backgroundColor: '#fff' }}>
               {/* Mapping for both bankDetails object and legacy top-level fields */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                 <div style={{ fontSize: '0.65rem', marginBottom: 4, gridColumn: 'span 2' }}>
+                    <span style={{ fontWeight: 600, color: '#555' }}>PAYMENT: </span>
+                    <span style={{ fontWeight: 900, color: bill.status === 'paid' ? '#16A34A' : '#D97706', textTransform: 'uppercase' }}>{bill.status} ({bill.paymentMode || 'N/A'})</span>
+                 </div>
                  <div style={{ fontSize: '0.65rem' }}>
                     <span style={{ fontWeight: 600, color: '#555' }}>A/c No : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.accountNumber || business?.bankAccNo || ''}</span>
                  </div>
@@ -202,7 +206,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontWeight: 900, fontSize: '1.125rem', color: '#111' }}>{business?.businessName?.toUpperCase() || 'AUTO REPAIRS'}</div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: 4 }}>Bill No: {bill.invoiceNo}</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</div>
           </div>
         </div>
       </div>
@@ -291,8 +295,9 @@ function GarageInvoice({ bill, business, onPayOnline }) {
           <div>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 800 }}>Payment Information</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Method:</span> <span style={{ fontWeight: 700 }}>{bill.paymentMethod || 'Online Payment'}</span></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Date:</span> <span style={{ fontWeight: 700 }}>{bill.paymentDate ? dayjs(bill.paymentDate).format('MMMM DD, YYYY') : dayjs(bill.billDate).format('MMMM DD, YYYY')}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Status:</span> <span style={{ fontWeight: 700, color: bill.status === 'paid' ? '#16A34A' : '#DC2626' }}>{bill.status?.toUpperCase()}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Method:</span> <span style={{ fontWeight: 700 }}>{bill.paymentMethod || bill.paymentMode || 'N/A'}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Date:</span> <span style={{ fontWeight: 700 }}>{bill.paymentDate ? dayjs(bill.paymentDate).format('MMMM DD, YYYY') : dayjs(bill.billingDate || bill.billDate).format('MMMM DD, YYYY')}</span></div>
               {bill.transactionId && <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Transaction ID:</span> <span style={{ fontWeight: 700 }}>{bill.transactionId}</span></div>}
             </div>
           </div>
@@ -348,13 +353,33 @@ function GarageInvoice({ bill, business, onPayOnline }) {
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function BillDetail() {
   const { id } = useParams()
-  const { getBill, deleteBill, recordPayment } = useBills()
-  const { user } = useAuth()
+  const { getBill, fetchBill, deleteBill, recordPayment } = useBills()
+  const { user: sessionUser } = useAuth()
   const navigate = useNavigate()
   const printRef = useRef()
   const [isPayModalOpen, setIsPayModalOpen] = useState(false)
+  
+  const [bill, setBill] = useState(() => getBill(id))
+  const [loading, setLoading] = useState(!bill)
 
-  const bill = getBill(id)
+  // Use bill.owner (from DB) if populated, otherwise fallback to session user
+  const business = (bill?.owner && typeof bill.owner === 'object') ? bill.owner : sessionUser;
+
+  useEffect(() => {
+    if (!id || id === 'new') return
+    if (bill) return
+    setLoading(true)
+    fetchBill(id).then(b => {
+      if (b) setBill(b)
+      setLoading(false)
+    })
+  }, [id, bill, fetchBill])
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: 60, color: '#6B7280' }}>
+      <div style={{ fontSize: '0.9rem' }}>Loading bill...</div>
+    </div>
+  )
 
   if (!bill) return (
     <div style={{ textAlign: 'center', padding: 40 }}>
@@ -367,7 +392,7 @@ export default function BillDetail() {
     const content = printRef.current.innerHTML
     const win = window.open('', '_blank', 'width=800,height=900')
     win.document.write(`
-      <html><head><title>Invoice ${bill.invoiceNo}</title>
+      <html><head><title>Invoice ${bill.billNumber || 'Draft'}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 24px; background: white; color: #111; }
@@ -396,23 +421,32 @@ export default function BillDetail() {
 
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={() => navigate('/bills')} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}>
+        <button onClick={() => navigate(`/${bill.billType}/bills`)} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}>
           <ArrowLeft size={18} />
         </button>
         <div style={{ flex: 1, minWidth: window.innerWidth < 640 ? '100%' : 150, order: window.innerWidth < 640 ? 3 : 2 }}>
-          <h2 style={{ fontWeight: 800, fontSize: window.innerWidth < 640 ? '0.9rem' : '1.1rem', color: '#0F0D2E', margin: 0 }}>#{bill.invoiceNo}</h2>
-          <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{dayjs(bill.billDate || bill.createdAt).format('DD MMM YYYY')}</p>
+          <h2 style={{ fontWeight: 800, fontSize: window.innerWidth < 640 ? '0.9rem' : '1.1rem', color: '#0F0D2E', margin: 0 }}>#{bill.billNumber || 'Draft'}</h2>
+          <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{dayjs(bill.billingDate || bill.createdAt).format('DD MMM YYYY')}</p>
         </div>
         <div style={{ display: 'flex', gap: 6, marginLeft: window.innerWidth < 640 ? 0 : 'auto', order: window.innerWidth < 640 ? 2 : 3 }}>
-          <button id="btn-delete-bill" onClick={handleDelete} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: '#FEE2E2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {bill.status === 'draft' && (
+            <button 
+              id="btn-edit-bill" 
+              onClick={() => navigate(`/${bill.billType}/bills/edit/${bill._id}`)} 
+              style={{ padding: '0 12px', borderRadius: 12, height: 40, border: '1.5px solid #E2E8F0', background: 'white', color: '#4F46E5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 700 }}
+            >
+              <Pencil size={16} /> Edit Draft
+            </button>
+          )}
+          <button id="btn-delete-bill" onClick={handleDelete} style={{ width: 40, height: 40, borderRadius: 12, border: 'none', background: '#FEE2E2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Trash2 size={16} color="#DC2626" />
           </button>
           <button id="btn-print-bill" onClick={handlePrint} className="btn-icon" style={{ background: 'white', borderRadius: 12, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EEE' }}>
             <Printer size={18} />
           </button>
           <PDFDownloadLink
-            document={<PDFInvoice bill={bill} business={user} />}
-            fileName={`Invoice_${bill.invoiceNo}.pdf`}
+            document={<PDFInvoice bill={bill} business={business} />}
+            fileName={`Invoice_${bill.billNumber || bill._id}.pdf`}
             className="btn btn-primary"
             style={{ padding: window.innerWidth < 640 ? '0 10px' : '0 12px', borderRadius: 12, height: 40, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}
           >
@@ -427,17 +461,17 @@ export default function BillDetail() {
       </div>
 
       <div ref={printRef} className="invoice-container" style={{ background: 'white', borderRadius: 24, padding: '24px 16px', boxShadow: '0 10px 40px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.03)', overflowX: 'auto' }}>
-        {bill.type === 'transport'
-          ? <TransportInvoice bill={bill} business={user} onPayOnline={() => setIsPayModalOpen(true)} />
-          : <GarageInvoice bill={bill} business={user} onPayOnline={() => setIsPayModalOpen(true)} />}
+        {(bill.billType === 'transport' || bill.type === 'transport')
+          ? <TransportInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />
+          : <GarageInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />}
       </div>
 
       <PaymentModal 
         isOpen={isPayModalOpen} 
         onClose={() => setIsPayModalOpen(false)} 
         bill={bill} 
-        business={user} 
-        onSuccess={(amount) => recordPayment(bill.id, amount)}
+        business={business} 
+        onSuccess={(amount) => recordPayment(bill._id, amount)}
       />
 
       <div style={{ marginTop: 20, textAlign: 'center' }}>

@@ -62,25 +62,35 @@ export default function BusinessProfile() {
   }
 
   const onSubmit = async (data) => {
-    await new Promise(r => setTimeout(r, 800))
+    try {
+      const formData = new FormData()
+      
+      // Append text fields
+      Object.keys(data).forEach(key => {
+        if (data[key] !== undefined && data[key] !== null) {
+          formData.append(key, data[key])
+        }
+      })
 
-    const folder = `trans/users/${user?.phone || 'unknown'}/profile`
-    // If an old base64 value exists (from legacy), convert and upload it so we store URL only.
-    const logoToUpload = logoFile || await dataUrlToFile(logoPreview, 'logo.png')
-    const signToUpload = signFile || await dataUrlToFile(signPreview, 'signature.png')
+      // Append files if selected
+      if (logoFile) formData.append('logo', logoFile)
+      if (signFile) formData.append('signature', signFile)
 
-    const [logoUpload, signUpload] = await Promise.all([
-      logoToUpload ? uploadSingleFile(logoToUpload, { folder }) : null,
-      signToUpload ? uploadSingleFile(signToUpload, { folder }) : null,
-    ])
-
-    updateProfile({ 
-      ...data, 
-      logoUrl: logoUpload?.url || logoPreview,
-      signatureUrl: signUpload?.url || signPreview
-    })
-    setSaved(true)
-    setTimeout(() => { setSaved(false); navigate('/profile') }, 1200)
+      const res = await updateProfile(formData)
+      
+      if (res.success) {
+        setSaved(true)
+        setTimeout(() => { 
+          setSaved(false)
+          navigate('/profile') 
+        }, 1200)
+      } else {
+        alert(res.message || 'Failed to update profile')
+      }
+    } catch (err) {
+      console.error('Profile update failed:', err)
+      alert('Error updating profile. Please try again.')
+    }
   }
 
   const handleImage = (e, setter) => {
@@ -230,8 +240,18 @@ export default function BusinessProfile() {
                  <Field label="PAN Card Number">
                     <input {...register('panNo')} placeholder="ABCDE1234F" className="form-input" style={{ textTransform: 'uppercase' }} maxLength={10} />
                  </Field>
-                 <Field label="GSTIN (Optional)">
-                    <input {...register('gstin')} placeholder="24AAAAA0000A1Z5" className="form-input" style={{ textTransform: 'uppercase' }} maxLength={15} />
+                 <Field label="GSTIN (Optional)" error={errors.gstin}>
+                    <input 
+                      {...register('gstin', {
+                        pattern: { value: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/i, message: 'Invalid GSTIN format' }
+                      })} 
+                      onInput={(e) => {
+                        e.target.value = e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 15);
+                      }}
+                      placeholder="24AAAAA0000A1Z5" 
+                      className="form-input" 
+                      maxLength={15} 
+                    />
                  </Field>
               </div>
            </div>

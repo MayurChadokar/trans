@@ -8,6 +8,7 @@ router.get("/", authRequired, requireRole("admin"), adminUsersController.list);
 router.post("/", authRequired, requireRole("admin"), adminUsersController.create);
 router.patch("/:id", authRequired, requireRole("admin"), adminUsersController.update);
 router.delete("/:id", authRequired, requireRole("admin"), adminUsersController.remove);
+router.get("/:id/history", authRequired, requireRole("admin"), adminUsersController.getUserHistory);
 
 module.exports = router;
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { sendOtp, verifyOtp as verifyOtpApi, setUserRole, updateUserProfile, getMe, logoutApi, adminLogoutApi } from '../api/authApi'
+import { sendOtp, verifyOtp as verifyOtpApi, setUserRole, updateUserProfile, transportRegister, garageRegister, getMe, logoutApi, adminLogoutApi } from '../api/authApi'
 
 const AuthContext = createContext(null)
 
@@ -66,9 +66,12 @@ export function AuthProvider({ children }) {
 
       try {
         const me = await getMe()
-        if (!cancelled && me?.success && me?.user) {
-          setUser(me.user)
-          safeSetBillingUser(me.user)
+        if (!cancelled && me?.success) {
+          const profile = me.user || me.admin
+          if (profile) {
+            setUser(profile)
+            safeSetBillingUser(profile)
+          }
         }
       } catch (_) {
         // If access token is expired, apiClient interceptor will refresh and retry once.
@@ -135,21 +138,48 @@ export function AuthProvider({ children }) {
     }
   }, [user])
 
-  const updateProfile = useCallback((profileData) => {
-    setUser(prev => {
-      if (!prev) return prev
-      const updated = { ...prev, ...profileData }
-      safeSetBillingUser(updated)
-      return updated
-    })
+  const updateProfile = useCallback(async (profileData) => {
     try {
-      const saved = localStorage.getItem('billing_user')
-      const phone = saved ? JSON.parse(saved)?.phone : user?.phone
-      if (phone) updateUserProfile(phone, profileData)
-    } catch (_) {
-      // ignore
+      const { updateProfile: updateProfileApi } = await import('../api/profileApi')
+      const res = await updateProfileApi(profileData)
+      
+      if (res.success && res.user) {
+        setUser(res.user)
+        safeSetBillingUser(res.user)
+        return res
+      }
+      return res
+    } catch (e) {
+      console.error('Update profile API failed:', e)
+      return { success: false, message: e.message }
     }
-  }, [user])
+  }, [])
+
+  const completeTransportSetup = useCallback(async (profileData) => {
+    try {
+      const res = await transportRegister(profileData)
+      if (res.success) {
+        setUser(res.user)
+        safeSetBillingUser(res.user)
+      }
+      return res
+    } catch (e) {
+      return { success: false, message: 'Registration failed' }
+    }
+  }, [])
+
+  const completeGarageSetup = useCallback(async (profileData) => {
+    try {
+      const res = await garageRegister(profileData)
+      if (res.success) {
+        setUser(res.user)
+        safeSetBillingUser(res.user)
+      }
+      return res
+    } catch (e) {
+      return { success: false, message: 'Registration failed' }
+    }
+  }, [])
 
   const logout = useCallback(async () => {
     const role = user?.role
@@ -186,6 +216,8 @@ export function AuthProvider({ children }) {
     verifyOTP,
     setRole,
     updateProfile,
+    completeTransportSetup,
+    completeGarageSetup,
     logout,
     login,
     isAuthenticated: !!user,

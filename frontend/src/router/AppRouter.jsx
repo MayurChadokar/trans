@@ -27,6 +27,7 @@ const BusinessProfile  = lazy(() => import('../pages/profile/BusinessProfile'))
 const BankDetails      = lazy(() => import('../pages/profile/BankDetails'))
 const QRCode           = lazy(() => import('../pages/profile/QRCode'))
 const AddMovement      = lazy(() => import('../pages/finance/AddMovement'))
+const UserProfile      = lazy(() => import('../pages/profile/UserProfile'))
 
 // Phase 2 — Party management
 const PartyList        = lazy(() => import('../pages/parties/PartyList'))
@@ -39,6 +40,7 @@ const TripManagement       = lazy(() => import('../pages/transport/TripManagemen
 
 // Phase 2 — Garage
 const GarageVehicles = lazy(() => import('../pages/garage/GarageVehicles'))
+const AddGarageVehicle = lazy(() => import('../pages/garage/AddGarageVehicle'))
 const GarageServices = lazy(() => import('../pages/garage/GarageServices'))
 
 // Insurance Module
@@ -97,29 +99,26 @@ export default function AppRouter() {
             {/* Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
 
-            {/* Bills — Phase 3 */}
-            <Route path="/bills"     element={<BillList />} />
-            <Route path="/bills/new" element={<CreateBill />} />
-            <Route path="/bills/:id" element={<BillDetail />} />
-
-            {/* ── Phase 2: Parties ── */}
-            <Route path="/parties"             element={<PartyList />} />
-            <Route path="/parties/add"         element={<AddParty />} />
-            <Route path="/parties/edit/:id"    element={<AddParty />} />
-            <Route path="/parties/:id"         element={<AddParty />} />
-
             {/* Finance */}
             <Route path="/finance" element={<Finance />} />
             <Route path="/finance/add" element={<AddMovement />} />
 
             {/* Profile */}
             <Route path="/profile"             element={<Profile />} />
+            <Route path="/profile/edit"        element={<UserProfile />} />
             <Route path="/profile/business"    element={<BusinessProfile />} />
             <Route path="/profile/bank"        element={<BankDetails />} />
             <Route path="/profile/qr"          element={<QRCode />} />
 
             {/* ── Transport Module ── */}
             <Route element={<ProtectedRoute requireRole="transport" />}>
+              <Route path="/transport/dashboard"         element={<Dashboard />} />
+              <Route path="/transport/bills"             element={<BillList type="transport" />} />
+              <Route path="/transport/bills/new"         element={<CreateBill />} />
+              <Route path="/transport/bills/edit/:id"    element={<CreateBill />} />
+              <Route path="/transport/parties"           element={<PartyList type="transport" />} />
+              <Route path="/transport/parties/add"       element={<AddParty />} />
+              <Route path="/transport/parties/edit/:id"  element={<AddParty />} />
               <Route path="/transport/vehicles"          element={<TransportVehicleList />} />
               <Route path="/transport/vehicles/add"      element={<AddVehicle />} />
               <Route path="/transport/vehicles/edit/:id" element={<AddVehicle />} />
@@ -128,8 +127,17 @@ export default function AppRouter() {
 
             {/* ── Garage Module ── */}
             <Route element={<ProtectedRoute requireRole="garage" />}>
-              <Route path="/garage/vehicles" element={<GarageVehicles />} />
-              <Route path="/garage/services" element={<GarageServices />} />
+              <Route path="/garage/dashboard"         element={<Dashboard />} />
+              <Route path="/garage/bills"             element={<BillList type="garage" />} />
+              <Route path="/garage/bills/new"         element={<CreateBill />} />
+              <Route path="/garage/bills/edit/:id"    element={<CreateBill />} />
+              <Route path="/garage/parties"           element={<PartyList type="garage" />} />
+              <Route path="/garage/parties/add"       element={<AddParty />} />
+              <Route path="/garage/parties/edit/:id"  element={<AddParty />} />
+              <Route path="/garage/vehicles"          element={<GarageVehicles />} />
+              <Route path="/garage/vehicles/add"      element={<AddGarageVehicle />} />
+              <Route path="/garage/vehicles/edit/:id" element={<AddGarageVehicle />} />
+              <Route path="/garage/services"          element={<GarageServices />} />
             </Route>
 
             {/* ── Insurance Module ── */}
@@ -148,15 +156,14 @@ export default function AppRouter() {
               <Route path="/admin/settings"   element={<AdminSettings />} />
               <Route path="/admin/finance"    element={<AdminFinance />} />
               <Route path="/admin/software-sales" element={<SoftwareSales />} />
-              {/* Backwards compatibility / Catch-alls */}
-              <Route path="/admin/transport"  element={<AdminManage />} />
-              <Route path="/admin/garage"     element={<AdminManage />} />
               <Route path="/admin/notifications" element={<AdminNotifications />} />
               <Route path="/admin/services/garage" element={<GarageServiceLogs />} />
               <Route path="/admin/trips/history" element={<TripHistoryLogs />} />
-              <Route path="/admin/support"       element={<AdminSettings />} />
-              <Route path="/admin/security"      element={<AdminSettings />} />
             </Route>
+
+            {/* Shared Bills View (Moved here to prevent greedy matching) */}
+            <Route path="/bills/:id" element={<BillDetail />} />
+
           </Route>
         </Route>
 

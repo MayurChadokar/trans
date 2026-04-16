@@ -1,14 +1,22 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { Wrench, Car, User, TrendingUp, Clock, AlertTriangle, ArrowRight, Plus, Bell, Calendar as CalIcon, X, Shield } from 'lucide-react'
 import { useBills } from '../../context/BillContext'
 import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
+import { getGarageStats } from '../../api/garageApi'
 
 export default function GarageDashboard() {
   const { bills } = useBills()
   const navigate = useNavigate()
   const [showReminders, setShowReminders] = useState(false)
+  const [apiStats, setApiStats] = useState(null)
+  
+  useEffect(() => {
+    getGarageStats().then(res => {
+      if (res.success) setApiStats(res.stats)
+    })
+  }, [])
   
   const formatVehicleNo = (no) => {
     if (!no) return '—'
@@ -22,7 +30,7 @@ export default function GarageDashboard() {
     return clean
   }
 
-  const garageBills = useMemo(() => bills.filter(b => b.type === 'garage'), [bills])
+  const garageBills = useMemo(() => bills.filter(b => b.billType === 'garage'), [bills])
 
   const remindersList = useMemo(() => {
     const today = dayjs().startOf('day')
@@ -30,7 +38,7 @@ export default function GarageDashboard() {
     const latestByVehicle = {}
     garageBills.forEach(b => {
       if (!b.vehicleNo) return
-      if (!latestByVehicle[b.vehicleNo] || dayjs(b.billDate).isAfter(dayjs(latestByVehicle[b.vehicleNo].billDate))) {
+      if (!latestByVehicle[b.vehicleNo] || dayjs(b.billingDate || b.createdAt).isAfter(dayjs(latestByVehicle[b.vehicleNo].billingDate || latestByVehicle[b.vehicleNo].createdAt))) {
         latestByVehicle[b.vehicleNo] = b
       }
     })
@@ -56,10 +64,10 @@ export default function GarageDashboard() {
   }, [garageBills])
 
   const stats = useMemo(() => {
-    const totalService = garageBills.reduce((s, b) => s + (b.grandTotal || 0), 0)
-    const pendingAmount = garageBills.filter(b => b.status !== 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
-    const servicesDone = garageBills.length
-    const activeReminders = remindersList.length
+    const totalService = apiStats?.totalSales ?? garageBills.reduce((s, b) => s + (b.grandTotal || 0), 0)
+    const pendingAmount = apiStats?.receivables ?? garageBills.filter(b => b.status !== 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
+    const servicesDone = apiStats?.servicesDone ?? garageBills.length
+    const activeReminders = apiStats?.criticalReminders ?? remindersList.length
 
     return [
       { label: 'Total Sales', value: `₹${totalService.toLocaleString()}`, sub: 'From all job cards', icon: TrendingUp, color: '#16A34A', bg: '#DCFCE7' },
@@ -67,12 +75,12 @@ export default function GarageDashboard() {
       { label: 'Services Done', value: servicesDone.toString(), sub: 'Completed', icon: Wrench, color: '#7C3AED', bg: '#EDE9FE' },
       { label: 'Critical Reminders', value: activeReminders.toString(), sub: 'Due or overdue', icon: AlertTriangle, color: '#D97706', bg: '#FEF3C7' },
     ]
-  }, [garageBills, remindersList])
+  }, [garageBills, remindersList, apiStats])
 
   const chartData = useMemo(() => {
     return garageBills.slice(-7).map(b => ({
-      date: dayjs(b.billDate).format('D MMM'),
-      amount: b.grandTotal
+      date: dayjs(b.billingDate || b.createdAt).format('D MMM'),
+      amount: b.grandTotal || 0
     }))
   }, [garageBills])
 
@@ -181,11 +189,11 @@ export default function GarageDashboard() {
       <div className="card" style={{ padding: '18px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <h3 style={{ fontSize: '0.875rem', fontWeight: 700 }}>Upcoming / Recent Jobs</h3>
-          <button onClick={() => navigate('/bills')} className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)', fontWeight: 700 }}>View All</button>
+          <button onClick={() => navigate('/garage/bills')} className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)', fontWeight: 700 }}>View All</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {garageBills.slice(0, 5).map((b, i) => (
-            <div key={i} onClick={() => navigate(`/bills/${b.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg)', padding: '10px 12px', borderRadius: 14, cursor: 'pointer' }}>
+            <div key={b._id || i} onClick={() => navigate(`/bills/${b._id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg)', padding: '10px 12px', borderRadius: 14, cursor: 'pointer' }}>
               <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EDE9FE', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Car size={18} />
               </div>
@@ -193,10 +201,10 @@ export default function GarageDashboard() {
                 <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.customerName || 'Customer'} • {formatVehicleNo(b.vehicleNo)}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{dayjs(b.billDate).format('DD MMM')} • {b.vehicleModel}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{dayjs(b.billingDate || b.createdAt).format('DD MMM')} • {b.vehicleModel || '—'}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>₹{b.grandTotal.toLocaleString()}</div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>₹{(b.grandTotal || 0).toLocaleString()}</div>
                 <div style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', color: b.status === 'paid' ? '#16A34A' : '#DC2626' }}>{b.status}</div>
               </div>
             </div>
@@ -218,7 +226,7 @@ export default function GarageDashboard() {
                      <X size={22} />
                   </button>
                </div>
-
+ 
                <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {remindersList.length > 0 ? remindersList.map(r => (
                      <div key={r.id} style={{ border: '1px solid #E5E7EB', borderRadius: 16, padding: '14px', position: 'relative' }}>
@@ -243,7 +251,7 @@ export default function GarageDashboard() {
                            </span>
                         </div>
                         <button 
-                           onClick={() => navigate(`/bills/new?vehicleNo=${r.vehicleNo}`)}
+                           onClick={() => navigate(`/garage/bills/new?vehicleNo=${r.vehicleNo}`)}
                            style={{ width: '100%', marginTop: 10, background: '#0F0D2E', color: 'white', border: 'none', borderRadius: 10, padding: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
                         >
                            Create New Job Card
@@ -259,9 +267,9 @@ export default function GarageDashboard() {
             </div>
          </div>
       )}
-
+ 
       <button 
-        onClick={() => navigate('/bills/new')} 
+        onClick={() => navigate('/garage/bills/new')} 
         className="btn btn-primary btn-lg btn-fab-mobile" 
         style={{ position: 'fixed', bottom: 84, right: 20, borderRadius: 20, boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)', zIndex: 100, display: 'flex', alignItems: 'center', gap: 8 }}
       >

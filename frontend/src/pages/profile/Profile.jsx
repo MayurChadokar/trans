@@ -22,14 +22,23 @@ export default function Profile() {
     <div className="page-wrapper animate-fadeIn">
       {/* Profile header */}
       <div className="card" style={{ marginBottom: 16, textAlign: 'center', padding: '28px 20px' }}>
-        <div className="avatar avatar-lg" style={{ margin: '0 auto 12px', width: 64, height: 64, fontSize: '1.25rem' }}>
-          {initials}
+        <div className="avatar avatar-lg" style={{ margin: '0 auto 12px', width: 64, height: 64, fontSize: '1.25rem', overflow: 'hidden', background: '#F1F5F9' }}>
+          {user?.logoUrl ? (
+            <img src={user.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
+          ) : initials}
         </div>
-        <h3 style={{ fontWeight: 800, fontSize: '1.125rem' }}>{user?.name || 'Business Owner'}</h3>
+        <h3 style={{ fontWeight: 800, fontSize: '1.125rem' }}>{user?.businessName || user?.name || 'Business Owner'}</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: 4 }}>
           +91 {user?.phone?.replace(/(\d{5})(\d{5})/, '$1 $2') || 'XXXXX XXXXX'}
         </p>
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 10 }}>
+          <button 
+            onClick={() => navigate('/profile/edit')}
+            className="btn btn-sm" 
+            style={{ fontSize: '0.75rem', padding: '6px 12px', background: 'white', border: '1.5px solid #E2E8F0', borderRadius: 10, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <UserCircle size={14} /> Edit Profile
+          </button>
           <span className="badge badge-primary" style={{ textTransform: 'capitalize' }}>
             {user?.role || 'User'} Account
           </span>

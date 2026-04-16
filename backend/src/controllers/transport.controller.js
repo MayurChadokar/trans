@@ -1,0 +1,151 @@
+const mongoose = require("mongoose");
+const Vehicle = require("../models/Vehicle");
+const Trip = require("../models/Trip");
+const Party = require("../models/Party");
+const TransportBill = require("../models/TransportBill");
+
+async function getTransportStats(req, res, next) {
+  try {
+    const ownerId = req.user.id;
+    const ownerObjId = new mongoose.Types.ObjectId(ownerId);
+
+    const [totalVehicles, activeTripsCount, revenueData] = await Promise.all([
+      Vehicle.countDocuments({ owner: ownerId }),
+      Trip.countDocuments({ owner: ownerId, billed: false }),
+      TransportBill.aggregate([
+        { $match: { owner: ownerObjId } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$grandTotal" },
+            paid: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$grandTotal", 0] } },
+          }
+        }
+      ])
+    ]);
+
+    const rev = revenueData[0] || { total: 0, paid: 0 };
+
+    return res.json({
+      success: true,
+      stats: {
+        totalVehicles,
+        activeTrips: activeTripsCount,
+        pendingRevenue: Math.max(0, rev.total - rev.paid),
+        totalRevenue: rev.total
+      },
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message || "Failed to load stats" });
+  }
+}
+
+async function listVehicles(req, res, next) {
+  try {
+    const vehicles = await Vehicle.find({ owner: req.user.id }).sort({ createdAt: -1 }).lean();
+    return res.json({ success: true, vehicles });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Failed to load vehicles" });
+  }
+}
+
+async function createVehicle(req, res, next) {
+  try {
+    const { vehicleNumber } = req.body;
+    if (!vehicleNumber) return res.status(400).json({ success: false, message: "Vehicle Number is required" });
+
+    const cleanNumber = vehicleNumber.toString().toUpperCase().trim();
+    const existing = await Vehicle.findOne({ vehicleNumber: cleanNumber });
+    if (existing) return res.status(400).json({ success: false, message: "This vehicle is already registered" });
+
+    const vehicle = await Vehicle.create({ ...req.body, vehicleNumber: cleanNumber, owner: req.user.id });
+    return res.json({ success: true, vehicle });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message || "Failed to add vehicle" });
+  }
+}
+
+async function updateVehicle(req, res, next) {
+  try {
+    const vehicle = await Vehicle.findOneAndUpdate(
+      { _id: req.params.id, owner: req.user.id },
+      { $set: req.body },
+      { new: true }
+    );
+    if (!vehicle) return res.status(404).json({ success: false, message: "Vehicle not found" });
+    return res.json({ success: true, vehicle });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Update failed" });
+  }
+}
+
+async function listTrips(req, res, next) {
+  try {
+    const trips = await Trip.find({ owner: req.user.id })
+      .populate("vehicle", "vehicleNumber vehicleType")
+      .populate("party", "name")
+      .sort({ startDate: -1 })
+      .lean();
+    return res.json({ success: true, trips });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message || "Failed to load trips" });
+  }
+}
+
+async function createTrip(req, res, next) {
+  try {
+    const tripData = { 
+      ...req.body, 
+      owner: req.user.id,
+      vehicle: req.body.vehicleId || req.body.vehicle,
+      party: req.body.partyId || req.body.party
+    };
+    
+    const trip = await Trip.create(tripData);
+    
+    // Populate for immediate UI update
+    const populated = await Trip.findById(trip._id)
+      .populate("vehicle", "vehicleNumber vehicleType")
+      .populate("party", "name")
+      .lean();
+      
+    return res.json({ success: true, trip: populated });
+  } catch (e) {
+    return res.status(400).json({ success: false, message: `Database Save Error: ${e.message || "Unknown error"}` });
+  }
+}
+
+async function updateTrip(req, res, next) {
+  try {
+    const trip = await Trip.findOneAndUpdate(
+      { _id: req.params.id, owner: req.user.id },
+      { $set: req.body },
+      { new: true }
+    );
+    if (!trip) return res.status(404).json({ success: false, message: "Trip not found" });
+    return res.json({ success: true, trip });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Update failed" });
+  }
+}
+
+async function deleteTrip(req, res, next) {
+  try {
+    const trip = await Trip.findOneAndDelete({ _id: req.params.id, owner: req.user.id });
+    if (!trip) return res.status(404).json({ success: false, message: "Trip not found" });
+    return res.json({ success: true, message: "Trip deleted" });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Delete failed" });
+  }
+}
+
+module.exports = {
+  getTransportStats,
+  listVehicles,
+  createVehicle,
+  updateVehicle,
+  listTrips,
+  createTrip,
+  updateTrip,
+  deleteTrip,
+};

@@ -4,13 +4,16 @@ const OTP_TTL_SECONDS = 5 * 60;
 // For production, replace with Redis or DB table.
 const store = new Map(); // phone -> { otp, expiresAtMs }
 
-function generateOtp() {
-  // Dev default OTP (any number).
-  return "123456";
+function generateOtp(phone) {
+  // Fixed OTP for test admin/transport phones
+  if (phone === "9999999999" || phone === "8888888888") return "123456";
+  
+  // Random 6 digit OTP for others
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 function issueOtp(phone) {
-  const otp = generateOtp();
+  const otp = generateOtp(phone);
   const expiresAtMs = Date.now() + OTP_TTL_SECONDS * 1000;
   store.set(phone, { otp, expiresAtMs });
   return { otp, ttlSeconds: OTP_TTL_SECONDS };

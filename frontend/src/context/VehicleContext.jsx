@@ -1,43 +1,68 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useAuth } from './AuthContext'
+import { getVehicles, createVehicle, updateVehicle } from '../api/transportApi'
+import { getGarageVehicles, addGarageVehicle, deleteGarageVehicle } from '../api/garageApi'
 
 const VehicleContext = createContext(null)
-const uid = () => `vehicle_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
 export function VehicleProvider({ children }) {
-  const { user } = useAuth()
-  const storageKey = user ? `vehicles_${user.id}` : null
-
+  const { user, isGarage } = useAuth()
   const [vehicles, setVehicles] = useState([])
 
   useEffect(() => {
-    if (!storageKey) return
+    if (!user) return
+    const load = async () => {
+      if (!user?.role) return
+      try {
+        const res = isGarage ? await getGarageVehicles() : await getVehicles()
+        if (res.success) {
+          setVehicles(res.vehicles.map(v => ({ ...v, id: v._id || v.id })))
+        }
+      } catch (e) {
+        console.error('Failed to load vehicles:', e.message)
+      }
+    }
+    load()
+  }, [user, isGarage])
+
+  const addVehicle = useCallback(async (data) => {
     try {
-      const saved = localStorage.getItem(storageKey)
-      if (saved) setVehicles(JSON.parse(saved))
-    } catch (_) {}
-  }, [storageKey])
+      const res = isGarage ? await addGarageVehicle(data) : await createVehicle(data)
+      if (res.success) {
+        const normalized = { ...res.vehicle, id: res.vehicle._id || res.vehicle.id }
+        setVehicles(prev => [normalized, ...prev])
+        return normalized
+      }
+    } catch (e) {
+      console.error('Add vehicle failed:', e.message)
+    }
+  }, [isGarage])
 
-  const persist = useCallback((list) => {
-    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(list))
-  }, [storageKey])
+  const deleteVehicleInDb = useCallback(async (id) => {
+    try {
+      const res = isGarage ? await deleteGarageVehicle(id) : { success: false } // transport delete not yet implemented
+      if (res.success) {
+        setVehicles(prev => prev.filter(v => v.id !== id && v._id !== id))
+      }
+    } catch (e) {
+      console.error('Delete vehicle failed:', e.message)
+    }
+  }, [isGarage])
 
-  const addVehicle = useCallback((data) => {
-    const v = { id: uid(), ...data, createdAt: new Date().toISOString() }
-    setVehicles(prev => { const n = [v, ...prev]; persist(n); return n })
-    return v
-  }, [persist])
-
-  const updateVehicle = useCallback((id, data) => {
-    setVehicles(prev => { const n = prev.map(v => v.id === id ? { ...v, ...data } : v); persist(n); return n })
-  }, [persist])
-
-  const deleteVehicle = useCallback((id) => {
-    setVehicles(prev => { const n = prev.filter(v => v.id !== id); persist(n); return n })
-  }, [persist])
+  const updateVehicleInDb = useCallback(async (id, data) => {
+    try {
+      const res = await updateVehicle(id, data)
+      if (res.success) {
+        const normalized = { ...res.vehicle, id: res.vehicle._id || res.vehicle.id }
+        setVehicles(prev => prev.map(v => (v._id === id || v.id === id) ? normalized : v))
+      }
+    } catch (e) {
+      console.error('Update vehicle failed:', e.message)
+    }
+  }, [])
 
   return (
-    <VehicleContext.Provider value={{ vehicles, addVehicle, updateVehicle, deleteVehicle }}>
+    <VehicleContext.Provider value={{ vehicles, addVehicle, updateVehicle: updateVehicleInDb, deleteVehicle: deleteVehicleInDb }}>
       {children}
     </VehicleContext.Provider>
   )

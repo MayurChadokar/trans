@@ -19,13 +19,15 @@ apiClient.interceptors.request.use((config) => {
 let refreshPromise = null
 
 async function refreshAccessToken() {
-  // Use a separate client without interceptors to avoid infinite loops.
+  const isAdmin = window.location.pathname.startsWith('/admin')
+  const endpoint = isAdmin ? '/admin/auth/refresh' : '/auth/refresh'
+
   const client = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
     headers: { 'Content-Type': 'application/json' },
     withCredentials: true,
   })
-  const { data } = await client.post('/auth/refresh')
+  const { data } = await client.post(endpoint)
   return data
 }
 
@@ -49,7 +51,8 @@ apiClient.interceptors.response.use(
       const refreshed = await refreshPromise
       if (refreshed?.accessToken) {
         localStorage.setItem('access_token', refreshed.accessToken)
-        if (refreshed?.user) localStorage.setItem('billing_user', JSON.stringify(refreshed.user))
+        const profile = refreshed.user || refreshed.admin
+        if (profile) localStorage.setItem('billing_user', JSON.stringify(profile))
       }
 
       originalRequest.headers = originalRequest.headers || {}
@@ -58,24 +61,20 @@ apiClient.interceptors.response.use(
 
       return apiClient(originalRequest)
     } catch (e) {
+      // Force cleanup on refresh failure
       try {
         localStorage.removeItem('access_token')
         localStorage.removeItem('billing_user')
-      } catch (_) {
-        // ignore
-      }
-      // Ensure we land on an auth entrypoint (framework-agnostic).
-      // Important: do NOT kick users off public auth routes like /admin.
-      const path = window.location.pathname
-      const isPublicAuthRoute =
-        path === '/login' ||
-        path === '/admin' ||
-        path === '/admin-login' ||
-        path === '/otp' ||
-        path === '/role-select' ||
-        path.startsWith('/register/')
+      } catch (_) {}
 
-      if (!isPublicAuthRoute) window.location.href = '/login'
+      const currentPath = window.location.pathname.replace(/\/$/, '') || '/'
+      const isPublicAuthRoute = [
+        '/login', '/admin', '/admin-login', '/otp', '/role-select'
+      ].some(p => currentPath === p || currentPath.startsWith('/register'))
+
+      if (!isPublicAuthRoute && currentPath !== '/login') {
+        window.location.href = '/login'
+      }
       throw e
     }
   }

@@ -45,7 +45,7 @@ function refreshCookieOptions() {
     httpOnly: true,
     secure,
     sameSite: secure ? "none" : "lax",
-    path: "/api/admin/auth/refresh",
+    path: "/api",
   };
 }
 

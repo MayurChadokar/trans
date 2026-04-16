@@ -7,17 +7,39 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
+import { apiClient } from '../../api/apiClient'
+import dayjs from 'dayjs'
+
 export default function GarageMgmt() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTab, setActiveTab] = useState('Workshops')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [newWorkshop, setNewWorkshop] = useState({ name: '', location: '', owner: '' })
-
-  // Mock data for garage businesses
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({ totalWorkshops: 0, totalServices: 0, serviceRevenue: 0, activeJobs: 0 })
   const [garageUsers, setGarageUsers] = useState([])
-
   const [recentServices, setRecentServices] = useState([])
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        const [sRes, wRes, bRes] = await Promise.all([
+          apiClient.get('/admin/garage/stats'),
+          apiClient.get('/admin/garage/workshops'),
+          apiClient.get('/admin/garage/bills')
+        ])
+        if (sRes.data.success) setStats(sRes.data.stats)
+        if (wRes.data.success) setGarageUsers(wRes.data.workshops)
+        if (bRes.data.success) setRecentServices(bRes.data.bills)
+      } catch (e) {
+        console.error("Admin Garage fetch failed", e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
   return (
     <div className="animate-fadeIn">
@@ -41,10 +63,10 @@ export default function GarageMgmt() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         {[
-          { label: 'Total Workshops', val: '0', icon: Building2, color: '#7C3AED', bg: '#EDE9FE' },
-          { label: 'Total Services', val: '0', icon: Zap, color: '#8B5CF6', bg: '#F5F3FF' },
-          { label: 'Service Revenue', val: '₹0', icon: CreditCard, color: '#10B981', bg: '#ECFDF5' },
-          { label: 'Active Jobs', val: '0', icon: Smartphone, color: '#F3811E', bg: '#FFF7ED' },
+          { label: 'Total Workshops', val: stats.totalWorkshops, icon: Building2, color: '#7C3AED', bg: '#EDE9FE' },
+          { label: 'Total Services', val: stats.totalServices, icon: Zap, color: '#8B5CF6', bg: '#F5F3FF' },
+          { label: 'Service Revenue', val: `₹${stats.serviceRevenue.toLocaleString()}`, icon: CreditCard, color: '#10B981', bg: '#ECFDF5' },
+          { label: 'Active Jobs', val: stats.activeJobs, icon: Smartphone, color: '#F3811E', bg: '#FFF7ED' },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: 20, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
              <div style={{ width: 40, height: 40, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>

@@ -15,10 +15,10 @@ const STATUS_MAP = {
 
 function BillCard({ bill, onClick, onDelete }) {
   const status = STATUS_MAP[bill.status] || STATUS_MAP.unpaid
-  const isTransport = bill.type === 'transport'
+  const isTransport = bill.billType === 'transport'   // ← was b.type (wrong)
   
   // For consolidated transport bills, show the party and item count
-  const partyName = isTransport ? (bill.billedToName || 'Consolidated Bill') : (bill.customerName || '—')
+  const partyName = isTransport ? (bill.billedToName || bill.party?.name || 'Consolidated Bill') : (bill.customerName || bill.party?.name || '—')
   const itemCount = bill.items?.length || 0
   const subInfo = isTransport 
     ? `${itemCount} Trip${itemCount !== 1 ? 's' : ''}` 
@@ -51,7 +51,7 @@ function BillCard({ bill, onClick, onDelete }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0F0D2E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {bill.invoiceNo}
+            {bill.billNumber || 'Draft'}
           </span>
           <span style={{
             fontSize: '0.6rem', fontWeight: 800, padding: '2px 6px', borderRadius: 6,
@@ -76,7 +76,7 @@ function BillCard({ bill, onClick, onDelete }) {
             style={{ width: 28, height: 28, border: 'none', background: '#F3F4F6', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Eye size={12} color="#6B7280" />
           </button>
-          <button onClick={e => { e.stopPropagation(); onDelete(bill.id) }}
+          <button onClick={e => { e.stopPropagation(); onDelete(bill._id) }}
             style={{ width: 28, height: 28, border: 'none', background: '#FEE2E2', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Trash2 size={12} color="#DC2626" />
           </button>
@@ -86,7 +86,7 @@ function BillCard({ bill, onClick, onDelete }) {
   )
 }
 
-export default function BillList() {
+export default function BillList({ type }) {
   const { bills, deleteBill, loaded } = useBills()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -94,21 +94,27 @@ export default function BillList() {
   const [filter, setFilter] = useState('all')
 
   const userRole = user?.role || 'transport'
+  const moduleType = type || userRole
   const isAdmin = userRole === 'admin'
 
   const filtered = useMemo(() => {
     let list = bills
-    if (!isAdmin) list = list.filter(b => b.type === userRole)
+    // Filter by module if not admin
+    if (!isAdmin) {
+       list = list.filter(b => b.billType === moduleType)
+    } else if (type) {
+       list = list.filter(b => b.billType === type)
+    }
 
     if (filter === 'paid')      list = list.filter(b => b.status === 'paid')
     if (filter === 'unpaid')    list = list.filter(b => b.status !== 'paid')
-    if (filter === 'transport') list = list.filter(b => b.type === 'transport')
-    if (filter === 'garage')    list = list.filter(b => b.type === 'garage')
+    if (filter === 'transport') list = list.filter(b => b.billType === 'transport')
+    if (filter === 'garage')    list = list.filter(b => b.billType === 'garage')
     
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(b =>
-        b.invoiceNo?.toLowerCase().includes(q) ||
+        b.billNumber?.toLowerCase().includes(q) ||
         b.billedToName?.toLowerCase().includes(q) ||
         b.customerName?.toLowerCase().includes(q) ||
         b.vehicleNo?.toLowerCase().includes(q) ||
@@ -120,20 +126,20 @@ export default function BillList() {
       )
     }
     return list
-  }, [bills, filter, search, isAdmin, userRole])
+  }, [bills, filter, search, isAdmin, userRole, moduleType, type])
 
   const totals = useMemo(() => {
-    const list = isAdmin ? bills : bills.filter(b => b.type === userRole)
+    const list = (isAdmin && !type) ? bills : bills.filter(b => b.billType === (type || userRole))
     const paid = list.filter(b => b.status === 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
     const pending = list.filter(b => b.status !== 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
     return { paid, pending, count: list.length }
-  }, [bills, isAdmin, userRole])
+  }, [bills, isAdmin, userRole, type])
 
   const FILTERS = [
     { val: 'all',       label: 'All' },
     { val: 'unpaid',    label: 'Pending' },
     { val: 'paid',      label: 'Paid' },
-    ...(isAdmin ? [
+    ...(isAdmin && !type ? [
       { val: 'transport', label: '🚛 Transport' },
       { val: 'garage',    label: '🔧 Garage' }
     ] : []),
@@ -144,12 +150,14 @@ export default function BillList() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontWeight: 900, fontSize: window.innerWidth < 640 ? '1.25rem' : '1.5rem', color: '#0F0D2E', margin: 0 }}>Bills</h2>
+          <h2 style={{ fontWeight: 900, fontSize: window.innerWidth < 640 ? '1.25rem' : '1.5rem', color: '#0F0D2E', margin: 0 }}>
+            {moduleType === 'transport' ? 'Transport Bills' : 'Garage Bills'}
+          </h2>
           <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>{totals.count} managed</p>
         </div>
         <button 
           className={window.innerWidth < 640 ? "btn btn-primary btn-sm" : "btn btn-primary btn-lg"} 
-          onClick={() => navigate('/bills/new')} 
+          onClick={() => navigate(`/${moduleType}/bills/new`)} 
           style={{ borderRadius: 12, height: window.innerWidth < 640 ? 40 : 'auto', padding: window.innerWidth < 640 ? '0 12px' : '14px 28px' }}
         >
           <Plus size={window.innerWidth < 640 ? 18 : 20} /> <span className="hide-mobile">Add New</span>
@@ -203,7 +211,7 @@ export default function BillList() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map(bill => (
-            <BillCard key={bill.id} bill={bill} onClick={b => navigate(`/bills/${b.id}`)} onDelete={deleteBill} />
+            <BillCard key={bill._id} bill={bill} onClick={b => navigate(`/bills/${b._id}`)} onDelete={deleteBill} />
           ))}
         </div>
       )}

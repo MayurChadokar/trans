@@ -10,12 +10,66 @@ import { useParties } from '../../context/PartyContext'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { uploadSingleFile } from '../../api/uploadApi'
+import { getTrips, createTrip, updateTrip, deleteTrip as deleteTripApi } from '../../api/transportApi'
+import { getDrafts as getDraftsApi, createBill, updateBill as updateBillApi } from '../../api/billApi'
+
+// UI Components
+const JourneyDetailModal = ({ isOpen, onClose, trip, onDeleteLeg }) => {
+  if (!isOpen || !trip) return null;
+  const legs = trip.rawLegs || [];
+  
+  return (
+    <div className="preview-modal" onClick={onClose}>
+      <div className="modal-content journey-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-header-info">
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>Journey Breakdown</h3>
+            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{legs.length} Continuous Legs</span>
+          </div>
+          <button className="close-preview-btn" onClick={onClose}><X size={20} /></button>
+        </div>
+        
+        <div className="legs-list-container">
+          {legs.map((leg, i) => (
+            <div key={leg._id || i} className="leg-item">
+              <div className="leg-marker">
+                <div className="marker-dot"></div>
+                {i < legs.length - 1 && <div className="marker-line"></div>}
+              </div>
+              <div className="leg-content">
+                <div className="leg-route">
+                  {leg.source} <ArrowRight size={12} /> {leg.destination}
+                </div>
+                <div className="leg-meta">
+                  <span>₹{parseFloat(leg.amount).toLocaleString()}</span>
+                  <span>•</span>
+                  <span>{dayjs(leg.startDate).format('DD MMM')}</span>
+                </div>
+              </div>
+              <button className="leg-delete-btn" onClick={() => onDeleteLeg(leg._id || leg.id)}><Trash2 size={16} /></button>
+            </div>
+          ))}
+        </div>
+        
+        <div className="journey-summary-footer">
+          <div className="summary-item">
+            <span className="label">Total Amount</span>
+            <span className="value">₹{trip.amount.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function TripManagement() {
   const { vehicles } = useVehicles()
   const { parties } = useParties()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+  
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [selectedJourney, setSelectedJourney] = useState(null)
   
   // Local state for trips (since "no backend changes" requested)
   const [trips, setTrips] = useState([])
@@ -27,73 +81,162 @@ export default function TripManagement() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState('')
   
+  // Selection & Billing
+  const [selectedIds, setSelectedIds] = useState([])
+  const [drafts, setDrafts] = useState([])
+  const [showDraftSelect, setShowDraftSelect] = useState(false)
+  const [isBilling, setIsBilling] = useState(false)
+  
   // Form state
   const [formData, setFormData] = useState({
-    date: dayjs().format('YYYY-MM-DD'),
+    startDate: dayjs().format('YYYY-MM-DD'),
     vehicleId: '',
     partyId: '',
-    fromLocation: '',
-    toLocation: '',
+    groupId: null, // Link to existing journey
+    source: '',
+    destination: '',
     numberOfTrips: '',
     amount: ''
   })
 
-  // Load trips from localStorage for persistence
-  useEffect(() => {
-    const saved = localStorage.getItem('transport_trips')
-    if (saved) {
-      try {
-        setTrips(JSON.parse(saved))
-      } catch (e) {
-        console.error("Failed to parse trips", e)
-      }
+  // Load trips from API
+  const loadTrips = async () => {
+    try {
+      const res = await getTrips()
+      if (res.success) setTrips(res.trips)
+    } catch (e) {
+      console.error("Failed to load trips", e)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [])
-
-  // Persist trips
-  const saveTrips = (newList) => {
-    setTrips(newList)
-    localStorage.setItem('transport_trips', JSON.stringify(newList))
   }
 
-  const handleAddTrip = (e) => {
-    e.preventDefault()
-    if (!formData.fromLocation || !formData.toLocation || !formData.vehicleId || !formData.partyId) {
-      alert("Please fill in main fields including Account/Party")
-      return
+  const loadDrafts = async () => {
+    try {
+      const res = await getDraftsApi()
+      if (res.success) setDrafts(res.drafts)
+    } catch (e) {
+      console.error("Failed to load drafts", e)
     }
+  }
 
-    const vehicle = vehicles.find(v => v.id === formData.vehicleId)
-    const party = parties.find(p => p.id === formData.partyId)
-    const newTrip = {
-      id: `trip_${Date.now()}`,
-      ...formData,
-      numberOfTrips: formData.numberOfTrips || '1',
-      vehicleNumber: vehicle?.vehicleNumber || 'Unknown',
-      partyName: party?.name || 'Unknown',
-      billed: false,
-      createdAt: new Date().toISOString(),
-      chalanImage: null // Initialize with no image
+  useEffect(() => {
+    loadTrips()
+    loadDrafts()
+  }, [])
+
+  const handleBulkAddToDraft = async (draftId = null) => {
+    if (selectedIds.length === 0) return
+    setIsBilling(true)
+    try {
+      const selectedTripDocs = trips.filter(t => selectedIds.includes(t._id || t.id))
+      const partyId = selectedTripDocs[0].party?._id || selectedTripDocs[0].partyId
+      
+      // If multiple parties selected, warn
+      const uniqueParties = [...new Set(selectedTripDocs.map(t => t.party?._id || t.partyId))]
+      if (uniqueParties.length > 1) {
+        alert("Please select trips for the same Party/Account to group them in one bill.")
+        return
+      }
+
+      if (draftId) {
+        // Add to existing draft
+        const draft = drafts.find(d => d._id === draftId)
+        await updateBillApi(draftId, { trips: [...(draft.trips || []), ...selectedIds] })
+      } else {
+        // Create new draft
+        await createBill({
+          party: partyId,
+          billType: 'transport',
+          status: 'draft',
+          trips: selectedIds
+        })
+      }
+      
+      alert("Trips added to draft successfully!")
+      setSelectedIds([])
+      setShowDraftSelect(false)
+      loadTrips() // refresh list to show billed status
+      loadDrafts()
+    } catch (e) {
+      alert("Failed to update bill")
+    } finally {
+      setIsBilling(false)
     }
+  }
 
-    saveTrips([newTrip, ...trips])
-    setShowForm(false)
+  const toggleTripSelection = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const handleAddLeg = (trip) => {
+    // Scroll to top and open form
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setShowForm(true)
+    
+    // Pre-fill with previous leg's data
     setFormData({
-      date: dayjs().format('YYYY-MM-DD'),
-      vehicleId: '',
-      partyId: '',
-      fromLocation: '',
-      toLocation: '',
-      numberOfTrips: '',
+      startDate: dayjs(trip.startDate).format('YYYY-MM-DD'),
+      vehicleId: trip.vehicle?._id || trip.vehicle,
+      partyId: trip.party?._id || trip.party,
+      groupId: trip.groupId, // Link to this specific journey
+      source: trip.destination || trip.toLocation,
+      destination: '',
+      numberOfTrips: 1,
       amount: ''
     })
   }
 
-  const handleDelete = (id) => {
+  const handleAddTrip = (e) => {
+    e.preventDefault()
+    
+    // Detailed validation
+    if (!formData.startDate) return alert("Please select a Date")
+    if (!formData.vehicleId) return alert("Please select a Vehicle")
+    if (!formData.partyId) return alert("Please select an Account/Party")
+    if (!formData.source) return alert("Please enter the Starting Location (From)")
+    if (!formData.destination) return alert("Please enter the Destination (To)")
+    if (!formData.amount) return alert("Please enter the Trip Amount (₹)")
+
+    const payload = {
+      ...formData,
+      vehicle: formData.vehicleId,
+      party: formData.partyId,
+      numberOfTrips: parseInt(formData.numberOfTrips) || 1,
+      amount: parseFloat(formData.amount)
+    }
+
+    createTrip(payload).then(res => {
+      if (res.success) {
+        setTrips(prev => [res.trip, ...prev])
+        setShowForm(false)
+        setFormData({
+          startDate: dayjs().format('YYYY-MM-DD'),
+          vehicleId: '',
+          partyId: '',
+          groupId: null,
+          source: '',
+          destination: '',
+          numberOfTrips: '',
+          amount: ''
+        })
+      }
+    })
+  }
+
+  const handleDelete = async (id) => {
     const idsToDelete = id.split(',')
-    if (window.confirm(`Delete ${idsToDelete.length > 1 ? 'this group of trips' : 'this trip'}?`)) {
-      saveTrips(trips.filter(t => !idsToDelete.includes(t.id)))
+    const msg = idsToDelete.length > 1 
+      ? `Delete this entire journey (${idsToDelete.length} legs)?` 
+      : 'Delete this trip record?'
+      
+    if (window.confirm(msg)) {
+       try {
+         await Promise.all(idsToDelete.map(tid => deleteTripApi(tid)))
+         setTrips(prev => prev.filter(t => !idsToDelete.includes(t._id || t.id)))
+       } catch (e) {
+         alert('Delete failed')
+       }
     }
   }
 
@@ -112,10 +255,13 @@ export default function TripManagement() {
       const folder = 'trans/chalan'
       const up = await uploadSingleFile(file, { folder })
       const url = up?.url || null
-      const updatedTrips = trips.map(t =>
-        selectedTripId.split(',').includes(t.id) ? { ...t, chalanImage: url } : t
-      )
-      saveTrips(updatedTrips)
+      const selectedIds = selectedTripId.split(',')
+      
+      await Promise.all(selectedIds.map(tid => updateTrip(tid, { chalanImage: url })))
+      
+      setTrips(prev => prev.map(t =>
+        selectedIds.includes(t._id || t.id) ? { ...t, chalanImage: url } : t
+      ))
     } catch (err) {
       alert('Upload failed. Please try again.')
     } finally {
@@ -124,14 +270,18 @@ export default function TripManagement() {
     }
   }
 
-  const removePhoto = (e, tripId) => {
+  const removePhoto = async (e, tripId) => {
     e.stopPropagation()
     const idsToRemove = tripId.split(',')
     if (window.confirm("Remove this Chalan photo?")) {
-      const updatedTrips = trips.map(t => 
-        idsToRemove.includes(t.id) ? { ...t, chalanImage: null } : t
-      )
-      saveTrips(updatedTrips)
+      try {
+        await Promise.all(idsToRemove.map(tid => updateTrip(tid, { chalanImage: null })))
+        setTrips(prev => prev.map(t => 
+          idsToRemove.includes(t._id || t.id) ? { ...t, chalanImage: null } : t
+        ))
+      } catch (e) {
+        alert('Update failed')
+      }
     }
   }
 
@@ -141,9 +291,16 @@ export default function TripManagement() {
     // Group by date, vehicle, party
     const groups = {}
     trips.forEach(t => {
-      const key = `${t.date}_${t.vehicleId}_${t.partyId}`
+      // Map back fields if they come from backend (source/destination/startDate)
+      const from = t.source || t.fromLocation || ''
+      const to = t.destination || t.toLocation || ''
+      const d = t.startDate || t.date || ''
+      const vId = typeof t.vehicle === 'object' ? t.vehicle?._id : t.vehicle
+      const pId = typeof t.party === 'object' ? t.party?._id : t.party
+
+      const key = t.groupId || `${d}_${vId}_${pId}`
       if (!groups[key]) groups[key] = []
-      groups[key].push(t)
+      groups[key].push({ ...t, fromLocation: from, toLocation: to, date: d, vehicleId: vId, partyId: pId })
     })
 
     const grouped = Object.values(groups).map(group => {
@@ -172,16 +329,34 @@ export default function TripManagement() {
       // For photo, use the first available chalan image
       const photo = sorted.find(t => t.chalanImage)?.chalanImage || null
 
+      // Build smart route sequence (deduplicate matching internal points)
+      let sequence = []
+      if (sorted.length > 0) {
+        sequence.push(sorted[0].fromLocation)
+        sorted.forEach((t, i) => {
+          if (i > 0) {
+            // If new source is different from last destination, show it
+            if (t.fromLocation !== sorted[i-1].toLocation) {
+               sequence.push(t.fromLocation)
+            }
+          }
+          sequence.push(t.toLocation)
+        })
+      }
+
       return {
         ...sorted[0], // base info
-        id: sorted.map(t => t.id).join(','), // Combined ID for local state tracking
+        id: sorted.map(t => t._id || t.id).join(','), 
         amount: totalAmount,
         numberOfTrips: totalCount,
+        routePoints: sequence,
+        rawLegs: sorted, // Save raw legs for the View modal
         fromLocation: displayFrom,
         toLocation: displayTo,
         billed: allBilled,
         chalanImage: photo,
-        memberIds: sorted.map(t => t.id)
+        memberIds: sorted.map(s => s._id || s.id),
+        groupId: sorted[0].groupId
       }
     })
 
@@ -190,8 +365,8 @@ export default function TripManagement() {
     return grouped.filter(t => 
       t.fromLocation.toLowerCase().includes(s) || 
       t.toLocation.toLowerCase().includes(s) ||
-      t.vehicleNumber.toLowerCase().includes(s) ||
-      t.partyName?.toLowerCase().includes(s)
+      (t.vehicle?.vehicleNumber || t.vehicleNumber || '').toLowerCase().includes(s) ||
+      (t.party?.name || t.partyName || '').toLowerCase().includes(s)
     )
   }, [trips, search])
 
@@ -249,13 +424,13 @@ export default function TripManagement() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
                 <label className="form-label">Date</label>
-                <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="form-input" required />
+                <input type="date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} className="form-input" required />
               </div>
               <div className="form-group">
                 <label className="form-label">Select Vehicle</label>
                 <select value={formData.vehicleId} onChange={e => setFormData({...formData, vehicleId: e.target.value})} className="form-input" required>
                   <option value="">— Select —</option>
-                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicleNumber} ({v.vehicleType})</option>)}
+                  {vehicles.map(v => <option key={v._id || v.id} value={v._id || v.id}>{v.vehicleNumber} ({v.vehicleType})</option>)}
                 </select>
               </div>
             </div>
@@ -265,8 +440,12 @@ export default function TripManagement() {
               <select value={formData.partyId} onChange={e => setFormData({...formData, partyId: e.target.value})} className="form-input" required>
                 <option value="">— Select Account —</option>
                 {parties.map(p => {
-                  const pendingCount = trips.filter(t => t.partyId === p.id && !t.billed).length
-                  return <option key={p.id} value={p.id}>{p.name} {pendingCount > 0 ? `(${pendingCount} pending)` : ''}</option>
+                  const pId = p._id || p.id
+                  const pendingCount = trips.filter(t => {
+                    const tpId = t.party?._id || t.party
+                    return tpId === pId && !t.billed
+                  }).length
+                  return <option key={pId} value={pId}>{p.name} {pendingCount > 0 ? `(${pendingCount} pending)` : ''}</option>
                 })}
               </select>
             </div>
@@ -274,11 +453,11 @@ export default function TripManagement() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
                 <label className="form-label">From Location</label>
-                <input value={formData.fromLocation} onChange={e => setFormData({...formData, fromLocation: e.target.value})} placeholder="e.g., Ahmedabad" className="form-input" required />
+                <input value={formData.source} onChange={e => setFormData({...formData, source: e.target.value})} placeholder="e.g., Ahmedabad" className="form-input" required />
               </div>
               <div className="form-group">
                 <label className="form-label">To Location</label>
-                <input value={formData.toLocation} onChange={e => setFormData({...formData, toLocation: e.target.value})} placeholder="e.g., Surat" className="form-input" required />
+                <input value={formData.destination} onChange={e => setFormData({...formData, destination: e.target.value})} placeholder="e.g., Surat" className="form-input" required />
               </div>
             </div>
 
@@ -313,31 +492,38 @@ export default function TripManagement() {
           {/* Trips List */}
           <div className="trips-list">
             {filteredTrips.length > 0 ? filteredTrips.map((trip) => (
-              <div key={trip.id} className="animate-fadeInUp trip-card-mobile">
+              <div key={trip.id} className={`animate-fadeInUp trip-card-mobile ${selectedIds.includes(trip.id) ? 'selected' : ''}`} onClick={() => toggleTripSelection(trip.id)}>
                 <div className="trip-card-main">
-                  <div className="trip-route">
-                    <span className="location">{trip.fromLocation}</span>
-                    <ArrowRight size={14} className="route-arrow" />
-                    <span className="location">{trip.toLocation}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div className="trip-route-sequence">
+                      {trip.routePoints?.map((point, idx) => (
+                        <React.Fragment key={idx}>
+                          <span className="location">{point}</span>
+                          {idx < trip.routePoints.length - 1 && <ArrowRight size={14} className="route-arrow" />}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                    {/* Selection Indicator */}
+                    <div style={{ width: 22, height: 22, borderRadius: 6, border: '1.5px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selectedIds.includes(trip.id) ? 'var(--primary)' : 'white' }}>
+                      {selectedIds.includes(trip.id) && <CheckCircle2 size={14} color="white" />}
+                    </div>
                   </div>
                   
                   <div className="trip-meta-grid">
-                    <div className="meta-item"><Hash size={12} /> {trip.vehicleNumber}</div>
-                    <div className="meta-item"><User size={12} /> {trip.partyName}</div>
+                    <div className="meta-item"><Hash size={12} /> {trip.vehicle?.vehicleNumber || trip.vehicleNumber}</div>
+                    <div className="meta-item"><User size={12} /> {trip.party?.name || trip.partyName}</div>
                     <div className="meta-item"><Calendar size={12} /> {dayjs(trip.date).format('DD MMM')}</div>
                     <div className="trip-badge">{trip.numberOfTrips} TRIP(S)</div>
-                    <div style={{ 
-                      fontSize: '0.65rem', fontWeight: 900, 
-                      padding: '2px 8px', borderRadius: 6,
-                      background: trip.billed ? '#DCFCE7' : '#FEF3C7',
-                      color: trip.billed ? '#16A34A' : '#D97706'
+                    <div className="billing-status-chip" style={{ 
+                      background: trip.billed ? '#DCFCE7' : trip.billId ? '#EEF2FF' : '#FEF3C7',
+                      color: trip.billed ? '#16A34A' : trip.billId ? '#4F46E5' : '#D97706'
                     }}>
-                      {trip.billed ? 'BILLED' : 'PENDING'}
+                      {trip.billed ? 'BILLED' : trip.billId ? 'IN DRAFT' : 'PENDING'}
                     </div>
                   </div>
                 </div>
 
-                <div className="trip-card-actions">
+                <div className="trip-card-actions" onClick={e => e.stopPropagation()}>
                   <div className="action-left">
                     {trip.chalanImage ? (
                       <div className="chalan-thumb" onClick={() => { setPreviewImage(trip.chalanImage); setIsPreviewOpen(true); }}>
@@ -352,12 +538,26 @@ export default function TripManagement() {
                         <span>CHALAN</span>
                       </button>
                     )}
-                    {trip.amount && <div className="trip-amount">₹{parseFloat(trip.amount).toLocaleString()}</div>}
+                    {trip.amount && <div className="trip-amount-badge">₹{parseFloat(trip.amount).toLocaleString()}</div>}
                   </div>
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <button
-                      onClick={() => window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank')}
+                      onClick={(e) => { e.stopPropagation(); setSelectedJourney(trip); setIsDetailOpen(true); }}
+                      title="View journey breakdown"
+                      style={{ height: 34, width: 34, borderRadius: 9, border: '1.5px solid #F1F5F9', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleAddLeg(trip); }}
+                      title="Add another leg/destination to this trip"
+                      style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      <Plus size={12} /> ADD LEG
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank'); }}
                       title="Pay checkpost tax for this trip on the official government portal"
                       style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #FDE68A', background: '#FFFBEB', color: '#B45309', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >
@@ -379,6 +579,62 @@ export default function TripManagement() {
           </div>
         </>
       )}
+
+      {/* Floating Action Bar for Bulk Billing */}
+      {selectedIds.length > 0 && (
+        <div className="animate-slideUp billing-action-bar">
+          <div className="action-bar-info">
+            <span className="selection-count">{selectedIds.length} Trips Selected</span>
+            <button className="btn-clear-selection" onClick={() => setSelectedIds([])}>Clear</button>
+          </div>
+          <div className="action-bar-btns">
+            {showDraftSelect ? (
+              <div className="draft-selector animate-fadeIn">
+                <div className="draft-selector-header">
+                  <span>Select Draft Bill</span>
+                  <X size={16} onClick={() => setShowDraftSelect(false)} style={{ cursor: 'pointer' }} />
+                </div>
+                <div className="draft-items-list">
+                  {drafts.length > 0 ? drafts.map(d => (
+                    <div key={d._id} className="draft-item" onClick={() => handleBulkAddToDraft(d._id)}>
+                      <div style={{ fontWeight: 700 }}>{d.billNumber || 'New Draft'}</div>
+                      <div style={{ fontSize: '0.65rem', opacity: 0.7 }}>{d.party?.name}</div>
+                    </div>
+                  )) : <div className="draft-empty">No active drafts</div>}
+                </div>
+                <button className="btn-new-draft" onClick={() => handleBulkAddToDraft(null)}>
+                  + Create New Bill
+                </button>
+              </div>
+            ) : (
+              <button 
+                className="btn btn-primary" 
+                style={{ height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px', fontWeight: 800 }}
+                onClick={() => setShowDraftSelect(true)}
+                disabled={isBilling}
+              >
+                {isBilling ? <Loader2 size={18} className="spin" /> : <FileText size={18} />}
+                Add to Bill
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Journey Detail Modal */}
+      <JourneyDetailModal 
+        isOpen={isDetailOpen} 
+        onClose={() => setIsDetailOpen(false)} 
+        trip={selectedJourney}
+        onDeleteLeg={(legId) => {
+          if (window.confirm("Delete this leg?")) {
+            deleteTripApi(legId).then(() => {
+              setTrips(prev => prev.filter(t => (t._id || t.id) !== legId));
+              setIsDetailOpen(false);
+            });
+          }
+        }}
+      />
 
       {/* Photo Preview Modal */}
       {isPreviewOpen && (
@@ -416,9 +672,10 @@ export default function TripManagement() {
         .trips-list { display: flex; flex-direction: column; gap: 12px; }
         .trip-card-mobile { background: white; border-radius: 20px; padding: 16px; border: 1px solid #F1F5F9; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
         .trip-card-main { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #F1F5F9; }
-        .trip-route { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .trip-route-sequence { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
         .location { font-size: 0.9375rem; font-weight: 800; color: #0F0D2E; }
         .route-arrow { color: #94A3B8; }
+        .trip-amount-badge { background: #F1F5F9; color: #0F0D2E; padding: 6px 12px; border-radius: 10px; font-weight: 950; font-size: 1rem; border: 1px solid rgba(0,0,0,0.05); }
         
         .trip-meta-grid { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
         .meta-item { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: #64748B; font-weight: 600; }
@@ -433,9 +690,31 @@ export default function TripManagement() {
         .upload-chalan-btn { height: 42px; border-radius: 10px; padding: 0 10px; border: 1.5px dashed #CBD5E1; background: #F8FAFC; color: #64748B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
         .upload-chalan-btn span { font-size: 0.5rem; font-weight: 800; }
         
-        .trip-amount { font-size: 0.9375rem; font-weight: 900; color: #0F0D2E; }
-        .delete-trip-btn { color: #FDA4AF; padding: 8px; transition: 0.2s; border: none; background: transparent; }
         .delete-trip-btn:active { color: #EF4444; transform: scale(0.9); }
+        
+        /* Journey Modal Styles */
+        .journey-modal { max-width: 450px !important; padding: 0 !important; overflow: hidden; background: white; border-radius: 24px; }
+        .modal-header { padding: 20px; border-bottom: 1.5px solid #F1F5F9; display: flex; justify-content: space-between; align-items: center; }
+        .legs-list-container { padding: 20px; max-height: 400px; overflow-y: auto; background: #FAFBFE; }
+        
+        .leg-item { display: flex; gap: 16px; margin-bottom: 24px; position: relative; padding: 12px; background: white; border-radius: 16px; border: 1px solid #F1F5F9; }
+        .leg-item:last-child { margin-bottom: 0; }
+        .leg-marker { display: flex; flex-direction: column; align-items: center; padding-top: 6px; }
+        .marker-dot { width: 10px; height: 10px; border-radius: 50%; background: #7C3AED; border: 2.5px solid #DDD6FE; z-index: 1; }
+        .marker-line { width: 2px; flex: 1; background: #E2E8F0; margin: 4px 0; }
+        
+        .leg-content { flex: 1; }
+        .leg-route { font-weight: 800; color: #0F0D2E; font-size: 0.9375rem; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .leg-route svg { opacity: 0.4; }
+        .leg-meta { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #64748B; font-weight: 600; }
+        
+        .leg-delete-btn { background: #FEE2E2; color: #EF4444; border: none; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .leg-delete-btn:hover { background: #EF4444; color: white; }
+        
+        .journey-summary-footer { padding: 20px; background: #F8FAFC; border-top: 1.5px solid #F1F5F9; }
+        .summary-item { display: flex; justify-content: space-between; align-items: center; }
+        .summary-item .label { font-weight: 800; color: #64748B; font-size: 0.875rem; }
+        .summary-item .value { font-weight: 950; color: #0F0D2E; font-size: 1.25rem; }
         
         .empty-state { text-align: center; padding: 40px 20px; }
         .empty-icon { opacity: 0.1; margin-bottom: 8px; color: #0F0D2E; }
@@ -448,6 +727,22 @@ export default function TripManagement() {
         .close-preview-btn { position: absolute; top: -50px; right: 0; background: white; border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
         .trip-form-card { background: white; border-radius: 24px; padding: 20px; border: 1px solid #F1F5F9; }
+
+        .billing-action-bar { position: fixed; bottom: 80px; left: 16px; right: 16px; background: rgba(15, 13, 46, 0.95); backdrop-filter: blur(12px); border-radius: 24px; padding: 16px; display: flex; align-items: center; justify-content: space-between; z-index: 900; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+        .selection-count { color: white; font-weight: 800; font-size: 0.9rem; }
+        .btn-clear-selection { background: transparent; border: none; color: #94A3B8; font-size: 0.75rem; font-weight: 700; margin-left: 10px; cursor: pointer; }
+        
+        .draft-selector { position: absolute; bottom: 100%; right: 0; width: 280px; background: white; border-radius: 20px; margin-bottom: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+        .draft-selector-header { padding: 12px 16px; background: #F8FAFC; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 800; color: #64748B; border-bottom: 1px solid #F1F5F9; }
+        .draft-items-list { max-height: 200px; overflow-y: auto; padding: 8px; display: flex; flexDirection: column; gap: 4px; }
+        .draft-item { padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; color: #0F0D2E; }
+        .draft-item:hover { background: #EEF2FF; color: var(--primary); }
+        .btn-new-draft { width: 100%; border: none; background: #4F46E5; color: white; padding: 12px; font-weight: 800; font-size: 0.75rem; cursor: pointer; }
+        
+        .billing-status-chip { font-size: 0.6rem; font-weight: 950; padding: 3px 10px; border-radius: 8px; letter-spacing: 0.05em; }
+        .trip-card-mobile.selected { border: 2px solid var(--primary); background: #f5f3ff; }
+        .animate-slideUp { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}</style>
     </div>
   )

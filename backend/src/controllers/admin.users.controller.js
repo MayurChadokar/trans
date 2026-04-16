@@ -12,10 +12,15 @@ function normalizeEmail(v) {
 function userRow(u) {
   return {
     id: String(u._id),
-    name: u.name || u.businessName || null,
+    name: u.name || null,
+    businessName: u.businessName || null,
     phone: u.phone,
     email: u.email || null,
     role: u.role || null,
+    city: u.city || null,
+    address: u.address || null,
+    kycStatus: u.kycStatus || "Pending",
+    documents: u.documents || {},
     setupComplete: !!u.setupComplete,
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
@@ -26,6 +31,9 @@ async function list(req, res, next) {
   try {
     const role = String(req.query?.role || "").toLowerCase().trim();
     const q = String(req.query?.q || "").trim();
+    const page = parseInt(req.query?.page) || 1;
+    const limit = parseInt(req.query?.limit) || 20;
+    const skip = (page - 1) * limit;
 
     const filter = {};
     if (role && ["admin", "transport", "garage"].includes(role)) {
@@ -45,8 +53,16 @@ async function list(req, res, next) {
       ];
     }
 
-    const users = await User.find(filter).sort({ createdAt: -1 }).limit(500);
-    return res.json({ success: true, users: users.map(userRow) });
+    const [users, total] = await Promise.all([
+      User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.countDocuments(filter)
+    ]);
+
+    return res.json({ 
+      success: true, 
+      users: users.map(userRow),
+      pagination: { total, page, limit }
+    });
   } catch (e) {
     return next(e);
   }
@@ -119,5 +135,43 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { list, create, update, remove };
+async function getUserHistory(req, res, next) {
+  try {
+    const { id } = req.params;
+    const [trips, bills, fleet] = await Promise.all([
+      require("../models/Trip").find({ owner: id }).populate("vehicle").sort({ createdAt: -1 }).limit(100),
+      require("../models/TransportBill").find({ owner: id }).sort({ createdAt: -1 }).limit(100),
+      require("../models/Vehicle").find({ owner: id }).sort({ createdAt: -1 })
+    ]);
+
+    return res.json({
+      success: true,
+      history: {
+        trips: trips.map(t => ({
+          id: t._id,
+          date: t.startDate,
+          vehicle: t.vehicle?.vehicleNumber || "N/A",
+          status: t.billed ? "Billed" : "Pending",
+          amount: t.totalFreight || 0
+        })),
+        bills: bills.map(b => ({
+          id: b.billNumber || b._id,
+          date: b.billingDate,
+          total: b.grandTotal,
+          status: b.status
+        })),
+        vehicles: fleet.map(v => ({
+          id: v._id,
+          plateNo: v.vehicleNumber,
+          type: v.vehicleType || 'Truck',
+          model: v.model || 'N/A'
+        }))
+      }
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+module.exports = { list, create, update, remove, getUserHistory };
 

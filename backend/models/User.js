@@ -20,6 +20,7 @@ const UserSchema = new mongoose.Schema(
       ifsc: { type: String, default: null },
       bankName: { type: String, default: null },
       upiId: { type: String, default: null },
+      qrUrl: { type: String, default: null },
     },
     signatureUrl: { type: String, default: null },
     logoUrl: { type: String, default: null },
@@ -32,6 +33,11 @@ const UserSchema = new mongoose.Schema(
       addressProofUrl: { type: String, default: null },
       gstCertificateUrl: { type: String, default: null },
     },
+    
+    // Password-based authentication (optional)
+    passwordHash: { type: String, default: null },
+    passwordSalt: { type: String, default: null },
+    passwordIterations: { type: Number, default: null },
   },
   { timestamps: true }
 );

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import {
   User, Phone, MapPin, FileText, CreditCard,
-  Building2, Loader2, CheckCircle2, ArrowLeft, ChevronDown, PenLine, Truck, Wrench
+  Building2, Loader2, CheckCircle2, ArrowLeft, ChevronDown, PenLine, Truck, Wrench, Trash2
 } from 'lucide-react'
 import { useParties } from '../../context/PartyContext'
 import { useAuth } from '../../context/AuthContext'
@@ -31,7 +31,7 @@ function Field({ label, error, children, required }) {
 
 export default function AddParty() {
   const { id } = useParams()          // if editing
-  const { addParty, updateParty, getParty } = useParties()
+  const { addParty, updateParty, getParty, parties } = useParties()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [saved, setSaved] = useState(false)
@@ -54,7 +54,7 @@ export default function AddParty() {
   const balanceType = watch('balanceType')
   const partyType   = watch('partyType')
 
-  // Prefill when editing
+  // Prefill when editing - depend on parties list to handle loading delay
   useEffect(() => {
     if (isEdit && id) {
       const p = getParty(id)
@@ -76,7 +76,7 @@ export default function AddParty() {
         if (p.signatureUrl) { setSignatureUrl(p.signatureUrl); setSigPreview(p.signatureUrl) }
       }
     }
-  }, [id, isEdit, getParty, reset])
+  }, [id, isEdit, getParty, reset, parties]) // added parties to dependency
 
   // Handle signature file upload → base64
   const handleSigUpload = (e) => {
@@ -111,10 +111,10 @@ export default function AddParty() {
       balance: data.balanceType === 'toReceive' ? balance : -balance,
       signatureUrl: data.partyType === 'garage' ? uploadedSigUrl : '',
     }
-    if (isEdit) updateParty(id, payload)
-    else addParty(payload)
+    if (isEdit) await updateParty(id, payload)
+    else await addParty(payload)
     setSaved(true)
-    setTimeout(() => navigate('/parties'), 800)
+    setTimeout(() => navigate(`/${data.partyType}/parties`), 800)
   }
 
   if (saved) return (
@@ -142,7 +142,7 @@ export default function AddParty() {
       {/* Back header (desktop) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <button
-          onClick={() => navigate('/parties')}
+          onClick={() => navigate(`/${derivedPartyType}/parties`)}
           style={{
             width: 36, height: 36, borderRadius: 10, border: 'none',
             background: 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex',
@@ -304,15 +304,17 @@ export default function AddParty() {
             <h3 style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0F0D2E', margin: 0 }}>Tax Info</h3>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="GSTIN" error={errors.gstin}>
+            <Field label="GSTIN" error={errors.gstin} sublabel="Optional">
               <input
                 id="field-party-gstin"
                 {...register('gstin', {
-                  pattern: { value: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i, message: 'Invalid GSTIN format' }
+                  pattern: { value: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/i, message: 'Invalid GSTIN format' }
                 })}
+                onInput={(e) => {
+                  e.target.value = e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 15);
+                }}
                 placeholder="29ABCDE1234F1Z5"
                 className={`form-input ${errors.gstin ? 'error' : ''}`}
-                style={{ textTransform: 'uppercase' }}
                 maxLength={15}
               />
             </Field>
@@ -447,23 +449,49 @@ export default function AddParty() {
         )}
 
         {/* Submit */}
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
           <button
             type="button"
             className="btn btn-ghost btn-full"
-            onClick={() => navigate('/parties')}
+            onClick={() => navigate(`/${derivedPartyType}/parties`)}
           >Cancel</button>
           <button
             id="btn-save-party"
             type="submit"
             className="btn btn-primary btn-full btn-lg"
             disabled={isSubmitting}
+            style={{ flex: 2 }}
           >
             {isSubmitting
               ? <><Loader2 size={18} className="spin" /> Saving…</>
               : <><CheckCircle2 size={18} /> {isEdit ? 'Update Party' : 'Add Party'}</>}
           </button>
         </div>
+
+        {/* Extra Actions for Edit Mode */}
+        {isEdit && (
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed #E5E7EB', display: 'flex', justifyContent: 'center' }}>
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to delete this party?')) {
+                  const deleted = await deleteParty(id)
+                  if (deleted) navigate('/parties')
+                }
+              }}
+              style={{
+                background: 'transparent', border: 'none', color: '#DC2626',
+                fontSize: '0.8125rem', fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
+                borderRadius: 10
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Trash2 size={16} /> Delete this Party permanent
+            </button>
+          </div>
+        )}
 
       </form>
 

@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import {
   Truck, MapPin, User, Package, Plus, Trash2,
-  CheckCircle2, Loader2, ArrowLeft, ChevronDown, FileText, Calendar
+  CheckCircle2, Loader2, ArrowLeft, ChevronDown, FileText, Calendar, CreditCard
 } from 'lucide-react'
 import { useBills } from '../../context/BillContext'
 import { useParties } from '../../context/PartyContext'
 import { useVehicles } from '../../context/VehicleContext'
+import { getTrips } from '../../api/transportApi'
 import dayjs from 'dayjs'
 
 function Field({ label, error, children, required, style }) {
@@ -47,8 +48,8 @@ const PAYMENT_MODES = [
   { val: 'tbb',     label: 'TBB',      color: '#D97706', bg: '#FEF3C7' },
 ]
 
-export default function TransportBill() {
-  const { addBill } = useBills()
+export default function TransportBill({ initialData }) {
+  const { addBill, updateBill } = useBills()
   const { parties } = useParties()
   const { vehicles } = useVehicles()
   const navigate = useNavigate()
@@ -58,31 +59,74 @@ export default function TransportBill() {
   // Account-based billing states
   const [fromDate, setFromDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'))
   const [toDate, setToDate] = useState(dayjs().endOf('month').format('YYYY-MM-DD'))
-  const [hasLoadedTrips, setHasLoadedTrips] = useState(false)
+  const [pendingTrips, setPendingTrips] = useState([])
+  const [selectedTripIds, setSelectedTripIds] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
 
-  const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm({
+  const isEdit = !!initialData?._id
+
+  const { register, handleSubmit, watch, setValue, control, formState: { errors }, reset } = useForm({
     defaultValues: {
-      billDate: dayjs().format('YYYY-MM-DD'),
-      partyId: '',
-      billedToName: '',
-      billedToPhone: '',
-      billedToEmail: '',
-      billedToAddress: '',
-      billedToCity: '',
-      billedToState: '',
-      billedToPincode: '',
-      billedToGstin: '',
-      billedToPan: '',
-      items: [
+      billDate: dayjs(initialData?.billingDate || initialData?.billDate).format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD'),
+      partyId: initialData?.party?._id || initialData?.party || '',
+      billedToName: initialData?.billedToName || '',
+      billedToPhone: initialData?.billedToPhone || '',
+      billedToEmail: initialData?.billedToEmail || '',
+      billedToAddress: initialData?.billedToAddress || '',
+      billedToCity: initialData?.billedToCity || '',
+      billedToState: initialData?.billedToState || '',
+      billedToPincode: initialData?.billedToPincode || '',
+      billedToGstin: initialData?.billedToGstin || '',
+      billedToPan: initialData?.billedToPan || '',
+      items: initialData?.items?.map(it => ({
+        ...it,
+        date: dayjs(it.date).format('YYYY-MM-DD'),
+        amount: it.amount?.toString()
+      })) || [
         { date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '' }
       ],
-      loadingCharge: '0', unloadingCharge: '0',
-      detentionCharge: '0', otherCharge: '0',
-      gstPercent: '0', gstType: 'CGST+SGST',
-      paymentMode: 'topay',
-      notes: 'Grateful for Moving What Matters to You!',
+      loadingCharge: initialData?.loadingCharge?.toString() || '0', 
+      unloadingCharge: initialData?.unloadingCharge?.toString() || '0',
+      detentionCharge: initialData?.detentionCharge?.toString() || '0', 
+      otherCharge: initialData?.otherCharge?.toString() || '0',
+      gstPercent: initialData?.gstPercent?.toString() || '0', 
+      gstType: initialData?.gstType || 'CGST+SGST',
+      paymentMode: initialData?.paymentMode || 'topay',
+      notes: initialData?.notes || 'Grateful for Moving What Matters to You!',
     }
   })
+
+  // Update form if initialData changes (e.g. from async fetch)
+  useEffect(() => {
+    if (initialData?._id) {
+      reset({
+        billDate: dayjs(initialData.billingDate || initialData.billDate).format('YYYY-MM-DD'),
+        partyId: initialData.party?._id || initialData.party || '',
+        billedToName: initialData.billedToName || '',
+        billedToPhone: initialData.billedToPhone || '',
+        billedToEmail: initialData.billedToEmail || '',
+        billedToAddress: initialData.billedToAddress || '',
+        billedToCity: initialData.billedToCity || '',
+        billedToState: initialData.billedToState || '',
+        billedToPincode: initialData.billedToPincode || '',
+        billedToGstin: initialData.billedToGstin || '',
+        billedToPan: initialData.billedToPan || '',
+        items: initialData.items?.map(it => ({
+          ...it,
+          date: dayjs(it.date).format('YYYY-MM-DD'),
+          amount: it.amount?.toString()
+        })) || [{ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '' }],
+        loadingCharge: initialData.loadingCharge?.toString() || '0',
+        unloadingCharge: initialData.unloadingCharge?.toString() || '0',
+        detentionCharge: initialData.detentionCharge?.toString() || '0',
+        otherCharge: initialData.otherCharge?.toString() || '0',
+        gstPercent: initialData.gstPercent?.toString() || '0',
+        gstType: initialData.gstType || 'CGST+SGST',
+        paymentMode: initialData.paymentMode || 'topay',
+        notes: initialData.notes || 'Grateful for Moving What Matters to You!',
+      })
+    }
+  }, [initialData, reset])
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -101,9 +145,10 @@ export default function TransportBill() {
   const partyId = watch('partyId')
   useEffect(() => {
     if (!partyId) return
-    const p = parties.find(x => x.id === partyId)
+    const p = parties.find(x => x._id === partyId || x.id === partyId)
+    // Only auto-fill if not in edit mode or if the party actually changed manually
     if (p) {
-      setValue('billedToName', p.name)
+      setValue('billedToName', p.name || '')
       setValue('billedToPhone', p.phone || '')
       setValue('billedToEmail', p.email || '')
       setValue('billedToAddress', p.address || '')
@@ -124,107 +169,152 @@ export default function TransportBill() {
   const gstAmount = subtotal * (parseFloat(gstPercent) || 0) / 100
   const grandTotal = subtotal + gstAmount
 
-  const loadPendingTrips = () => {
+  const loadPendingTrips = async () => {
     if (!partyId) {
-      alert("Please select a party first")
+      alert("Please select a party/customer first")
       return
     }
-    const saved = localStorage.getItem('transport_trips')
-    if (!saved) {
-      alert("No trips found in system")
-      return
-    }
+    
     try {
-      const allTrips = JSON.parse(saved)
-      const filtered = allTrips.filter(t => 
-        t.partyId === partyId && 
-        !t.billed &&
-        dayjs(t.date).isAfter(dayjs(fromDate).subtract(1, 'day')) &&
-        dayjs(t.date).isBefore(dayjs(toDate).add(1, 'day'))
+      setIsSearching(true)
+      const res = await getTrips()
+      if (!res.success) throw new Error("Fetch failed")
+
+      const filtered = res.trips.filter(t => 
+        (t.party?._id === partyId || t.party === partyId) && 
+        (!t.billed || (initialData?.trips || []).includes(t._id || t.id)) && // Include already included trips for this bill
+        dayjs(t.startDate).isAfter(dayjs(fromDate).subtract(1, 'day')) &&
+        dayjs(t.startDate).isBefore(dayjs(toDate).add(1, 'day'))
       )
       
+      setPendingTrips(filtered)
       if (filtered.length === 0) {
-        alert("No pending trips found for this party in the selected date range.")
-        return
+        alert("No pending trips found for this date range.")
       }
-
-      // Grouping logic for combined billing
-      const groups = {}
-      filtered.forEach(t => {
-        const key = `${t.date}_${t.vehicleId}`
-        if (!groups[key]) groups[key] = []
-        groups[key].push(t)
-      })
-
-      const formatted = Object.values(groups).map(group => {
-        const sorted = [...group].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-        
-        let displayFrom = sorted[0].fromLocation
-        let displayTo = sorted[0].toLocation
-        for (let i = 1; i < sorted.length; i++) {
-          const prev = sorted[i-1]
-          const curr = sorted[i]
-          if (curr.fromLocation.toLowerCase().trim() === prev.toLocation.toLowerCase().trim()) {
-             displayTo += ` + ${curr.toLocation}`
-          } else {
-             displayTo += ` + ${curr.fromLocation} to ${curr.toLocation}`
-          }
-        }
-
-        const totalAmount = sorted.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0)
-        
-        return {
-          date: sorted[0].date,
-          companyFrom: displayFrom,
-          companyTo: displayTo,
-          chalanNo: '',
-          amount: totalAmount.toString(),
-          tripId: sorted.map(s => s.id).join(',') 
-        }
-      })
-      
-      setValue('items', formatted)
-      setHasLoadedTrips(true)
     } catch (e) {
-      console.error("Failed to load trips", e)
+      alert("Failed to load trips")
+    } finally {
+      setIsSearching(false)
     }
   }
 
-  const onSubmit = async (data) => {
-    setSaving(true)
-    await new Promise(r => setTimeout(r, 800))
-    const bill = addBill({
-      type: 'transport',
-      ...data,
-      subtotal, 
-      gstAmount, 
-      grandTotal,
-      status: data.paymentMode === 'paid' ? 'paid' : 'unpaid',
-    })
+  const addSelectedTrips = () => {
+    if (selectedTripIds.length === 0) return
 
-    // Mark trips as billed in localStorage
-    try {
-      const saved = localStorage.getItem('transport_trips')
-      if (saved) {
-        const allTrips = JSON.parse(saved)
-        const billedTripIds = data.items.reduce((acc, it) => {
-          if (it.tripId) {
-            const ids = it.tripId.includes(',') ? it.tripId.split(',') : [it.tripId]
-            return [...acc, ...ids]
-          }
-          return acc
-        }, [])
-        if (billedTripIds.length > 0) {
-          const updated = allTrips.map(t => billedTripIds.includes(t.id) ? { ...t, billed: true } : t)
-          localStorage.setItem('transport_trips', JSON.stringify(updated))
-        }
-      }
-    } catch (e) {
-      console.error("Failed to mark trips as billed", e)
+    const toAdd = pendingTrips
+      .filter(t => selectedTripIds.includes(t._id || t.id))
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+    
+    // CONSOLDATED LOGIC: Create ONE bill item from multiple trips
+    let displayFrom = toAdd[0].source
+    let displayTo = toAdd[0].destination
+    const totalAmount = toAdd.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0)
+
+    // Build the "To" string by chaining destinations (deduplicate)
+    for (let i = 1; i < toAdd.length; i++) {
+       const curr = toAdd[i]
+       const prev = toAdd[i-1]
+       if (curr.source.toLowerCase().trim() === prev.destination.toLowerCase().trim()) {
+          displayTo += ` → ${curr.destination}`
+       } else {
+          displayTo += ` + ${curr.source} → ${curr.destination}`
+       }
     }
 
-    setSaving(false)
-    setSavedBill(bill)
+    const consolidatedItem = {
+      date: dayjs(toAdd[0].startDate).format('YYYY-MM-DD'),
+      companyFrom: displayFrom,
+      companyTo: displayTo,
+      chalanNo: '',
+      amount: totalAmount.toString(),
+      tripIds: toAdd.map(s => s._id || s.id)
+    }
+
+    // Add to current item list (if first item is empty, replace it)
+    const currentItems = watchedItems || []
+    if (currentItems.length === 1 && !currentItems[0].companyFrom && !currentItems[0].amount) {
+      setValue('items', [consolidatedItem])
+    } else {
+      setValue('items', [...currentItems, consolidatedItem])
+    }
+
+    // Clear selection UI
+    setPendingTrips([])
+    setSelectedTripIds([])
+  }
+
+  const onSubmit = async (data, statusArg = 'unpaid') => {
+    setSaving(true)
+    try {
+      // Determine final status: if it was draft and we clicked 'Generate', it becomes unpaid/paid
+      // if we clicked 'Save as Draft', it stays draft.
+      const finalStatus = statusArg === 'draft' ? 'draft' : (data.paymentMode === 'paid' ? 'paid' : 'unpaid');
+
+      const payload = {
+        // Customer info
+        billedToName:    data.billedToName,
+        billedToPhone:   data.billedToPhone,
+        billedToEmail:   data.billedToEmail,
+        billedToAddress: data.billedToAddress,
+        billedToCity:    data.billedToCity,
+        billedToState:   data.billedToState,
+        billedToPincode: data.billedToPincode,
+        billedToGstin:   data.billedToGstin,
+        billedToPan:     data.billedToPan,
+
+        // Bill meta
+        billType:    'transport',
+        billingDate: data.billDate,
+        paymentMode: data.paymentMode || 'topay',
+        notes:       data.notes,
+        gstType:     data.gstType || 'CGST+SGST',
+
+        // Items (trips)
+        items: (data.items || []).map(it => ({
+          date:        it.date,
+          companyFrom: it.companyFrom,
+          companyTo:   it.companyTo,
+          chalanNo:    it.chalanNo,
+          amount:      parseFloat(it.amount) || 0,
+          tripIds:     it.tripIds || [],
+        })),
+
+        // Extra charges
+        loadingCharge:   parseFloat(data.loadingCharge)   || 0,
+        unloadingCharge: parseFloat(data.unloadingCharge) || 0,
+        detentionCharge: parseFloat(data.detentionCharge) || 0,
+        otherCharge:     parseFloat(data.otherCharge)     || 0,
+
+        // Tax & totals
+        gstPercent: parseFloat(data.gstPercent) || 0,
+        gstAmount,
+        subTotal:   subtotal,
+        grandTotal,
+
+        // Status
+        status: finalStatus,
+        trips:  (data.items || []).flatMap(it => it.tripIds || []),
+      }
+
+      // Only add party if a valid ID is selected
+      if (data.partyId && data.partyId.trim() !== '') {
+        payload.party   = data.partyId
+        payload.partyId = data.partyId
+      }
+
+      let bill;
+      if (isEdit) {
+        bill = await updateBill(initialData._id, payload)
+      } else {
+        bill = await addBill(payload)
+      }
+      setSavedBill(bill)
+    } catch (e) {
+      console.error('TransportBill submit error:', e)
+      alert('Failed to save bill: ' + (e?.response?.data?.message || e.message || 'Please try again.'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (savedBill) return (
@@ -233,12 +323,12 @@ export default function TransportBill() {
         <CheckCircle2 size={36} color="#16A34A" />
       </div>
       <h2 style={{ fontWeight: 800, color: '#0F0D2E' }}>Bill Created!</h2>
-      <p style={{ color: '#6B7280', fontSize: '0.9rem' }}>Invoice #{savedBill.invoiceNo} generated and saved.</p>
+      <p style={{ color: '#6B7280', fontSize: '0.9rem' }}>Invoice #{savedBill.billNumber || 'Draft'} generated and saved.</p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
-        <button className="btn btn-primary" onClick={() => navigate(`/bills/${savedBill.id}`)}>
+        <button className="btn btn-primary" onClick={() => navigate(`/bills/${savedBill._id || savedBill.id}`)}>
           <FileText size={16} /> View Invoice
         </button>
-        <button className="btn btn-ghost" onClick={() => { setSavedBill(null); navigate('/bills/new'); }}>
+        <button className="btn btn-ghost" onClick={() => { setSavedBill(null); navigate('/transport/bills/new'); }}>
           <Plus size={16} /> Create Another
         </button>
       </div>
@@ -250,7 +340,7 @@ export default function TransportBill() {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <button onClick={() => navigate('/bills')} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}>
+        <button onClick={() => navigate('/transport/bills')} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}>
           <ArrowLeft size={18} />
         </button>
         <div>
@@ -316,30 +406,76 @@ export default function TransportBill() {
               </div>
             </div>
 
-            {partyId && (
-              <div style={{ marginTop: 16, marginBottom: 8, padding: '16px', background: '#F0F9FF', borderRadius: 20, border: '1.5px solid #BAE6FD', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.08)', width: '100%', boxSizing: 'border-box' }} className="animate-fadeIn">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  <Package size={18} color="#0284C7" />
-                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0369A1' }}>Fetch Pending Trips (Account Billing)</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <Field label="From Date">
-                    <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="form-input" style={{ height: 38, fontSize: '0.8rem' }} />
-                  </Field>
-                  <Field label="To Date">
-                    <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="form-input" style={{ height: 38, fontSize: '0.8rem' }} />
-                  </Field>
-                </div>
-                <button type="button" onClick={loadPendingTrips} className="btn btn-primary" style={{ height: 40, width: '100%', fontSize: '0.85rem', background: '#0284C7' }}>
-                  Load Entries for this Period
-                </button>
-              </div>
-            )}
           </div>
         </SectionCard>
 
         {/* ── Billing Summary (Multiple Items) ── */}
         <SectionCard icon={Truck} iconBg="#FEF3C7" iconColor="#D97706" title="Billing Summary (Trips / Chalans)">
+          
+          {/* Dual Action Header */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+             <button 
+                type="button" 
+                onClick={() => append({ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '' })}
+                style={{ flex: 1, height: 46, borderRadius: 16, border: '1.5px solid #E2E8F0', background: 'white', color: '#444', fontWeight: 900, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', transition: '0.2s' }}
+             >
+                <Plus size={16} color="#4F46E5" /> MANUAL ENTRY
+             </button>
+             <button 
+                type="button" 
+                onClick={() => { if(!partyId) alert('Please select a Customer first'); else loadPendingTrips(); }}
+                style={{ flex: 1, height: 46, borderRadius: 16, border: 'none', background: '#F5F3FF', color: '#7C3AED', fontWeight: 900, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', opacity: partyId ? 1 : 0.6 }}
+             >
+                <Package size={16} /> {isSearching ? 'SEARCHING...' : 'DATABASE IMPORT'}
+             </button>
+          </div>
+
+          {/* Search Controls (Visible when searching or when results exist) */}
+          {(isSearching || pendingTrips.length > 0) && (
+            <div className="animate-slideUp" style={{ marginBottom: 20, padding: '16px', background: '#F8FAFC', borderRadius: 20, border: '1.5px solid #EEF2FF' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#4F46E5' }}>Search Database</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                   <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} style={{ fontSize: '0.7rem', padding: '6px 8px', borderRadius: 8, border: '1px solid #CBD5E1' }} />
+                   <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} style={{ fontSize: '0.7rem', padding: '6px 8px', borderRadius: 8, border: '1px solid #CBD5E1' }} />
+                   <button type="button" onClick={loadPendingTrips} style={{ fontSize: '0.7rem', fontWeight: 800, background: '#4F46E5', color: 'white', border: 'none', padding: '0 12px', borderRadius: 8 }}>RE-LOAD</button>
+                </div>
+              </div>
+
+              {pendingTrips.length > 0 ? (
+                <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 15 }}>
+                  {pendingTrips.map(t => (
+                    <div 
+                      key={t._id} 
+                      onClick={() => setSelectedTripIds(prev => prev.includes(t._id) ? prev.filter(x => x !== t._id) : [...prev, t._id])}
+                      style={{ 
+                        padding: '10px 14px', background: selectedTripIds.includes(t._id) ? '#EEF2FF' : 'white', 
+                        borderRadius: 14, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                        border: selectedTripIds.includes(t._id) ? '2px solid #4F46E5' : '1.5px solid #F1F5F9'
+                      }}
+                    >
+                      <div style={{ width: 18, height: 18, borderRadius: 6, border: '1.2px solid #CBD5E1', background: selectedTripIds.includes(t._id) ? '#4F46E5' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         {selectedTripIds.includes(t._id) && <CheckCircle2 size={12} color="white" />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.8rem', color: '#0F0D2E' }}>{t.source} → {t.destination}</div>
+                        <div style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 600 }}>{dayjs(t.startDate).format('DD MMM')} • ₹{t.amount.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#64748B', fontSize: '0.8rem' }}>No unbilled trips found for this date range.</div>
+              )}
+
+              {selectedTripIds.length > 0 && (
+                <button type="button" onClick={addSelectedTrips} style={{ width: '100%', height: 44, borderRadius: 14, background: '#4F46E5', color: 'white', border: 'none', fontSize: '0.85rem', fontWeight: 900, boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}>
+                  Import {selectedTripIds.length} Selected Trips
+                </button>
+              )}
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {fields.map((field, index) => (
               <div key={field.id} className="animate-fadeInUp" style={{ 
@@ -488,11 +624,28 @@ export default function TransportBill() {
         </div>
 
         {/* Submit */}
-        <div className="btn-group btn-group-mobile-col" style={{ marginBottom: 40 }}>
-          <button type="button" className="btn btn-ghost btn-full" onClick={() => navigate('/bills')} style={{ height: 52 }}>Cancel</button>
-          <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={saving} style={{ height: 52 }}>
-            {saving ? <><Loader2 size={18} className="spin" /> Generating…</> : <><FileText size={18} /> Generate Bill</>}
-          </button>
+        <div className="btn-group btn-group-mobile-col" style={{ marginBottom: 40, gap: 12 }}>
+          <button type="button" className="btn btn-ghost btn-full" onClick={() => navigate('/transport/bills')} style={{ height: 52 }}>Cancel</button>
+          
+          <div style={{ flex: 2, display: 'flex', gap: 12 }}>
+            <button 
+              type="button" 
+              className="btn btn-ghost btn-full" 
+              onClick={handleSubmit(d => onSubmit(d, 'draft'))}
+              disabled={saving}
+              style={{ height: 52, flex: 1, border: '1.5px solid #E5E7EB' }}
+            >
+              {isEdit ? 'Update Draft' : 'Save as Draft'}
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary btn-full btn-lg" 
+              disabled={saving} 
+              style={{ height: 52, flex: 1.5 }}
+            >
+              {saving ? <><Loader2 size={18} className="spin" /> {isEdit ? 'Updating…' : 'Generating…'}</> : <><FileText size={18} /> {isEdit ? 'Update & Generate' : 'Generate Bill'}</>}
+            </button>
+          </div>
         </div>
       </form>
 

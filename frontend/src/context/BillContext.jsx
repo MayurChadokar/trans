@@ -1,105 +1,100 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useAuth } from './AuthContext'
-import dayjs from 'dayjs'
+import { getBills, getBillDetail, createBill as createBillApi, updateBill as updateBillApi, deleteBillApi } from '../api/billApi'
 
 const BillContext = createContext(null)
 
-const uid = () => `bill_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-
-// Auto-generate invoice number like BP250001
-const generateInvoiceNo = (existing = []) => {
-  const prefix = 'BP'
-  const ym = dayjs().format('YYMM')
-  const fullPrefix = `${prefix}${ym}`
-  
-  // Filter for bills from the current month and extract their numeric counter
-  const counters = existing
-    .filter(b => b.invoiceNo?.startsWith(fullPrefix))
-    .map(b => {
-      const counterStr = b.invoiceNo.slice(fullPrefix.length)
-      // Ignore corrupted numbers (too long or scientific notation)
-      if (counterStr.length > 6 || counterStr.includes('.') || counterStr.includes('e')) return 0
-      return parseInt(counterStr) || 0
-    })
-    .filter(Boolean)
-
-  const next = counters.length ? Math.max(...counters) + 1 : 1
-  return `${fullPrefix}${String(next).padStart(3, '0')}`
-}
-
 export function BillProvider({ children }) {
   const { user } = useAuth()
-  const storageKey = user ? `bills_${user.id}` : null
-
-  const [bills, setBills]   = useState([])
+  const [bills, setBills] = useState([])
   const [loaded, setLoaded] = useState(false)
 
-  useEffect(() => {
-    if (!storageKey) return
+  const loadBills = useCallback(async () => {
+    if (!user) return
     try {
-      const saved = localStorage.getItem(storageKey)
-      if (saved) setBills(JSON.parse(saved))
-    } catch (_) {}
-    setLoaded(true)
-  }, [storageKey])
-
-  const persist = useCallback((list) => {
-    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(list))
-  }, [storageKey])
-
-  const addBill = useCallback((data) => {
-    const newBill = {
-      id: uid(),
-      invoiceNo: generateInvoiceNo(bills),
-      createdAt: new Date().toISOString(),
-      status: data.paymentMode === 'paid' ? 'paid' : 'unpaid',
-      ...data,
+      const res = await getBills()
+      if (res.success) setBills(res.bills)
+    } catch (e) {
+      console.error("Failed to load bills", e)
+    } finally {
+      setLoaded(true)
     }
-    setBills(prev => {
-      const next = [newBill, ...prev]
-      persist(next)
-      return next
-    })
-    return newBill
-  }, [bills, persist])
+  }, [user])
 
-  const updateBill = useCallback((id, data) => {
-    setBills(prev => {
-      const next = prev.map(b => b.id === id ? { ...b, ...data, updatedAt: new Date().toISOString() } : b)
-      persist(next)
-      return next
-    })
-  }, [persist])
+  useEffect(() => {
+    loadBills()
+  }, [loadBills])
 
-  const deleteBill = useCallback((id) => {
-    setBills(prev => {
-      const next = prev.filter(b => b.id !== id)
-      persist(next)
-      return next
-    })
-  }, [persist])
+  const addBill = useCallback(async (data) => {
+    const res = await createBillApi(data)
+    if (res.success) {
+      setBills(prev => [res.bill, ...prev])
+      return res.bill
+    }
+    throw new Error("Failed to create bill")
+  }, [])
 
-  const getBill = useCallback((id) => bills.find(b => b.id === id), [bills])
+  const updateBill = useCallback(async (id, data) => {
+    const res = await updateBillApi(id, data)
+    if (res.success) {
+      setBills(prev => prev.map(b => (b._id === id || b.id === id) ? res.bill : b))
+      return res.bill
+    }
+    throw new Error("Failed to update bill")
+  }, [])
 
-  const recordPayment = useCallback((billId, amount) => {
-    setBills(prev => {
-      const next = prev.map(b => {
-        if (b.id !== billId) return b
-        const currentPaid = parseFloat(b.paidAmount || 0) + parseFloat(amount)
-        const total = parseFloat(b.grandTotal || 0)
-        let status = 'unpaid'
-        if (currentPaid >= total) status = 'paid'
-        else if (currentPaid > 0) status = 'partial'
-        
-        return { ...b, paidAmount: currentPaid, status, updatedAt: new Date().toISOString() }
+  const recordPayment = useCallback(async (id, amount) => {
+    try {
+      const res = await updateBillApi(id, {
+        status: 'paid',
+        paidAmount: amount,
+        paymentDate: new Date().toISOString()
       })
-      persist(next)
-      return next
-    })
-  }, [persist])
+      if (res.success) {
+        setBills(prev => prev.map(b => (b._id === id || b.id === id) ? res.bill : b))
+        return res.bill
+      }
+    } catch (e) {
+      console.error("Failed to record payment", e)
+      throw e
+    }
+  }, [])
+
+  // Returns from local cache first; falls back to API (handles hard refresh)
+  const getBill = useCallback((id) => bills.find(b => b._id === id || b.id === id), [bills])
+
+  const fetchBill = useCallback(async (id) => {
+    // Try local state first
+    const local = bills.find(b => b._id === id || b.id === id)
+    if (local) return local
+    // Fall back to API
+    try {
+      const res = await getBillDetail(id)
+      if (res.success) {
+        setBills(prev => {
+          const exists = prev.find(b => b._id === id || b.id === id)
+          return exists ? prev : [res.bill, ...prev]
+        })
+        return res.bill
+      }
+    } catch (e) {
+      console.error("Failed to fetch bill detail", e)
+    }
+    return null
+  }, [bills])
+
+  const deleteBill = useCallback(async (id) => {
+    try {
+      await deleteBillApi(id)
+      setBills(prev => prev.filter(b => b._id !== id && b.id !== id))
+    } catch (e) {
+      console.error('Failed to delete bill', e)
+      throw e
+    }
+  }, [])
 
   return (
-    <BillContext.Provider value={{ bills, loaded, addBill, updateBill, deleteBill, getBill, recordPayment }}>
+    <BillContext.Provider value={{ bills, loaded, addBill, updateBill, deleteBill, getBill, fetchBill, recordPayment, refreshBills: loadBills }}>
       {children}
     </BillContext.Provider>
   )

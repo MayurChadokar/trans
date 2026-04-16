@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Truck, CheckCircle2, Loader2, ArrowLeft, ChevronDown } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useVehicles } from '../../context/VehicleContext'
 
 const VEHICLE_TYPES = ['Tempo', 'Truck', 'Mini Truck', 'Heavy Truck', 'Container', 'Tanker', 'Trailer', 'Other']
@@ -16,16 +18,33 @@ function Field({ label, error, children, required }) {
 }
 
 export default function AddVehicle() {
-  const { addVehicle } = useVehicles()
+  const { addVehicle, updateVehicle, vehicles } = useVehicles()
   const navigate = useNavigate()
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { id } = useParams()
+  const isEdit = !!id
+
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     defaultValues: { vehicleNumber: '', vehicleType: 'Tempo', ownerName: '', notes: '' }
   })
 
+  useEffect(() => {
+    if (isEdit && vehicles.length > 0) {
+      const v = vehicles.find(x => x._id === id)
+      if (v) reset(v)
+    }
+  }, [isEdit, id, vehicles, reset])
+
   const onSubmit = async (data) => {
-    await new Promise(r => setTimeout(r, 400))
-    addVehicle({ ...data, vehicleNumber: data.vehicleNumber.toUpperCase() })
-    navigate('/transport/vehicles')
+    try {
+      if (isEdit) {
+        await updateVehicle(id, data)
+      } else {
+        await addVehicle({ ...data, vehicleNumber: data.vehicleNumber.toUpperCase() })
+      }
+      navigate('/transport/vehicles')
+    } catch (e) {
+      alert('Failed to save vehicle')
+    }
   }
 
   return (
@@ -35,8 +54,8 @@ export default function AddVehicle() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h2 style={{ fontWeight: 800, fontSize: '1.125rem', color: '#0F0D2E', margin: 0 }}>Add Vehicle</h2>
-          <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>Add to your transport fleet</p>
+          <h2 style={{ fontWeight: 800, fontSize: '1.125rem', color: '#0F0D2E', margin: 0 }}>{isEdit ? 'Edit' : 'Add'} Vehicle</h2>
+          <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>{isEdit ? 'Update details' : 'Add to your transport fleet'}</p>
         </div>
       </div>
 
@@ -86,7 +105,7 @@ export default function AddVehicle() {
         <div style={{ display: 'flex', gap: 12 }}>
           <button type="button" className="btn btn-ghost btn-full" onClick={() => navigate('/transport/vehicles')}>Cancel</button>
           <button id="btn-save-vehicle" type="submit" className="btn btn-primary btn-full btn-lg" disabled={isSubmitting}>
-            {isSubmitting ? <><Loader2 size={18} className="spin" /> Saving…</> : <><CheckCircle2 size={18} /> Add Vehicle</>}
+            {isSubmitting ? <><Loader2 size={18} className="spin" /> Saving…</> : <><CheckCircle2 size={18} /> {isEdit ? 'Save Changes' : 'Add Vehicle'}</>}
           </button>
         </div>
       </form>

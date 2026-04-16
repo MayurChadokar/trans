@@ -31,7 +31,7 @@ const VehicleCard = ({ v, onEdit, onDelete }) => {
           <button onClick={() => onEdit(v)} style={{ padding: '0 14px', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: '#7C3AED' }}>
             <Edit2 size={14} />
           </button>
-          <button onClick={() => onDelete(v.id)} style={{ padding: '0 14px', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: '#DC2626', borderRadius: '0 16px 16px 0' }}>
+          <button onClick={() => onDelete(v._id)} style={{ padding: '0 14px', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: '#DC2626', borderRadius: '0 16px 16px 0' }}>
             <Trash2 size={14} />
           </button>
           <button onClick={() => setAct(false)} style={{ padding: '0 8px', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', color: '#9CA3AF' }}>
@@ -73,7 +73,7 @@ export default function TransportVehicleList() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {vehicles.map(v => (
-            <VehicleCard key={v.id} v={v} onEdit={() => navigate(`/transport/vehicles/edit/${v.id}`)} onDelete={deleteVehicle} />
+            <VehicleCard key={v._id} v={v} onEdit={() => navigate(`/transport/vehicles/edit/${v._id}`)} onDelete={deleteVehicle} />
           ))}
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
   Users, Search, UserPlus, Trash2, Edit3,
   X, User, Phone, MapPin, ChevronLeft,
@@ -6,20 +6,19 @@ import {
 } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
 import { useLocation } from 'react-router-dom'
+import * as adminApi from '../../api/adminApi'
 
 const ITEMS_PER_PAGE = 8
 
 export default function SpecializedManagement() {
   const { pathname } = useLocation()
-  const { mode, drivers, addDriver, updateDriver, deleteDriver, staff, addStaff, updateStaff, deleteStaff } = useAdmin()
+  const { mode, addDriver, updateDriver, deleteDriver, addStaff, updateStaff, deleteStaff } = useAdmin()
   const isTransport = mode === 'transport'
   const accentColor = '#7C3AED'
-  const accentLight = '#EDE9FE'
-
+  
   const isDriverPage = pathname.includes('drivers') || pathname.includes('mechanics')
   const typeLabel = isDriverPage ? (isTransport ? 'Driver' : 'Mechanic') : 'Staff'
 
-  const data = isDriverPage ? drivers : staff
   const addFn = isDriverPage ? addDriver : addStaff
   const updateFn = isDriverPage ? updateDriver : updateStaff
   const deleteFn = isDriverPage ? deleteDriver : deleteStaff
@@ -27,23 +26,53 @@ export default function SpecializedManagement() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [modal, setModal] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [localData, setLocalData] = useState([])
+  const [total, setTotal] = useState(0)
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase()
-    return data.filter(item => !q || item.name?.toLowerCase().includes(q) || item.phone?.includes(q) || item.id?.toLowerCase().includes(q))
-  }, [data, search])
+  const fetchItems = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await adminApi.getAdminSpecialUsers({
+        target: mode,
+        role: isDriverPage ? (isTransport ? 'driver' : 'mechanic') : 'staff',
+        page,
+        limit: ITEMS_PER_PAGE,
+        q: search
+      })
+      if (res.success) {
+        setLocalData(res.users.map(u => ({ ...u, id: u._id })))
+        setTotal(res.pagination.total)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }, [mode, isDriverPage, isTransport, page, search])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  useEffect(() => {
+    fetchItems()
+  }, [fetchItems])
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault()
     const form = new FormData(e.target)
     const entry = Object.fromEntries(form.entries())
-    if (modal?.id) updateFn(modal.id, entry)
-    else addFn(entry)
+    if (modal?.id) await updateFn(modal.id, entry)
+    else await addFn(entry)
     setModal(null)
+    fetchItems()
   }
+
+  const handleDelete = async (id) => {
+    if (window.confirm(`Delete this ${typeLabel.toLowerCase()}?`)) {
+      await deleteFn(id)
+      fetchItems()
+    }
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE))
 
   return (
     <div className="animate-fadeIn">
@@ -65,33 +94,39 @@ export default function SpecializedManagement() {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto', position: 'relative', minHeight: localData.length === 0 ? '200px' : 'auto' }}>
+          {loading && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <div className="animate-spin" style={{ width: 24, height: 24, border: '3px solid ' + accentColor, borderTopColor: 'transparent', borderRadius: '50%' }}></div>
+            </div>
+          )}
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: 'var(--bg-alt)', borderBottom: '1px solid var(--border)' }}>
               <tr>
-                {['ID', 'Name / Business', 'Contact Phone', 'Joined', 'Actions'].map(h => (
+                {['ID', 'Name / Info', 'Contact Phone', 'Joined', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '13px 24px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {paginated.map(item => (
+              {localData.map(item => (
                 <tr key={item.id} style={{ borderBottom: '1px solid var(--border)' }} className="table-row-hover">
-                  <td style={{ padding: '14px 24px', fontSize: '0.8rem', fontWeight: 700, color: accentColor }}>#{item.id.slice(0, 8)}</td>
+                  <td style={{ padding: '14px 24px', fontSize: '0.8rem', fontWeight: 700, color: accentColor }}>#{item.id.slice(-6).toUpperCase()}</td>
                   <td style={{ padding: '14px 24px' }}>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>ID: {item.id}</div>
                   </td>
                   <td style={{ padding: '14px 24px', fontSize: '0.875rem', fontWeight: 600 }}>{item.phone || '—'}</td>
-                  <td style={{ padding: '14px 24px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{item.joinedAt || 'Just now'}</td>
+                  <td style={{ padding: '14px 24px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{new Date(item.joinedAt).toLocaleDateString() || 'Just now'}</td>
                   <td style={{ padding: '14px 24px' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="btn-icon sm" onClick={() => setModal(item)}><Edit3 size={15} /></button>
-                      <button className="btn-icon sm" style={{ color: 'var(--danger)', background: '#FEE2E2' }} onClick={() => deleteFn(item.id)}><Trash2 size={15} /></button>
+                      <button className="btn-icon sm" style={{ color: 'var(--danger)', background: '#FEE2E2' }} onClick={() => handleDelete(item.id)}><Trash2 size={15} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {paginated.length === 0 && (
+              {localData.length === 0 && !loading && (
                 <tr>
                    <td colSpan="5" style={{ padding: '60px 24px', textAlign: 'center' }}>
                       <Briefcase size={44} color="var(--text-muted)" style={{ margin: '0 auto 12px', opacity: 0.3 }} />
@@ -101,6 +136,15 @@ export default function SpecializedManagement() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Records: {total}</p>
+           <div style={{ display: 'flex', gap: 8 }}>
+             <button className="btn btn-ghost btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} /></button>
+             <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 700 }}>Page {page} of {totalPages}</span>
+             <button className="btn btn-ghost btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
+           </div>
         </div>
       </div>
 

@@ -55,5 +55,15 @@ async function uploadSingle(req, res, next) {
   }
 }
 
-module.exports = { uploadSingle };
+async function deleteFile(publicId, resourceType = "image") {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    return result;
+  } catch (e) {
+    console.error("[CLOUDINARY] Delete Failed:", e.message);
+    throw e;
+  }
+}
+
+module.exports = { uploadSingle, deleteFile };
 

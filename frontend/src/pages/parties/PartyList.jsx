@@ -5,6 +5,7 @@ import {
   ChevronRight, Trash2, Edit2, X, FileText
 } from 'lucide-react'
 import { useParties } from '../../context/PartyContext'
+import { useAuth } from '../../context/AuthContext'
 
 // ── Avatar color palette ──────────────────────────────
 const COLORS = [
@@ -131,7 +132,7 @@ function PartyCard({ party, onEdit, onDelete, onClick }) {
             <Edit2 size={15} /> Edit
           </button>
           <button
-            onClick={() => onDelete(party.id)}
+            onClick={() => onDelete(party._id || party.id)}
             style={{
               padding: '0 14px', height: '100%', border: 'none',
               background: 'transparent', cursor: 'pointer',
@@ -207,29 +208,42 @@ function DeleteModal({ name, onConfirm, onCancel }) {
 }
 
 // ── Main Page ─────────────────────────────────────────
-export default function PartyList() {
+export default function PartyList({ type }) {
   const { parties, deleteParty, loaded } = useParties()
+  const { user } = useAuth()
   const navigate = useNavigate()
-  const [search, setSearch]       = useState('')
+  const [search, setSearch] = useState('')
   const [deleteTarget, setDelete] = useState(null)
 
+  const userRole = user?.role || 'transport'
+  const moduleType = type || userRole
+  const isAdmin = userRole === 'admin'
+
   const filtered = useMemo(() => {
+    let list = parties
+    // Filter by module if not admin
+    if (!isAdmin) {
+       list = list.filter(p => p.partyType === moduleType)
+    } else if (type) {
+       list = list.filter(p => p.partyType === type)
+    }
+
     const q = search.toLowerCase().trim()
-    if (!q) return parties
-    return parties.filter(p =>
+    if (!q) return list
+    return list.filter(p =>
       p.name?.toLowerCase().includes(q) ||
       p.phone?.includes(q) ||
       p.city?.toLowerCase().includes(q) ||
       p.gstin?.toLowerCase().includes(q)
     )
-  }, [parties, search])
+  }, [parties, search, isAdmin, moduleType, type])
 
-  const handleDelete = (id) => {
-    const p = parties.find(x => x.id === id)
+   const handleDelete = (id) => {
+    const p = parties.find(x => (x._id || x.id) === id)
     setDelete(p)
   }
   const confirmDelete = () => {
-    deleteParty(deleteTarget.id)
+    deleteParty(deleteTarget._id || deleteTarget.id)
     setDelete(null)
   }
 
@@ -239,15 +253,17 @@ export default function PartyList() {
       {/* ── Header row ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <h2 style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F0D2E', marginBottom: 2 }}>Parties</h2>
+          <h2 style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F0D2E', marginBottom: 2 }}>
+            {moduleType === 'transport' ? 'Transport Parties' : 'Garage Customers'}
+          </h2>
           <p style={{ fontSize: '0.8rem', color: '#6B7280' }}>
-            {parties.length} {parties.length === 1 ? 'client' : 'clients'} added
+            {filtered.length} {filtered.length === 1 ? 'record' : 'records'} found
           </p>
         </div>
         <button
           id="btn-add-party"
           className="btn btn-primary btn-sm"
-          onClick={() => navigate('/parties/add')}
+          onClick={() => navigate(`/${moduleType}/parties/add`)}
         >
           <Plus size={16} /> Add Party
         </button>
@@ -315,7 +331,7 @@ export default function PartyList() {
             <button
               id="btn-add-first-party"
               className="btn btn-primary"
-              onClick={() => navigate('/parties/add')}
+              onClick={() => navigate(`/${moduleType}/parties/add`)}
             >
               <Plus size={16} /> Add Party
             </button>
@@ -326,11 +342,11 @@ export default function PartyList() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(party => (
             <PartyCard
-              key={party.id}
+              key={party._id || party.id}
               party={party}
-              onEdit={p => navigate(`/parties/edit/${p.id}`)}
+              onEdit={p => navigate(`/${moduleType}/parties/edit/${p._id || p.id}`)}
               onDelete={handleDelete}
-              onClick={p => navigate(`/parties/${p.id}`)}
+              onClick={p => navigate(`/${moduleType}/parties/${p._id || p.id}`)}
             />
           ))}
         </div>

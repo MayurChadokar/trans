@@ -11,20 +11,22 @@ export default function BottomNav() {
   const navigate = useNavigate()
 
   const isTransport = isAdmin ? (mode === 'transport') : (user?.role === 'transport')
+  const modulePrefix = isTransport ? '/transport' : '/garage'
   
   // Define nav items for different roles/modes
   const leftItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-    { to: '/bills',     icon: FileText,        label: 'Bills' },
+    { to: `${modulePrefix}/dashboard`, icon: LayoutDashboard, label: 'Home' },
+    { to: `${modulePrefix}/bills`,     icon: FileText,        label: 'Bills' },
   ]
 
   const rightItems = [
-    { to: '/parties',   icon: Users,           label: 'Parties' },
-    { to: '/profile',   icon: UserCircle,      label: 'Profile' },
+    { to: `${modulePrefix}/parties`,   icon: Users,           label: 'Parties' },
+    { to: '/profile',                  icon: UserCircle,      label: 'Profile' },
   ]
 
-  // Filter items for Admin if needed, or just show business logic
-  // For now, mirroring what user sees in sidebar
+  const handleNewClick = () => {
+    navigate(`${modulePrefix}/bills/new`)
+  }
 
   return (
     <nav className="bottom-nav" role="navigation" aria-label="Bottom navigation">
@@ -49,7 +51,7 @@ export default function BottomNav() {
         <button
           className="bottom-nav-fab"
           id="btn-create-new"
-          onClick={() => navigate('/bills/new')}
+          onClick={handleNewClick}
           style={{ padding: '0 8px' }}
         >
           <div className="fab-btn" style={{ width: 46, height: 46, marginTop: -24 }}>

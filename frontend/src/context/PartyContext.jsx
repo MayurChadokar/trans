@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useAuth } from './AuthContext'
+import { getParties, createParty, updateParty, deleteParty } from '../api/partyApi'
 
 const PartyContext = createContext(null)
 
@@ -8,63 +9,69 @@ const uid = () => `party_${Date.now()}_${Math.random().toString(36).slice(2, 7)}
 
 export function PartyProvider({ children }) {
   const { user } = useAuth()
-  const storageKey = user ? `parties_${user.id}` : null
-
   const [parties, setParties] = useState([])
   const [loaded, setLoaded]   = useState(false)
 
-  // Hydrate from localStorage when user available
-  useEffect(() => {
-    if (!storageKey) return
+  const load = useCallback(async () => {
     try {
-      const saved = localStorage.getItem(storageKey)
-      if (saved) setParties(JSON.parse(saved))
-    } catch (_) {}
-    setLoaded(true)
-  }, [storageKey])
-
-  // Persist on every change
-  const persist = useCallback((list) => {
-    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(list))
-  }, [storageKey])
-
-  // ── CRUD ─────────────────────────────────────────────
-  const addParty = useCallback((data) => {
-    const newParty = {
-      id: uid(),
-      ...data,
-      balance: 0,
-      totalBills: 0,
-      createdAt: new Date().toISOString(),
+      const res = await getParties()
+      if (res.success) {
+        setParties(res.parties.map(p => ({ ...p, id: p._id || p.id })))
+      }
+    } catch (e) {
+      console.error('Failed to load parties:', e.message)
+    } finally {
+      setLoaded(true)
     }
-    setParties(prev => {
-      const next = [newParty, ...prev]
-      persist(next)
-      return next
-    })
-    return newParty
-  }, [persist])
+  }, [])
 
-  const updateParty = useCallback((id, data) => {
-    setParties(prev => {
-      const next = prev.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)
-      persist(next)
-      return next
-    })
-  }, [persist])
+  useEffect(() => {
+    if (user) load()
+  }, [user, load])
 
-  const deleteParty = useCallback((id) => {
-    setParties(prev => {
-      const next = prev.filter(p => p.id !== id)
-      persist(next)
-      return next
-    })
-  }, [persist])
+  const addPartyApi = useCallback(async (data) => {
+    try {
+      const res = await createParty(data)
+      if (res.success) {
+        const normalized = { ...res.party, id: res.party._id || res.party.id }
+        setParties(prev => [normalized, ...prev])
+        return normalized
+      }
+    } catch (e) {
+      console.error('Add party failed:', e.message)
+    }
+  }, [])
 
-  const getParty = useCallback((id) => parties.find(p => p.id === id), [parties])
+  const updatePartyApi = useCallback(async (id, data) => {
+    try {
+      const res = await updateParty(id, data)
+      if (res.success) {
+        const normalized = { ...res.party, id: res.party._id || res.party.id }
+        setParties(prev => prev.map(p => (p._id === id || p.id === id) ? normalized : p))
+        return normalized
+      }
+    } catch (e) {
+      console.error('Update party failed:', e.message)
+    }
+  }, [])
+
+  const deletePartyApi = useCallback(async (id) => {
+    try {
+      const res = await deleteParty(id)
+      if (res.success) {
+        setParties(prev => prev.filter(p => p._id !== id))
+        return true
+      }
+    } catch (e) {
+      console.error('Delete party failed:', e.message)
+    }
+    return false
+  }, [])
+
+  const getParty = useCallback((id) => parties.find(p => p._id === id || p.id === id), [parties])
 
   return (
-    <PartyContext.Provider value={{ parties, loaded, addParty, updateParty, deleteParty, getParty }}>
+    <PartyContext.Provider value={{ parties, loaded, addParty: addPartyApi, updateParty: updatePartyApi, deleteParty: deletePartyApi, getParty }}>
       {children}
     </PartyContext.Provider>
   )

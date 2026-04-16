@@ -1,23 +1,43 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Wrench, Search, Filter, Calendar, FileText, User, Car, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
+import { apiClient } from '../../api/apiClient'
+import dayjs from 'dayjs'
 
 const ITEMS_PER_PAGE = 8
 
 export default function GarageServiceLogs() {
-  const { invoices, mode } = useAdmin()
-  const isTransport = mode === 'transport'
-  const accentColor = '#7C3AED'
-  
-  // Filter only garage invoices that have service items
-  const garageServices = useMemo(() => {
-    // In a real app, we might check `type: 'garage'`. Here we filter GRG prefix or invoices with items.
-    return invoices.filter(inv => inv.id.startsWith('GRG') && inv.items && inv.items.length > 0)
-  }, [invoices])
-
+  const [garageServices, setGarageServices] = useState([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selectedLog, setSelectedLog] = useState(null)
+
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        setLoading(true)
+        const res = await apiClient.get('/admin/garage/bills')
+        if (res.data.success) {
+          // Fetch full details for each bill to get items
+          const detailedBills = await Promise.all(res.data.bills.map(async (b) => {
+            const detailRes = await apiClient.get(`/bills/${b.id.includes('G-INV') ? b.id : b.id}`)
+            return detailRes.data.success ? detailRes.data.bill : b
+          }))
+          setGarageServices(detailedBills)
+        }
+      } catch (e) {
+        console.error("Failed to fetch service logs", e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchLogs()
+  }, [])
+
+  const { mode } = useAdmin()
+  const isTransport = mode === 'transport'
+  const accentColor = '#7C3AED'
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()

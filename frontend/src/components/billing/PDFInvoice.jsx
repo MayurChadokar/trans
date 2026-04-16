@@ -11,14 +11,14 @@ const styles = StyleSheet.create({
   
   // Header
   header: { flexDirection: 'row', borderWidth: 1, borderColor: '#ccc' },
-  headerGarage: { flexDirection: 'row', backgroundColor: '#FFB800', borderWidth: 0, padding: 20, borderRadius: 4, marginBottom: 15 },
-  logoBox: { width: '68%', padding: '12 0 12 10', flexDirection: 'row', alignItems: 'center' },
+  headerGarage: { flexDirection: 'row', backgroundColor: '#FFB800', padding: 20, borderRadius: 4, marginBottom: 15 },
+  logoBox: { width: '68%', paddingTop: 12, paddingBottom: 12, paddingLeft: 10, flexDirection: 'row', alignItems: 'center' },
   logo: { width: 65, height: 45, objectFit: 'contain', marginRight: 15 },
   brandName: { fontSize: 24, fontWeight: 'bold', letterSpacing: -0.5 },
   slogan: { fontSize: 9, color: '#444', marginTop: 5 },
   
-  metaBox: { width: '32%', borderLeftWidth: 1, borderColor: '#ccc' },
-  metaRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ccc', height: 36, alignItems: 'center' },
+  metaBox: { width: '32%', borderLeftWidth: 1, borderLeftColor: '#ccc' },
+  metaRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#ccc', height: 36, alignItems: 'center' },
   metaLabel: { width: '45%', paddingLeft: 8, fontWeight: 'bold', fontSize: 9 },
   metaVal: { width: '55%', paddingLeft: 4, fontWeight: 'bold', fontSize: 9.5 },
 
@@ -28,20 +28,21 @@ const styles = StyleSheet.create({
   addrCol: { width: '50%', padding: 12 },
   addrColGarage: { width: '50%' },
   addrLabel: { fontWeight: 'bold', fontSize: 10, marginBottom: 6 },
-  addrLabelGarage: { backgroundColor: '#FFB800', padding: '3 8', borderRadius: 2, marginBottom: 8, fontSize: 9, fontWeight: 'bold' },
+  addrLabelGarage: { backgroundColor: '#FFB800', paddingVertical: 3, paddingHorizontal: 8, borderRadius: 2, marginBottom: 8, fontSize: 9, fontWeight: 'bold' },
   addrText: { fontSize: 8.5, color: '#333', lineHeight: 1.4 },
 
   // Summary Banner
   summaryBanner: { backgroundColor: '#F3811E', color: 'white', textAlign: 'center', padding: 8, fontWeight: 'bold', fontSize: 11, textTransform: 'uppercase', letterSpacing: 2 },
-  summaryBannerGarage: { backgroundColor: '#FFB800', color: '#000', textAlign: 'left', padding: '6 10', fontWeight: 'bold', fontSize: 9, borderRadius: 2, marginBottom: 8 },
+  summaryBannerGarage: { backgroundColor: '#FFB800', color: '#000', textAlign: 'left', paddingVertical: 6, paddingHorizontal: 10, fontWeight: 'bold', fontSize: 9, borderRadius: 2, marginBottom: 8 },
 
   // Table
   tableHeader: { 
     flexDirection: 'row', 
     backgroundColor: '#fdf7f2', 
     borderBottomWidth: 1, 
-    borderColor: '#ccc',
-    padding: '8 4',
+    borderBottomColor: '#ccc',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 9
@@ -49,7 +50,8 @@ const styles = StyleSheet.create({
   tableHeaderGarage: { 
     flexDirection: 'row', 
     backgroundColor: '#FFB800', 
-    padding: '10 4',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 9
@@ -57,8 +59,9 @@ const styles = StyleSheet.create({
   tableRow: { 
     flexDirection: 'row', 
     borderBottomWidth: 1, 
-    borderColor: '#ccc', 
-    padding: '8 4',
+    borderBottomColor: '#ccc', 
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     alignItems: 'center',
     textAlign: 'center',
     fontSize: 9
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
 
   // Bank Section
   bankSection: { marginTop: 15, borderWidth: 1, borderColor: '#ccc' },
-  bankHeader: { backgroundColor: '#fdf3f0', padding: '4 10', fontSize: 8, fontWeight: 'bold', borderBottomWidth: 1, borderColor: '#ccc' },
+  bankHeader: { backgroundColor: '#fdf3f0', paddingVertical: 4, paddingHorizontal: 10, fontSize: 8, fontWeight: 'bold', borderBottomWidth: 1, borderBottomColor: '#ccc' },
   bankContent: { padding: 10 },
   bankGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
   bankItem: { width: '48%', flexDirection: 'row' },
@@ -98,7 +101,7 @@ const styles = StyleSheet.create({
   footerSection: { marginTop: 30, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   footerBrand: { fontSize: 12, fontWeight: 'bold' },
   signBox: { width: 180, textAlign: 'center' },
-  signLine: { borderTopWidth: 1, borderColor: '#000', marginTop: 35, marginBottom: 5 },
+  signLine: { borderTopWidth: 1, borderTopColor: '#000', marginTop: 35, marginBottom: 5 },
   signLabel: { fontSize: 8.5, fontWeight: 'bold' },
   
   termsBoxGarage: { width: '60%', borderWidth: 1, borderColor: '#ddd', padding: 10, borderRadius: 4, backgroundColor: '#fafafa' },
@@ -106,7 +109,7 @@ const styles = StyleSheet.create({
 });
 
 export const PDFInvoice = ({ bill, business }) => {
-  const isTransport = bill.type === 'transport';
+  const isTransport = bill.billType === 'transport';   // ← was bill.type (wrong)
   const items = bill.items || [];
   const themeColor = isTransport ? '#F3811E' : '#FFB800';
 
@@ -118,11 +121,11 @@ export const PDFInvoice = ({ bill, business }) => {
           <View style={styles.header}>
             <View style={styles.logoBox}>
               {/* Logo / Placeholder Box */}
-              <View style={{ width: 52, height: 52, backgroundColor: '#fff', borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 15, overflow: 'hidden', borderWidth: 0.5, borderColor: '#eee' }}>
+              <View style={{ width: 64, height: 64, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 15, overflow: 'hidden', borderWidth: 1, borderStyle: 'solid', borderColor: '#eee' }}>
                 {business.logoUrl ? (
-                  <Image src={business.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <Image src={business.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
-                  <Text style={{ fontSize: 22, fontWeight: 'bold' }}>{(business.businessName || 'B')[0]}</Text>
+                  <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{(business.businessName || 'B')[0]}</Text>
                 )}
               </View>
               <View>
@@ -133,23 +136,33 @@ export const PDFInvoice = ({ bill, business }) => {
             <View style={styles.metaBox}>
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>Bill No.:</Text>
-                <Text style={styles.metaVal}>{bill.invoiceNo}</Text>
+                <Text style={styles.metaVal}>{bill.billNumber || 'Draft'}</Text>
               </View>
               <View style={[styles.metaRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.metaLabel}>Date :</Text>
-                <Text style={styles.metaVal}>{dayjs(bill.billDate).format('DD/MM/YYYY')}</Text>
+                <Text style={styles.metaVal}>{dayjs(bill.billingDate || bill.createdAt).format('DD/MM/YYYY')}</Text>
               </View>
             </View>
           </View>
         ) : (
           <View style={styles.headerGarage}>
-            <View style={{ width: '70%' }}>
-              <Text style={{ fontSize: 24, fontWeight: 'heavy', marginBottom: 4 }}>Repair Estimate</Text>
-              <Text style={{ fontSize: 9, opacity: 0.8 }}>{business.slogan || 'Restoring Vehicles, Reviving Peace of Mind'}</Text>
+            <View style={{ width: '15%', marginRight: 15 }}>
+               <View style={{ width: 64, height: 64, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 1, borderStyle: 'solid', borderColor: '#eee' }}>
+                 {business.logoUrl ? (
+                   <Image src={business.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                 ) : (
+                   <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{(business.businessName || 'B')[0]}</Text>
+                 )}
+               </View>
+            </View>
+            <View style={{ width: '55%' }}>
+              <Text style={{ fontSize: 22, fontWeight: 'heavy', marginBottom: 2 }}>Repair Estimate</Text>
+              <Text style={{ fontSize: 8.5, opacity: 0.9 }}>{business.slogan || 'Restoring Vehicles, Reviving Peace of Mind'}</Text>
             </View>
             <View style={{ width: '30%', textAlign: 'right' }}>
-              <Text style={{ fontSize: 14, fontWeight: 'bold' }}>{business.businessName?.toUpperCase()}</Text>
-              <Text style={{ fontSize: 8, marginTop: 4 }}>Bill No: {bill.invoiceNo}</Text>
+              <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{business.businessName?.toUpperCase()}</Text>
+              <Text style={{ fontSize: 8, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</Text>
+              <Text style={{ fontSize: 8, marginTop: 2 }}>Date: {dayjs(bill.billingDate || bill.createdAt).format('DD/MM/YYYY')}</Text>
             </View>
           </View>
         )}
@@ -158,32 +171,33 @@ export const PDFInvoice = ({ bill, business }) => {
         <View style={isTransport ? styles.addressArea : styles.addressAreaGarage}>
           <View style={isTransport ? [styles.addrCol, { borderRightWidth: 1, borderColor: '#ccc' }] : styles.addrColGarage}>
             <Text style={isTransport ? styles.addrLabel : styles.addrLabelGarage}>{isTransport ? 'From (Transporter)' : 'Customer Information'}</Text>
-            <Text style={[styles.addrText, { fontWeight: 'bold', fontSize: 10 }]}>{isTransport ? business.businessName : bill.customerName}</Text>
-            <Text style={styles.addrText}>{isTransport ? business.address : `${bill.customerAddress || ''} ${bill.customerCity || ''} ${bill.customerState || ''} ${bill.customerPincode || ''}`}</Text>
-            <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Mob :</Text> {isTransport ? business.phone : (bill.customerPhone || '-')}</Text>
+            <Text style={[styles.addrText, { fontWeight: 'bold', fontSize: 10 }]}>{isTransport ? business.businessName : (bill.party?.name || bill.customerName)}</Text>
+            <Text style={styles.addrText}>{isTransport ? business.address : (bill.party?.address || `${bill.customerAddress || ''} ${bill.customerCity || ''} ${bill.customerState || ''} ${bill.customerPincode || ''}`)}</Text>
+            <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Mob :</Text> {isTransport ? business.phone : (bill.party?.phone || bill.customerPhone || '-')}</Text>
             {isTransport && business.email && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {business.email}</Text>}
             {isTransport && business.gstin && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {business.gstin}</Text>}
             {isTransport && business.panNo && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>PAN :</Text> {business.panNo}</Text>}
-            {!isTransport && bill.customerEmail && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {bill.customerEmail}</Text>}
-            {!isTransport && bill.customerGstin && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {bill.customerGstin}</Text>}
+            {!isTransport && (bill.party?.email || bill.customerEmail) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {bill.party?.email || bill.customerEmail}</Text>}
+            {!isTransport && (bill.party?.gstin || bill.customerGstin) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {bill.party?.gstin || bill.customerGstin}</Text>}
           </View>
           <View style={isTransport ? styles.addrCol : styles.addrColGarage}>
             <Text style={isTransport ? styles.addrLabel : styles.addrLabelGarage}>{isTransport ? 'Billed To (Customer)' : 'Vehicle Information'}</Text>
             {isTransport ? (
               <>
-                <Text style={[styles.addrText, { fontWeight: 'bold', fontSize: 10 }]}>{bill.billedToName}</Text>
-                <Text style={styles.addrText}>{bill.billedToAddress}</Text>
-                <Text style={styles.addrText}>{bill.billedToCity && `${bill.billedToCity}, `}{bill.billedToState} {bill.billedToPincode}</Text>
-                {bill.billedToPhone && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Mob :</Text> {bill.billedToPhone}</Text>}
-                {bill.billedToEmail && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {bill.billedToEmail}</Text>}
-                {bill.billedToGstin && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {bill.billedToGstin}</Text>}
-                {bill.billedToPan && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>PAN :</Text> {bill.billedToPan}</Text>}
+                <Text style={[styles.addrText, { fontWeight: 'bold', fontSize: 10 }]}>{bill.party?.name || bill.billedToName}</Text>
+                <Text style={styles.addrText}>{bill.party?.address || bill.billedToAddress}</Text>
+                <Text style={styles.addrText}>{(bill.party?.city || bill.billedToCity) && `${bill.party?.city || bill.billedToCity}, `}{bill.party?.state || bill.billedToState} {bill.party?.pincode || bill.billedToPincode}</Text>
+                {(bill.party?.phone || bill.billedToPhone) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Mob :</Text> {bill.party?.phone || bill.billedToPhone}</Text>}
+                {(bill.party?.email || bill.billedToEmail) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {bill.party?.email || bill.billedToEmail}</Text>}
+                {(bill.party?.gstin || bill.billedToGstin) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {bill.party?.gstin || bill.billedToGstin}</Text>}
+                {(bill.party?.panNo || bill.billedToPan) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>PAN :</Text> {bill.party?.panNo || bill.billedToPan}</Text>}
               </>
             ) : (
               <>
                 <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Make:</Text> {bill.vehicleCompany || '-'}</Text>
                 <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Model:</Text> {bill.vehicleModel || '-'}</Text>
                 <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Reg No:</Text> {bill.vehicleNo?.toUpperCase() || '-'}</Text>
+                <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>KM Reading:</Text> {bill.kmReading || '-'}</Text>
               </>
             )}
           </View>
@@ -235,11 +249,26 @@ export const PDFInvoice = ({ bill, business }) => {
               )}
             </View>
           ))}
-          
           {!isTransport && (
             <View style={styles.totalRowGarage}>
               <Text style={styles.totalLabelGarage}>Total</Text>
-              <Text style={styles.totalValueGarage}>₹{(bill.grandTotal || bill.subtotal || 0).toLocaleString()}</Text>
+              <Text style={styles.totalValueGarage}>₹{(bill.grandTotal || 0).toLocaleString()}</Text>
+            </View>
+          )}
+
+          {/* Payment Status Row for Garage */}
+          {!isTransport && (
+            <View style={{ flexDirection: 'row', borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#ccc', backgroundColor: '#fcfcfc' }}>
+              <View style={{ width: '50%', padding: 6, borderRightWidth: 1, borderColor: '#ccc' }}>
+                <Text style={{ fontSize: 7, color: '#666' }}>Payment Status</Text>
+                <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', color: bill.status === 'paid' ? '#16A34A' : '#D97706' }}>
+                  {bill.status}
+                </Text>
+              </View>
+              <View style={{ width: '50%', padding: 6 }}>
+                <Text style={{ fontSize: 7, color: '#666' }}>Payment Method</Text>
+                <Text style={{ fontSize: 9, fontWeight: 'bold' }}>{bill.paymentMethod || bill.paymentMode || 'N/A'}</Text>
+              </View>
             </View>
           )}
         </View>
@@ -285,10 +314,23 @@ export const PDFInvoice = ({ bill, business }) => {
 
         {/* Bank & Payment Details */}
         <View style={styles.bankSection}>
-          <View style={[styles.bankHeader, { backgroundColor: isTransport ? '#f3f3f3' : '#fdf3f0' }]}>
-            <Text>BANK ACCOUNT DETAILS FOR PAYMENT</Text>
+          <View style={[styles.bankHeader, { backgroundColor: isTransport ? '#f3f3f3' : '#fdf3f0', flexDirection: 'row', justifyContent: 'space-between' }]}>
+            <Text>BANK DETAILS :</Text>
+            {isTransport && <Text style={{ fontSize: 7 }}>PAYMENT: {bill.status?.toUpperCase()} ({bill.paymentMode || 'N/A'})</Text>}
           </View>
           <View style={styles.bankContent}>
+            <View style={styles.bankGrid}>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Payment Status:</Text>
+                <Text style={[styles.metaVal, { color: bill.status === 'paid' ? '#16A34A' : '#DC2626', fontWeight: 'bold' }]}>
+                  {(bill.status || 'Pending').toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>{isTransport ? 'Payment Mode:' : 'Payment Method:'}</Text>
+                <Text style={styles.metaVal}>{(bill.paymentMethod || bill.paymentMode || (isTransport ? 'To Pay' : 'Cash')).toUpperCase()}</Text>
+              </View>
+            </View>
             <View style={styles.bankGrid}>
               <View style={styles.bankItem}>
                 <Text style={styles.bankKey}>Bank Name:</Text>

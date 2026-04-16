@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
+import * as adminApi from '../api/adminApi'
 
 const AdminContext = createContext(null)
 
@@ -143,6 +144,8 @@ export function AdminProvider({ children }) {
   const [softwareSales, setSoftwareSalesRaw] = useState(() => load('admin_global_software_sales'))
   /* ─── subscription plans ─── */
   const [plans, setPlansRaw] = useState(() => load('admin_global_subscription_plans'))
+  const [loading, setLoading] = useState(false)
+  const [dbStats, setDbStats] = useState(null)
 
   // Force re-seed if empty to ensure UI has data
   useEffect(() => {
@@ -204,20 +207,118 @@ export function AdminProvider({ children }) {
   }, [])
 
   /* Reload all state whenever mode changes */
-  useEffect(() => {
-    setUsersRaw(load(lsKey(mode, 'users')))
-    setBusinessesRaw(load(lsKey(mode, 'businesses')))
-    
-    // Load both mock invoices and real user invoices
-    const mocks = load(lsKey(mode, 'invoices'))
-    const real = gatherRealBills(mode)
-    setInvoicesRaw([...real, ...mocks])
-    
-    setDriversRaw(load(lsKey(mode, mode === 'transport' ? 'drivers' : 'mechanics')))
-    setStaffRaw(load(lsKey(mode, 'staff')))
-  }, [mode, gatherRealBills])
+  const refreshAll = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [sRes, uRes, bRes, fRes] = await Promise.all([
+        adminApi.getAdminDashboardStats(mode),
+        adminApi.adminListUsers({ role: mode }),
+        adminApi.getAdminTransportBills(mode),
+        mode === 'transport' ? adminApi.getAdminTransportFleet() : Promise.resolve({ success: true, vehicles: [] })
+      ])
+      
+      if (sRes.success) setDbStats(sRes.stats)
+      if (uRes.success) {
+        setUsersRaw(uRes.users)
+        // Derive businesses from users who have businessName set
+        const realBiz = uRes.users
+          .filter(u => u.setupComplete || u.name) 
+          .map(u => ({
+            id: u.id,
+            name: u.businessName || u.name || 'Unnamed Business',
+            businessName: u.businessName,
+            ownerName: u.name,
+            phone: u.phone,
+            email: u.email,
+            role: u.role,
+            city: u.city || 'Unknown',
+            address: u.address || '',
+            documents: u.documents || {},
+            kycStatus: u.kycStatus || 'Pending',
+            status: u.setupComplete ? 'Active' : 'Pending',
+            onboardedAt: u.createdAt
+          }))
+        setBusinessesRaw(realBiz)
+      }
 
-  /* ─── setters that also persist ─── */
+      if (bRes.success) {
+        const formatted = bRes.bills.map(b => ({
+          id: b.billNumber || b._id,
+          businessName: b.owner?.businessName || b.owner?.name || 'N/A',
+          userName: b.owner?.name || 'N/A',
+          total: b.grandTotal,
+          status: b.status === 'paid' ? 'Paid' : b.status === 'draft' ? 'Draft' : 'Pending',
+          date: new Date(b.billingDate || b.createdAt).toISOString().split('T')[0],
+          tax: b.gstAmount || 0,
+          items: b.items || []
+        }))
+        setInvoicesRaw(formatted)
+      }
+
+      if (fRes.success && mode === 'transport') {
+        const formattedV = fRes.vehicles.map(v => ({
+          id: v._id,
+          ownerName: v.owner?.name || 'N/A',
+          plateNo: v.vehicleNumber,
+          type: v.vehicleType || 'Truck',
+          status: 'Active',
+          model: v.model || 'N/A'
+        }))
+        setVehiclesRaw(formattedV)
+      }
+
+      // Load Real Software Sales
+      const sSalesRes = await adminApi.getAdminSales()
+      if (sSalesRes.success) {
+        setSoftwareSalesRaw(sSalesRes.sales.map(s => ({
+          ...s,
+          id: s._id,
+          transporterName: s.transporter?.name || 'N/A',
+          businessName: s.transporter?.businessName || 'N/A',
+          phone: s.transporter?.phone || 'N/A',
+          pendingAmount: s.totalAmount - s.amountPaid,
+          status: s.status.charAt(0).toUpperCase() + s.status.slice(1),
+          paymentHistory: s.paymentHistory.map(ph => ({
+            ...ph,
+            date: new Date(ph.date).toLocaleDateString()
+          }))
+        })))
+      }
+      
+      // Load Plans
+      const plansRes = await adminApi.getAdminPlans(mode) // Fetch plans for current mode
+      if (plansRes.success) {
+        setPlansRaw(plansRes.plans.map(p => ({ ...p, id: p._id })))
+      }
+      
+      // Load Specialized Users
+      const specRes = await adminApi.getAdminSpecialUsers({ target: mode })
+      if (specRes.success) {
+        setDriversRaw(specRes.users.filter(u => u.role === (mode === 'transport' ? 'driver' : 'mechanic')).map(u => ({ ...u, id: u._id })))
+        setStaffRaw(specRes.users.filter(u => u.role === 'staff').map(u => ({ ...u, id: u._id })))
+      }
+      
+    } catch (e) {
+      console.error('Admin sync failed:', e)
+      const isLoginPage = window.location.pathname === '/admin' || window.location.pathname === '/admin-login'
+      if (e?.response?.status === 403 && isUIAdminPath && !isLoginPage) {
+        // Only redirect if they're actually TRYING to access a protected admin page
+        window.location.href = '/admin'
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [mode])
+
+  useEffect(() => {
+    // Only refresh if we are on an admin route to avoid infinite 403 redirect loops on login pages
+    const isUIAdminPath = window.location.pathname.startsWith('/admin')
+    if (isUIAdminPath) {
+      refreshAll()
+    }
+  }, [refreshAll])
+
+  /* ─── setters that also persist (Backward compatibility for local-only stuff) ─── */
   const setUsers = useCallback((fn) => {
     setUsersRaw(prev => {
       const next = typeof fn === 'function' ? fn(prev) : fn
@@ -245,18 +346,16 @@ export function AdminProvider({ children }) {
   const setDrivers = useCallback((fn) => {
     setDriversRaw(prev => {
       const next = typeof fn === 'function' ? fn(prev) : fn
-      save(lsKey(mode, mode === 'transport' ? 'drivers' : 'mechanics'), next)
       return next
     })
-  }, [mode])
+  }, [])
 
   const setStaff = useCallback((fn) => {
     setStaffRaw(prev => {
       const next = typeof fn === 'function' ? fn(prev) : fn
-      save(lsKey(mode, 'staff'), next)
       return next
     })
-  }, [mode])
+  }, [])
 
   const setVehicles = useCallback((fn) => {
     setVehiclesRaw(prev => {
@@ -274,14 +373,6 @@ export function AdminProvider({ children }) {
     })
   }, [])
 
-  const setPlans = useCallback((fn) => {
-    setPlansRaw(prev => {
-      const next = typeof fn === 'function' ? fn(prev) : fn
-      save('admin_global_subscription_plans', next)
-      return next
-    })
-  }, [])
-
   /* ─── switch mode (synced with AppContext view_mode) ─── */
   const switchMode = useCallback((m) => {
     localStorage.setItem('view_mode', m)
@@ -289,34 +380,47 @@ export function AdminProvider({ children }) {
   }, [])
 
   /* ─── CRUD: Users ─── */
-  const addUser = useCallback((data) => {
-    const row = { id: uid(), ...data, status: 'Active', plan: 'Free', joinedAt: today() }
-    setUsers(p => [row, ...p])
-    return row
-  }, [setUsers])
+  const addUser = useCallback(async (data) => {
+    try {
+      const res = await adminApi.adminCreateUser({ ...data, role: mode })
+      if (res.success) {
+        refreshAll()
+        return res.user
+      }
+    } catch (e) { console.error(e) }
+    return null
+  }, [mode, refreshAll])
 
-  const updateUser = useCallback((id, patch) => {
-    setUsers(p => p.map(u => u.id === id ? { ...u, ...patch } : u))
-  }, [setUsers])
+  const updateUser = useCallback(async (id, patch) => {
+    try {
+      const res = await adminApi.adminUpdateUser(id, patch)
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
-  const deleteUser = useCallback((id) => {
-    setUsers(p => p.filter(u => u.id !== id))
-  }, [setUsers])
+  const deleteUser = useCallback(async (id) => {
+    try {
+      const res = await adminApi.adminDeleteUser(id)
+      if (res.success) {
+        setUsersRaw(p => p.filter(u => u.id !== id))
+        refreshAll()
+      }
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
-  /* ─── CRUD: Businesses ─── */
-  const addBusiness = useCallback((data) => {
-    const row = { id: uid(), ...data, status: 'Active', revenue: 0, joinedAt: today() }
-    setBusinesses(p => [row, ...p])
-    return row
-  }, [setBusinesses])
+  /* ─── CRUD: Businesses (Linked to User creation) ─── */
+  const addBusiness = useCallback(async (data) => {
+    // In this app, adding a business adds a user with business details
+    return await addUser(data)
+  }, [addUser])
 
-  const updateBusiness = useCallback((id, patch) => {
-    setBusinesses(p => p.map(b => b.id === id ? { ...b, ...patch } : b))
-  }, [setBusinesses])
+  const updateBusiness = useCallback(async (id, patch) => {
+    return await updateUser(id, patch)
+  }, [updateUser])
 
-  const deleteBusiness = useCallback((id) => {
-    setBusinesses(p => p.filter(b => b.id !== id))
-  }, [setBusinesses])
+  const deleteBusiness = useCallback(async (id) => {
+    return await deleteUser(id)
+  }, [deleteUser])
 
   /* ─── CRUD: Invoices ─── */
   const addInvoice = useCallback((data) => {
@@ -342,108 +446,132 @@ export function AdminProvider({ children }) {
   }, [setInvoices])
 
   /* ─── CRUD: Drivers / Mechanics ─── */
-  const addDriver = useCallback((data) => {
-    const row = { id: uid(), ...data, status: 'Active', joinedAt: today() }
-    setDrivers(p => [row, ...p])
-    return row
-  }, [setDrivers])
+  const addDriver = useCallback(async (data) => {
+    try {
+      const res = await adminApi.createAdminSpecialUser({ 
+        ...data, 
+        role: mode === 'transport' ? 'driver' : 'mechanic',
+        target: mode
+      })
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [mode, refreshAll])
 
-  const updateDriver = useCallback((id, patch) => {
-    setDrivers(p => p.map(d => d.id === id ? { ...d, ...patch } : d))
-  }, [setDrivers])
+  const updateDriver = useCallback(async (id, patch) => {
+    try {
+      const res = await adminApi.updateAdminSpecialUser(id, patch)
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
-  const deleteDriver = useCallback((id) => {
-    setDrivers(p => p.filter(d => d.id !== id))
-  }, [setDrivers])
+  const deleteDriver = useCallback(async (id) => {
+    try {
+      const res = await adminApi.deleteAdminSpecialUser(id)
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
   /* ─── CRUD: Staff ─── */
-  const addStaff = useCallback((data) => {
-    const row = { id: uid(), ...data, status: 'Active', joinedAt: today() }
-    setStaff(p => [row, ...p])
-    return row
-  }, [setStaff])
+  const addStaff = useCallback(async (data) => {
+    try {
+      const res = await adminApi.createAdminSpecialUser({ 
+        ...data, 
+        role: 'staff',
+        target: mode
+      })
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [mode, refreshAll])
 
-  const updateStaff = useCallback((id, patch) => {
-    setStaff(p => p.map(s => s.id === id ? { ...s, ...patch } : s))
-  }, [setStaff])
+  const updateStaff = useCallback(async (id, patch) => {
+    try {
+      const res = await adminApi.updateAdminSpecialUser(id, patch)
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
-  const deleteStaff = useCallback((id) => {
-    setStaff(p => p.filter(s => s.id !== id))
-  }, [setStaff])
+  const deleteStaff = useCallback(async (id) => {
+    try {
+      const res = await adminApi.deleteAdminSpecialUser(id)
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
   /* ─── CRUD: Software Sales ─── */
-  const addSoftwareSale = useCallback((data) => {
-    const row = { 
-      id: `SALE-${Date.now().toString().slice(-4)}`, 
-      ...data, 
-      pendingAmount: data.totalAmount - data.amountPaid,
-      status: data.amountPaid >= data.totalAmount ? 'Paid' : (data.amountPaid > 0 ? 'Partial' : 'Pending'),
-      paymentHistory: [{ date: today(), amount: data.amountPaid, mode: data.paymentMode || 'Cash' }]
+  const addSoftwareSale = useCallback(async (data) => {
+    try {
+      const res = await adminApi.createAdminSale(data)
+      if (res.success) {
+        refreshAll()
+        return res.sale
+      }
+    } catch (e) {
+      console.error('Failed to create sale', e)
     }
-    setSoftwareSales(p => [row, ...p])
-    return row
-  }, [setSoftwareSales])
+    return null
+  }, [refreshAll])
 
   const updateSoftwareSale = useCallback((id, patch) => {
-    setSoftwareSales(p => p.map(s => {
-      if (s.id !== id) return s
-      const updated = { ...s, ...patch }
-      updated.pendingAmount = updated.totalAmount - updated.amountPaid
-      updated.status = updated.amountPaid >= updated.totalAmount ? 'Paid' : (updated.amountPaid > 0 ? 'Partial' : 'Pending')
-      return updated
-    }))
-  }, [setSoftwareSales])
+    setSoftwareSalesRaw(p => p.map(s => s.id === id ? { ...s, ...patch } : s))
+  }, [])
 
-  const addSalePayment = useCallback((id, payment) => {
-    setSoftwareSales(p => p.map(s => {
-      if (s.id !== id) return s
-      const newPaid = s.amountPaid + Number(payment.amount)
-      const updated = { 
-        ...s, 
-        amountPaid: newPaid,
-        pendingAmount: s.totalAmount - newPaid,
-        status: newPaid >= s.totalAmount ? 'Paid' : 'Partial',
-        paymentHistory: [...s.paymentHistory, { ...payment, date: today() }]
+  const addSalePayment = useCallback(async (id, payment) => {
+    try {
+      const res = await adminApi.addAdminSalePayment(id, payment)
+      if (res.success) {
+        refreshAll()
       }
-      return updated
-    }))
-  }, [setSoftwareSales])
+    } catch (e) {
+      console.error('Failed to add payment', e)
+    }
+  }, [refreshAll])
 
   const deleteSoftwareSale = useCallback((id) => {
-    setSoftwareSales(p => p.filter(s => s.id !== id))
-  }, [setSoftwareSales])
+    setSoftwareSalesRaw(p => p.filter(s => s.id !== id))
+  }, [])
 
-  /* ─── CRUD: Plans ─── */
-  const addPlan = useCallback((data) => {
-    const row = { id: uid(), ...data }
-    setPlans(p => [row, ...p])
-    return row
-  }, [setPlans])
+  /* ─── CRUD: Plans (Real API linked) ─── */
+  const addPlan = useCallback(async (data) => {
+    try {
+      const res = await adminApi.createAdminPlan({ ...data, target: mode })
+      if (res.success) {
+        refreshAll()
+        return res.plan
+      }
+    } catch (e) { console.error(e) }
+    return null
+  }, [mode, refreshAll])
 
-  const updatePlan = useCallback((id, patch) => {
-    setPlans(p => p.map(x => x.id === id ? { ...x, ...patch } : x))
-  }, [setPlans])
+  const updatePlan = useCallback(async (id, patch) => {
+    try {
+      const res = await adminApi.updateAdminPlan(id, patch)
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
-  const deletePlan = useCallback((id) => {
-    setPlans(p => p.filter(x => x.id !== id))
-  }, [setPlans])
+  const deletePlan = useCallback(async (id) => {
+    try {
+      const res = await adminApi.deleteAdminPlan(id)
+      if (res.success) refreshAll()
+    } catch (e) { console.error(e) }
+  }, [refreshAll])
 
   /* ─── Computed stats (live) ─── */
-  const stats = {
-    totalUsers: users.length,
-    activeUsers: users.filter(u => u.status === 'Active').length,
-    totalBusinesses: businesses.length,
-    totalInvoices: invoices.length,
-    totalRevenue: invoices.filter(i => i.status === 'Paid').reduce((acc, i) => acc + (Number(i.total) || 0), 0),
-    pendingRevenue: invoices.filter(i => i.status === 'Pending').reduce((acc, i) => acc + (Number(i.total) || 0), 0),
-    paidInvoices: invoices.filter(i => i.status === 'Paid').length,
-    pendingInvoices: invoices.filter(i => i.status === 'Pending').length,
+  const stats = useMemo(() => ({
+    totalUsers: dbStats?.totalUsers || users.length,
+    activeUsers: dbStats?.activeUsers || users.filter(u => u.status === 'Active').length,
+    totalBusinesses: dbStats?.totalBusinesses || businesses.length,
+    totalInvoices: dbStats?.totalInvoices || invoices.length,
+    totalRevenue: dbStats?.totalRevenue || invoices.filter(i => i.status === 'Paid').reduce((acc, i) => acc + (Number(i.total) || 0), 0),
+    pendingRevenue: dbStats?.pendingRevenue || invoices.filter(i => i.status === 'Pending').reduce((acc, i) => acc + (Number(i.total) || 0), 0),
+    paidInvoices: dbStats?.paidInvoices ?? invoices.filter(i => i.status === 'Paid').length,
+    pendingInvoices: dbStats?.pendingInvoices ?? invoices.filter(i => i.status === 'Pending').length,
     totalDrivers: drivers.length,
     totalStaff: staff.length,
-  }
+  }), [dbStats, users, businesses, invoices, drivers, staff])
 
-  const value = {
-    mode, switchMode,
+  const value = useMemo(() => ({
+    mode, switchMode, loading, refreshAll,
     users, addUser, updateUser, deleteUser,
     businesses, addBusiness, updateBusiness, deleteBusiness,
     invoices, addInvoice, updateInvoice, deleteInvoice,
@@ -453,7 +581,18 @@ export function AdminProvider({ children }) {
     softwareSales, addSoftwareSale, updateSoftwareSale, deleteSoftwareSale, addSalePayment,
     plans, addPlan, updatePlan, deletePlan,
     stats,
-  }
+  }), [
+    mode, switchMode, loading, refreshAll,
+    users, addUser, updateUser, deleteUser,
+    businesses, addBusiness, updateBusiness, deleteBusiness,
+    invoices, addInvoice, updateInvoice, deleteInvoice,
+    drivers, addDriver, updateDriver, deleteDriver,
+    staff, addStaff, updateStaff, deleteStaff,
+    vehicles, setVehicles,
+    softwareSales, addSoftwareSale, updateSoftwareSale, deleteSoftwareSale, addSalePayment,
+    plans, addPlan, updatePlan, deletePlan,
+    stats
+  ])
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
 }

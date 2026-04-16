@@ -8,6 +8,7 @@ import {
 import { useFinance } from '../../context/FinanceContext'
 import { useParties } from '../../context/PartyContext'
 import { useBills } from '../../context/BillContext'
+import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
 
 function Field({ label, error, children, required }) {
@@ -27,6 +28,7 @@ export default function AddMovement() {
   const billIdParam = searchParams.get('billId') || ''
   const amountParam = searchParams.get('amount') || ''
   
+  const { user } = useAuth()
   const { addTransaction } = useFinance()
   const { parties } = useParties()
   const { recordPayment } = useBills()
@@ -51,14 +53,28 @@ export default function AddMovement() {
 
   const onSubmit = async (data) => {
     setSaving(true)
-    await new Promise(r => setTimeout(r, 600))
-    addTransaction(data)
-    if (data.billId) {
-      recordPayment(data.billId, data.amount)
+    try {
+      // Map frontend partyId to backend party field
+      const payload = {
+        ...data,
+        party: data.partyId || null,
+        bill: data.billId || null,
+        amount: parseFloat(data.amount)
+      }
+
+      await addTransaction(payload)
+      
+      if (data.billId) {
+        await recordPayment(data.billId, data.amount)
+      }
+      
+      setDone(true)
+      setTimeout(() => navigate('/finance'), 800)
+    } catch (e) {
+      alert("Failed to save transaction")
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
-    setDone(true)
-    setTimeout(() => navigate('/finance'), 800)
   }
 
   if (done) return (
@@ -138,7 +154,10 @@ export default function AddMovement() {
               <User size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
               <select {...register('partyId')} className="form-input" style={{ paddingLeft: 38 }}>
                 <option value="">— No Party —</option>
-                {parties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {parties
+                  .filter(p => p.partyType === (user?.role || 'transport'))
+                  .map(p => <option key={p.id || p._id} value={p.id || p._id}>{p.name}</option>)
+                }
               </select>
             </div>
           </Field>

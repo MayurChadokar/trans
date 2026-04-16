@@ -11,10 +11,11 @@ router.post("/logout", authController.logout);
 router.get("/me", authRequired, authController.me);
 
 router.post("/set-role", authRequired, authController.setRole);
+router.post("/register-transport", authRequired, authController.registerTransport);
+router.post("/register-garage", authRequired, authController.registerGarage);
 router.post("/update-profile", authRequired, authController.updateProfile);
 
-// Example role gating if you want later:
-// router.get("/admin-only", authRequired, requireRole("admin"), (req, res) => res.json({ ok: true }));
+router.post("/login", authController.login);
+router.post("/set-password", authRequired, authController.setPassword);
 
 module.exports = router;
-

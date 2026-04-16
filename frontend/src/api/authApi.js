@@ -20,8 +20,20 @@ export async function updateUserProfile(phone, profile) {
   return data
 }
 
+export async function transportRegister(profile) {
+  const { data } = await apiClient.post('/auth/register-transport', profile)
+  return data
+}
+
+export async function garageRegister(profile) {
+  const { data } = await apiClient.post('/auth/register-garage', profile)
+  return data
+}
+
 export async function getMe() {
-  const { data } = await apiClient.get('/auth/me')
+  const isAdmin = window.location.pathname.startsWith('/admin')
+  const endpoint = isAdmin ? '/admin/auth/me' : '/auth/me'
+  const { data } = await apiClient.get(endpoint)
   return data
 }
 

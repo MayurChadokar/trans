@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import {
   Users, Search, Filter, UserPlus, X,
   User, Phone, Mail, Shield, Trash2, Edit3,
@@ -6,7 +6,7 @@ import {
   Truck, Wrench, Building2, MoreVertical, CreditCard, MapPin, Eye, FileText
 } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
-import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateUser } from '../../api/adminApi'
+import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateUser, getAdminUserHistory } from '../../api/adminApi'
 
 const ROLES_T = ['Transporter', 'Driver', 'Staff']
 const ROLES_G = ['Garage Owner', 'Mechanic', 'Staff']
@@ -107,16 +107,22 @@ export default function UserManagement() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [roleFilter, setRoleFilter] = useState('All')
   const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
   const [modal, setModal] = useState(null) // null | 'add' | { ...user }
   const [history, setHistory] = useState(null) // null | { name, invoices, isTransport }
   const [showVehicles, setShowVehicles] = useState(null) // null | { name, list }
   const [viewDetails, setViewDetails] = useState(null) // null | { ...user }
 
-  const loadUsers = async ({ q } = {}) => {
+  const loadUsers = useCallback(async () => {
     setFetching(true)
     setApiError('')
     try {
-      const res = await adminListUsers({ role: toBackendRole(mode), q })
+      const res = await adminListUsers({ 
+        role: toBackendRole(mode), 
+        q: search,
+        page,
+        limit: ITEMS_PER_PAGE
+      })
       if (!res?.success) {
         setApiError(res?.message || 'Failed to load users')
         setUsers([])
@@ -133,43 +139,30 @@ export default function UserManagement() {
         documents: u.documents || []
       }))
       
-      // If API returns data, use it. If not, stick with context/dummy data.
-      if (rows.length > 0) {
-        setUsers(rows)
-      } else {
-        setUsers(contextUsers)
-      }
+      setUsers(rows)
+      setTotal(res.pagination?.total || 0)
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || 'Failed to load users'
       setApiError(msg)
-      setUsers(contextUsers) // Fallback to dummy data on error
     } finally {
       setFetching(false)
     }
-  }
+  }, [mode, search, page])
 
   useEffect(() => {
-    setPage(1)
-    setSearch('')
-    setStatusFilter('All')
-    setRoleFilter('All')
-    setUsers(contextUsers)
     loadUsers()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, contextUsers])
+  }, [loadUsers])
 
   const filtered = useMemo(() => {
     return users.filter(u => {
-      const q = search.toLowerCase()
-      const matchSearch = !q || u.name?.toLowerCase().includes(q) || u.phone?.includes(q) || u.email?.toLowerCase().includes(q)
       const matchStatus = statusFilter === 'All' || u.status === statusFilter
       const matchRole = roleFilter === 'All' || u.role === roleFilter
-      return matchSearch && matchStatus && matchRole
+      return matchStatus && matchRole
     })
-  }, [users, search, statusFilter, roleFilter])
+  }, [users, statusFilter, roleFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE))
+  const paginated = filtered // Data is already paginated from backend
 
   const handleSave = async (form) => {
     try {
@@ -319,13 +312,23 @@ export default function UserManagement() {
                         <Eye size={15} />
                       </button>
                       <button className="btn btn-ghost btn-sm btn-icon" style={{ color: accentColor }} 
-                        onClick={() => {
-                          const userBills = invoices.filter(i => (i.userName === user.name || i.userId === user.id))
-                          setHistory({
-                            name: user.name,
-                            isTransport: isTransport,
-                            invoices: userBills
-                          })
+                        onClick={async () => {
+                          setFetching(true)
+                          try {
+                            const res = await getAdminUserHistory(user.id)
+                            if (res.success) {
+                              setHistory({
+                                name: user.name,
+                                isTransport: isTransport,
+                                invoices: res.history.bills,
+                                vehicles: res.history.vehicles // New: vehicles from backend
+                              })
+                            }
+                          } catch (e) {
+                            console.error('Failed to load user history', e)
+                          } finally {
+                            setFetching(false)
+                          }
                         }}
                         title={isTransport ? "Trip History" : "Service History"}
                       >
@@ -400,6 +403,29 @@ export default function UserManagement() {
               <button className="btn-icon" onClick={() => setHistory(null)}><X size={20} /></button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+              {history.isTransport && history.vehicles && history.vehicles.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase', marginBottom: 12 }}>Registered Fleet ({history.vehicles.length})</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {history.vehicles.map(v => (
+                      <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F9FAFB', padding: '10px 14px', borderRadius: 14, border: '1px solid #F3F4F6' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}>
+                          <Truck size={14} color={accentColor} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>{v.plateNo}</div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>{v.type} • {v.model}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 12 }}>
+                {history.isTransport ? 'Recent Billing History' : 'Service & Billing History'}
+              </h4>
+              
               {history.invoices.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   {history.isTransport ? <Truck size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} /> : <CreditCard size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} />}

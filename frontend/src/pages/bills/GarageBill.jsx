@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import {
   Wrench, User, Plus, Trash2, CheckCircle2,
-  Loader2, ArrowLeft, ChevronDown, FileText, Car
+  Loader2, ArrowLeft, ChevronDown, FileText, Car, CreditCard
 } from 'lucide-react'
 import { useState } from 'react'
 import { useBills } from '../../context/BillContext'
 import { useParties } from '../../context/PartyContext'
+import { useVehicles } from '../../context/VehicleContext'
 import dayjs from 'dayjs'
 
 // Import services data from CSV (raw text)
@@ -49,57 +50,123 @@ function SectionCard({ icon: Icon, iconBg, iconColor, title, children }) {
   )
 }
 
-const PAYMENT_MODES = [
+const PAYMENT_STATUSES = [
   { val: 'unpaid', label: 'Unpaid',  color: '#DC2626', bg: '#FEE2E2' },
   { val: 'paid',   label: 'Paid',    color: '#16A34A', bg: '#DCFCE7' },
   { val: 'partial',label: 'Partial', color: '#D97706', bg: '#FEF3C7' },
 ]
 
-export default function GarageBill() {
-  const { addBill } = useBills()
+const PAYMENT_METHODS = ["Cash", "Online Payment", "UPI", "Bank Transfer", "Card", "Credit", "Cheque"]
+
+export default function GarageBill({ initialData }) {
+  const { addBill, updateBill } = useBills()
   const { parties } = useParties()
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [savedBill, setSavedBill] = useState(null)
   
+  const isEdit = !!initialData?._id
+
   // Custom dropdown state
   const [activeIdx, setActiveIdx] = useState(null)
 
-  const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, setValue, control, formState: { errors }, reset } = useForm({
     defaultValues: {
-      billDate: dayjs().format('YYYY-MM-DD'),
-      partyId: '',
-      customerName: '', customerPhone: '',
-      customerEmail: '',
-      customerAddress: '',
-      customerCity: '',
-      customerState: '',
-      customerPincode: '',
-      customerGstin: '',
-      customerPan: '',
-      customerSignatureUrl: '',
-      vehicleNo: '', vehicleModel: '', vehicleCompany: '',
-      kmReading: '', nextServiceKm: '', nextServiceDate: '',
-      paymentMode: 'unpaid',
-      gstPercent: '0',
-      laborCharge: '0',
-      notes: '',
-      items: [{ description: '', qty: '1', rate: '', amount: '' }],
+      billDate: dayjs(initialData?.billingDate || initialData?.billDate).format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD'),
+      partyId: initialData?.party?._id || initialData?.party || '',
+      customerName: initialData?.customerName || '',
+      customerPhone: initialData?.customerPhone || '',
+      customerEmail: initialData?.customerEmail || '',
+      customerAddress: initialData?.customerAddress || '',
+      customerCity: initialData?.customerCity || '',
+      customerState: initialData?.customerState || '',
+      customerPincode: initialData?.customerPincode || '',
+      customerGstin: initialData?.customerGstin || '',
+      customerPan: initialData?.customerPan || '',
+      customerSignatureUrl: initialData?.customerSignatureUrl || '',
+      vehicleNo: initialData?.vehicleNo || '',
+      vehicleModel: initialData?.vehicleModel || '',
+      vehicleCompany: initialData?.vehicleCompany || '',
+      kmReading: initialData?.kmReading || '',
+      nextServiceKm: initialData?.nextServiceKm || '',
+      nextServiceDate: initialData?.nextServiceDate ? dayjs(initialData.nextServiceDate).format('YYYY-MM-DD') : '',
+      paymentStatus: initialData?.status || 'unpaid',
+      paymentMethod: initialData?.paymentMethod || 'Cash',
+      gstPercent: initialData?.gstPercent?.toString() || '0',
+      laborCharge: initialData?.laborCharge?.toString() || '0',
+      notes: initialData?.notes || '',
+      items: initialData?.items?.map(it => ({ ...it, qty: it.qty?.toString(), rate: it.rate?.toString(), amount: it.amount?.toString() })) || [{ description: '', qty: '1', rate: '', amount: '' }],
     }
   })
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'items' })
+  useEffect(() => {
+    if (initialData?._id) {
+      reset({
+        billDate: dayjs(initialData.billingDate || initialData.billDate).format('YYYY-MM-DD'),
+        partyId: initialData.party?._id || initialData.party || '',
+        customerName: initialData.customerName || '',
+        customerPhone: initialData.customerPhone || '',
+        customerEmail: initialData.customerEmail || '',
+        customerAddress: initialData.customerAddress || '',
+        customerCity: initialData.customerCity || '',
+        customerState: initialData.customerState || '',
+        customerPincode: initialData.customerPincode || '',
+        customerGstin: initialData.customerGstin || '',
+        customerPan: initialData.customerPan || '',
+        customerSignatureUrl: initialData.customerSignatureUrl || '',
+        vehicleNo: initialData.vehicleNo || '',
+        vehicleModel: initialData.vehicleModel || '',
+        vehicleCompany: initialData.vehicleCompany || '',
+        kmReading: initialData.kmReading || '',
+        nextServiceKm: initialData.nextServiceKm || '',
+        nextServiceDate: initialData?.nextServiceDate ? dayjs(initialData.nextServiceDate).format('YYYY-MM-DD') : '',
+        paymentMethod: initialData.paymentMethod || 'Cash',
+        gstPercent: initialData.gstPercent?.toString() || '0',
+        laborCharge: initialData.laborCharge?.toString() || '0',
+        notes: initialData.notes || '',
+        items: initialData.items?.map(it => ({ ...it, qty: it.qty?.toString(), rate: it.rate?.toString(), amount: it.amount?.toString() })) || [{ description: '', qty: '1', rate: '', amount: '' }],
+      })
+    }
+  }, [initialData, reset])
 
-  const paymentMode = watch('paymentMode')
+  const { fields, append, remove } = useFieldArray({ control, name: 'items' })
+ 
+  const paymentStatus = watch('paymentStatus')
+  const paymentMethod = watch('paymentMethod')
   const gstPercent  = watch('gstPercent')
   const laborCharge = watch('laborCharge')
   const items       = watch('items')
   const partyId     = watch('partyId')
+  const vehicleNo   = watch('vehicleNo')
+
+  const { vehicles } = useVehicles()
+
+  // Auto-fill from vehicle number
+  useEffect(() => {
+    if (!vehicleNo || vehicleNo.length < 4) return
+    const v = vehicles.find(x => x.vehicleNumber?.toUpperCase().replace(/\s+/g, '') === vehicleNo.toUpperCase().replace(/\s+/g, ''))
+    
+    if (v) {
+      if (v.company) setValue('vehicleCompany', v.company)
+      if (v.model) setValue('vehicleModel', v.model)
+      if (v.kmReading) setValue('kmReading', v.kmReading)
+      if (v.nextServiceKm) setValue('nextServiceKm', v.nextServiceKm)
+      
+      // If vehicle is linked to a party, auto-fill party as well
+      if (v.partyId && !partyId) {
+        setValue('partyId', v.partyId)
+      } else if (v.customerName && !partyId) {
+        // Fallback for independent vehicles
+        setValue('customerName', v.customerName)
+        if (v.customerPhone) setValue('customerPhone', v.customerPhone)
+      }
+    }
+  }, [vehicleNo, vehicles, setValue, partyId])
 
   // Auto-fill from party
   useEffect(() => {
     if (!partyId) return
-    const p = parties.find(x => x.id === partyId)
+    const p = parties.find(x => x._id === partyId || x.id === partyId)
     if (p) {
       setValue('customerName', p.name)
       setValue('customerPhone', p.phone || '')
@@ -116,31 +183,51 @@ export default function GarageBill() {
 
   // Auto-calc item amounts
   useEffect(() => {
-    items.forEach((item, i) => {
+    (items || []).forEach((item, i) => {
       const qty = parseFloat(item.qty) || 0
       const rate = parseFloat(item.rate) || 0
       const amt = (qty * rate).toFixed(2)
       if (item.amount !== amt) setValue(`items.${i}.amount`, amt)
     })
-  }, [items.map(i => `${i.qty}_${i.rate}`).join(',')])
+  }, [items?.map(i => `${i.qty}_${i.rate}`).join(',')])
 
-  const partsTotal  = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0)
+  const partsTotal  = (items || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0)
   const labor       = parseFloat(laborCharge) || 0
   const subtotal    = partsTotal + labor
   const gstAmount   = subtotal * (parseFloat(gstPercent) || 0) / 100
   const grandTotal  = subtotal + gstAmount
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data, statusArg = 'unpaid') => {
     setSaving(true)
-    await new Promise(r => setTimeout(r, 600))
-    const bill = addBill({
-      type: 'garage',
-      ...data,
-      partsTotal, labor, subtotal, gstAmount, grandTotal,
-      status: data.paymentMode === 'paid' ? 'paid' : data.paymentMode === 'partial' ? 'partial' : 'unpaid',
-    })
-    setSaving(false)
-    setSavedBill(bill)
+    try {
+      const finalStatus = statusArg === 'draft' ? 'draft' : data.paymentStatus;
+
+      const payload = {
+        billType: 'garage',
+        billingDate: data.billDate,
+        party: data.partyId,
+        ...data,
+        partsTotal,
+        laborCharge: labor,
+        subTotal: subtotal,
+        gstAmount,
+        grandTotal,
+        paymentMethod: data.paymentMethod,
+        status: finalStatus,
+      }
+
+      let res;
+      if (isEdit) {
+        res = await updateBill(initialData._id, payload)
+      } else {
+        res = await addBill(payload)
+      }
+      setSavedBill(res)
+    } catch (e) {
+      alert('Failed to save bill. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (savedBill) return (
@@ -151,9 +238,9 @@ export default function GarageBill() {
       <h2 style={{ fontWeight: 800, color: '#0F0D2E' }}>Bill Created!</h2>
       <p style={{ color: '#6B7280' }}>Invoice #{savedBill.invoiceNo}</p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button className="btn btn-primary" onClick={() => navigate(`/bills/${savedBill.id}`)}><FileText size={16} /> View Invoice</button>
-        <button className="btn btn-ghost" onClick={() => navigate('/bills/new')}><Plus size={16} /> New Bill</button>
-        <button className="btn btn-ghost" onClick={() => navigate('/bills')}>All Bills</button>
+        <button className="btn btn-primary" onClick={() => navigate(`/bills/${savedBill._id || savedBill.id}`)}><FileText size={16} /> View Invoice</button>
+        <button className="btn btn-ghost" onClick={() => navigate('/garage/bills/new')}><Plus size={16} /> New Bill</button>
+        <button className="btn btn-ghost" onClick={() => navigate('/garage/bills')}>All Bills</button>
       </div>
     </div>
   )
@@ -161,7 +248,7 @@ export default function GarageBill() {
   return (
     <div className="page-wrapper animate-fadeIn" style={{ maxWidth: 680, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <button onClick={() => navigate('/bills')} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}>
+        <button onClick={() => navigate('/garage/bills')} style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: 'rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}>
           <ArrowLeft size={18} />
         </button>
         <div>
@@ -375,14 +462,15 @@ export default function GarageBill() {
         </SectionCard>
 
         {/* Payment Mode */}
-        <SectionCard icon={FileText} iconBg="#EDE9FE" iconColor="#7C3AED" title="Payment Status">
-          <div className="grid grid-cols-3 gap-2">
-            {PAYMENT_MODES.map(pm => {
-              const isActive = paymentMode === pm.val
+        <SectionCard icon={CreditCard} iconBg="#EDE9FE" iconColor="#7C3AED" title="Payment Details">
+          <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Payment Status</label>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {PAYMENT_STATUSES.map(pm => {
+              const isActive = paymentStatus === pm.val
               return (
-                <button key={pm.val} type="button" onClick={() => setValue('paymentMode', pm.val)}
+                <button key={pm.val} type="button" onClick={() => setValue('paymentStatus', pm.val)}
                   style={{ 
-                    padding: '12px 4px', borderRadius: 12, 
+                    padding: '10px 4px', borderRadius: 12, 
                     border: isActive ? `2px solid ${pm.color}` : '2px solid transparent', 
                     background: isActive ? pm.bg : '#F8FAFC', 
                     color: isActive ? pm.color : '#64748B', 
@@ -393,7 +481,14 @@ export default function GarageBill() {
               )
             })}
           </div>
-          <input type="hidden" {...register('paymentMode')} />
+
+          <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Payment Method (Cash, Online, etc.)</label>
+          <div style={{ position: 'relative' }}>
+            <select {...register('paymentMethod')} className="form-input" style={{ appearance: 'none', paddingRight: 36 }}>
+              {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <ChevronDown size={15} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
+          </div>
         </SectionCard>
 
         {/* Notes */}
@@ -403,11 +498,29 @@ export default function GarageBill() {
           </Field>
         </div>
 
-        <div className="btn-group btn-group-mobile-col">
-          <button type="button" className="btn btn-ghost btn-full" onClick={() => navigate('/bills')}>Cancel</button>
-          <button id="btn-save-garage-bill" type="submit" className="btn btn-primary btn-full btn-lg" disabled={saving} style={{ height: 52 }}>
-            {saving ? <><Loader2 size={18} className="spin" /> Generating…</> : <><CheckCircle2 size={18} /> Create Bill</>}
-          </button>
+        <div className="btn-group btn-group-mobile-col" style={{ gap: 12 }}>
+          <button type="button" className="btn btn-ghost btn-full" onClick={() => navigate('/garage/bills')} style={{ height: 52 }}>Cancel</button>
+          
+          <div style={{ flex: 2, display: 'flex', gap: 12 }}>
+            <button 
+              type="button" 
+              className="btn btn-ghost btn-full" 
+              onClick={handleSubmit(d => onSubmit(d, 'draft'))}
+              disabled={saving}
+              style={{ height: 52, flex: 1, border: '1.5px solid #E5E7EB' }}
+            >
+              Save as Draft
+            </button>
+            <button 
+              id="btn-save-garage-bill" 
+              type="submit" 
+              className="btn btn-primary btn-full btn-lg" 
+              disabled={saving} 
+              style={{ height: 52, flex: 1.5 }}
+            >
+              {saving ? <><Loader2 size={18} className="spin" /> Generating…</> : <><CheckCircle2 size={18} /> {isEdit ? 'Update Bill' : 'Create Bill'}</>}
+            </button>
+          </div>
         </div>
       </form>
       <style>{`.spin { animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>

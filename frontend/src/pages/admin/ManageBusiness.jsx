@@ -89,7 +89,7 @@ function BusinessModal({ mode, existing, onSave, onClose }) {
 }
 
 export default function ManageBusiness() {
-  const { mode, businesses, addBusiness, updateBusiness, deleteBusiness } = useAdmin()
+  const { mode, businesses, addBusiness, updateBusiness, deleteBusiness, invoices } = useAdmin()
   const isTransport = mode === 'transport'
   const accentColor = '#7C3AED'
   const accentLight = '#EDE9FE'
@@ -228,7 +228,7 @@ export default function ManageBusiness() {
                           id: biz.id, 
                           name: biz.name, 
                           isTransport: isTransport,
-                          invoices: useAdmin().invoices.filter(i => (i.businessId === biz.id || i.businessName === biz.name)) 
+                          invoices: invoices.filter(i => (i.businessId === biz.id || i.businessName === biz.name)) 
                         })} 
                         title={isTransport ? "Trip History" : "Service History"}
                       >

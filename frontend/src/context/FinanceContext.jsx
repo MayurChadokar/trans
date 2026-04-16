@@ -1,63 +1,59 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useAuth } from './AuthContext'
+import { getTransactions, addTransaction as addTxApi, getFinanceStats } from '../api/financeApi'
 
 const FinanceContext = createContext(null)
 
-const uid = () => `tx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-
 export function FinanceProvider({ children }) {
   const { user } = useAuth()
-  const storageKey = user ? `finance_${user.id}` : null
-
   const [transactions, setTransactions] = useState([])
+  const [stats, setStats] = useState(null)
   const [loaded, setLoaded] = useState(false)
 
-  useEffect(() => {
-    if (!storageKey) return
+  const loadFinanceData = useCallback(async () => {
+    if (!user) return
     try {
-      const saved = localStorage.getItem(storageKey)
-      if (saved) setTransactions(JSON.parse(saved))
-    } catch (_) {}
-    setLoaded(true)
-  }, [storageKey])
-
-  const persist = useCallback((list) => {
-    if (storageKey) {
-      localStorage.setItem(storageKey, JSON.stringify(list))
+      const [txRes, statsRes] = await Promise.all([
+        getTransactions(),
+        getFinanceStats()
+      ])
+      
+      if (txRes.success) setTransactions(txRes.transactions)
+      if (statsRes.success) setStats(statsRes.stats)
+    } catch (e) {
+      console.error("Failed to load finance data", e)
+    } finally {
+      setLoaded(true)
     }
-  }, [storageKey])
+  }, [user])
 
-  const addTransaction = useCallback((data) => {
-    const newTx = {
-      id: uid(),
-      createdAt: new Date().toISOString(),
-      date: data.date || new Date().toISOString().split('T')[0],
-      amount: parseFloat(data.amount || 0),
-      type: data.type || 'income', // income (receive) or expense (pay)
-      partyId: data.partyId || null,
-      billId: data.billId || null,
-      paymentMode: data.paymentMode || 'cash',
-      category: data.category || 'general',
-      notes: data.notes || '',
+  useEffect(() => {
+    loadFinanceData()
+  }, [loadFinanceData])
+
+  const addTransaction = useCallback(async (formData) => {
+    try {
+      const res = await addTxApi(formData)
+      if (res.success) {
+        setTransactions(prev => [res.transaction, ...prev])
+        // Refresh stats after new tx
+        loadFinanceData()
+        return res.transaction
+      }
+    } catch (e) {
+      console.error("Failed to add transaction", e)
+      throw e
     }
-    setTransactions(prev => {
-      const next = [newTx, ...prev]
-      persist(next)
-      return next
-    })
-    return newTx
-  }, [persist])
-
-  const deleteTransaction = useCallback((id) => {
-    setTransactions(prev => {
-      const next = prev.filter(tx => tx.id !== id)
-      persist(next)
-      return next
-    })
-  }, [persist])
+  }, [loadFinanceData])
 
   return (
-    <FinanceContext.Provider value={{ transactions, loaded, addTransaction, deleteTransaction }}>
+    <FinanceContext.Provider value={{ 
+      transactions, 
+      stats, 
+      loaded, 
+      addTransaction, 
+      refreshFinance: loadFinanceData 
+    }}>
       {children}
     </FinanceContext.Provider>
   )

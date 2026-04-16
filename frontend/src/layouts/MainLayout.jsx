@@ -7,12 +7,14 @@ import { useApp } from '../context/AppContext'
 
 // Map route → page title & subtitle
 const pageMeta = {
-  '/dashboard':           { title: 'Dashboard',      subtitle: 'Overview of your business' },
-  '/bills':               { title: 'Bills',          subtitle: 'All invoices & transactions' },
-  '/bills/new':           { title: 'Create Bill',    subtitle: null },
-  '/parties':             { title: 'Parties',        subtitle: 'Manage your clients' },
-  '/finance':             { title: 'Finance',        subtitle: 'Reports & transactions' },
-  '/profile':             { title: 'Profile',        subtitle: 'Business & account info' },
+  '/transport/dashboard': { title: 'Transport Dashboard', subtitle: 'Overview of logistics' },
+  '/transport/bills':     { title: 'Transport Bills',     subtitle: 'Freight & consolidated invoices' },
+  '/transport/parties':   { title: 'Parties',             subtitle: 'Manage your transport clients' },
+  '/garage/dashboard':    { title: 'Garage Dashboard',    subtitle: 'Overview of service workshop' },
+  '/garage/bills':        { title: 'Garage Bills',        subtitle: 'Service & spare invoices' },
+  '/garage/parties':      { title: 'Customers',           subtitle: 'Manage your garage customers' },
+  '/finance':             { title: 'Finance',             subtitle: 'Reports & transactions' },
+  '/profile':             { title: 'Profile',             subtitle: 'Business & account info' },
   '/transport/trips':     { title: 'Trips',          subtitle: 'Manage transport trips' },
   '/transport/vehicles':  { title: 'Vehicles',       subtitle: 'Your fleet' },
   '/garage/vehicles':     { title: 'Vehicles',       subtitle: 'Customer vehicles' },

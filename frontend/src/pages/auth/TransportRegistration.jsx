@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Truck, User, MapPin, Phone, Loader2, CheckCircle2, ArrowRight, FileText, Image, Files, CreditCard, Shield, Info, Check, Building2, PenTool } from 'lucide-react'
@@ -54,8 +54,10 @@ function DocUploadField({ label, icon: Icon, register, name, required }) {
 
         <input 
           type="file" 
-          {...register(name, { required: required && `${label} is required` })}
-          onChange={(e) => setHasFile(e.target.files.length > 0)}
+          {...register(name, { 
+            required: required && `${label} is required`,
+            onChange: (e) => setHasFile(e.target.files.length > 0)
+          })}
           style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} 
         />
       </label>
@@ -64,10 +66,16 @@ function DocUploadField({ label, icon: Icon, register, name, required }) {
 }
 
 export default function TransportRegistration() {
-  const { user, updateProfile } = useAuth()
+  const { user, completeTransportSetup, isTransport } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
+
+  useEffect(() => {
+    if (user?.setupComplete && isTransport) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, isTransport, navigate])
 
   const { register, handleSubmit, formState: { errors }, trigger } = useForm({
     mode: 'onChange',
@@ -96,62 +104,61 @@ export default function TransportRegistration() {
 
   const onSubmit = async (data) => {
     setLoading(true)
-    
-    const folder = `trans/users/${user?.phone || 'unknown'}/transport`
-    const [
-      signatureUpload,
-      logoUpload,
-      aadharUpload,
-      panUpload,
-      photoUpload,
-      rcUpload,
-      insuranceUpload,
-    ] = await Promise.all([
-      uploadSingleFile(data.docSignature?.[0], { folder }),
-      uploadSingleFile(data.docLogo?.[0], { folder }),
-      uploadSingleFile(data.docAadhar?.[0], { folder }),
-      uploadSingleFile(data.docPan?.[0], { folder }),
-      uploadSingleFile(data.docPhoto?.[0], { folder }),
-      uploadSingleFile(data.docRc?.[0], { folder }),
-      uploadSingleFile(data.docInsurance?.[0], { folder }),
-    ])
+    try {
+      const folder = `trans/users/${user?.phone || 'unknown'}/transport`
+      const [
+        signatureUpload,
+        logoUpload,
+        aadharUpload,
+        panUpload,
+      ] = await Promise.all([
+        uploadSingleFile(data.docSignature?.[0], { folder }),
+        uploadSingleFile(data.docLogo?.[0], { folder }),
+        uploadSingleFile(data.docAadhar?.[0], { folder }),
+        uploadSingleFile(data.docPan?.[0], { folder }),
+      ])
 
-    const signatureUrl = signatureUpload?.url || null
-    const logoUrl = logoUpload?.url || null
-    const documents = {
-      aadharUrl: aadharUpload?.url || null,
-      panUrl: panUpload?.url || null,
-      photoUrl: photoUpload?.url || null,
-      rcUrl: rcUpload?.url || null,
-      insuranceUrl: insuranceUpload?.url || null,
-    }
-
-    await new Promise(r => setTimeout(r, 800))
-    // Nest bank details to match profile schema
-    const formattedData = {
-      ...data,
-      signatureUrl, // Save the DataURL
-      logoUrl, // Save the Logo DataURL
-      documents,
-      bankDetails: {
-        accountName: data.name, // default to owner name
-        accountNumber: data.bankAccNo,
-        ifsc: data.bankIfsc?.toUpperCase(),
-        bankName: data.bankName
+      const signatureUrl = signatureUpload?.url || null
+      const logoUrl = logoUpload?.url || null
+      const documents = {
+        aadharUrl: aadharUpload?.url || null,
+        panUrl: panUpload?.url || null,
       }
+
+      // Nest bank details to match profile schema
+      const formattedData = {
+        ...data,
+        signatureUrl,
+        logoUrl,
+        documents,
+        bankDetails: {
+          accountName: data.name,
+          accountNumber: data.bankAccNo,
+          ifsc: data.bankIfsc?.toUpperCase(),
+          bankName: data.bankName
+        }
+      }
+      delete formattedData.bankAccNo
+      delete formattedData.bankIfsc
+      delete formattedData.bankName
+      delete formattedData.docAadhar
+      delete formattedData.docPan
+      delete formattedData.docSignature
+      delete formattedData.docLogo
+
+      const res = await completeTransportSetup(formattedData)
+      if (res.success) {
+        navigate('/dashboard', { replace: true })
+      } else {
+        setLoading(false)
+        alert(res.message || 'Setup failed. Please try again.')
+      }
+    } catch (error) {
+      setLoading(false)
+      console.error('Registration error:', error)
+      const errMs = error?.response?.data?.message || error?.message || 'Check your internet connection and file sizes.'
+      alert(`Registration Failed: ${errMs}`)
     }
-    delete formattedData.bankAccNo
-    delete formattedData.bankIfsc
-    delete formattedData.bankName
-    delete formattedData.docAadhar
-    delete formattedData.docPan
-    delete formattedData.docPhoto
-    delete formattedData.docRc
-    delete formattedData.docInsurance
-    delete formattedData.docSignature // remove file object
-    delete formattedData.docLogo // remove file object
-    updateProfile({ ...formattedData, setupComplete: true })
-    navigate('/dashboard', { replace: true })
   }
 
   return (
@@ -359,9 +366,6 @@ export default function TransportRegistration() {
               <div className="grid sm-grid-cols-2 gap-2">
                 <DocUploadField label="Aadhar Card" icon={FileText} register={register} name="docAadhar" required />
                 <DocUploadField label="PAN Card" icon={FileText} register={register} name="docPan" required />
-                <DocUploadField label="Passport Photo" icon={Image} register={register} name="docPhoto" required />
-                <DocUploadField label="Vehicle RC" icon={Truck} register={register} name="docRc" required />
-                <DocUploadField label="Vehicle Insurance" icon={Shield} register={register} name="docInsurance" required />
                 <DocUploadField label="Business Logo" icon={Image} register={register} name="docLogo" required />
                 <DocUploadField label="Authorized Signature" icon={PenTool} register={register} name="docSignature" required />
               </div>

@@ -3,6 +3,7 @@ import { Plus, Search, Filter, TrendingUp, TrendingDown, Wallet, CreditCard, Arr
 import { useFinance } from '../../context/FinanceContext'
 import { useParties } from '../../context/PartyContext'
 import { useBills } from '../../context/BillContext'
+import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { 
@@ -12,6 +13,10 @@ import {
 
 const TxCard = ({ tx, partyName }) => {
   const isIncome = tx.type === 'income'
+  // Improved display name logic
+  const displayName = partyName || tx.category || 'General'
+  const subInfo = tx.notes || tx.description || (tx.bill ? `Bill Ref: ${tx.bill.slice(-6).toUpperCase()}` : '')
+
   return (
     <div style={{
       background: 'white', borderRadius: 16, padding: '14px 16px',
@@ -25,18 +30,21 @@ const TxCard = ({ tx, partyName }) => {
         {isIncome ? <TrendingUp size={20} color="#16A34A" /> : <TrendingDown size={20} color="#DC2626" />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0F0D2E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {partyName || tx.category || 'General'}
+        <div style={{ fontWeight: 800, fontSize: '0.875rem', color: '#0F0D2E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {displayName}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#9CA3AF' }}>
-          <span>{dayjs(tx.date).format('DD MMM')}</span>
+        <div style={{ fontSize: '0.7rem', color: '#6B7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
+          {subInfo}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: '#9CA3AF', marginTop: 3 }}>
+          <span style={{ fontWeight: 600 }}>{dayjs(tx.date).format('DD MMM')}</span>
           <span>•</span>
-          <span style={{ textTransform: 'capitalize' }}>{tx.paymentMode}</span>
+          <span style={{ textTransform: 'capitalize' }}>{tx.paymentMode || 'cash'}</span>
         </div>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontWeight: 800, fontSize: '1rem', color: isIncome ? '#16A34A' : '#DC2626' }}>
-          {isIncome ? '+' : '-'} ₹{tx.amount.toLocaleString('en-IN')}
+        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: isIncome ? '#16A34A' : '#DC2626' }}>
+          {isIncome ? '+' : '-'} ₹{parseFloat(tx.amount || 0).toLocaleString('en-IN')}
         </div>
       </div>
     </div>
@@ -44,24 +52,22 @@ const TxCard = ({ tx, partyName }) => {
 }
 
 export default function Finance() {
-  const { transactions, loaded } = useFinance()
+  const { transactions, stats: apiStats, loaded } = useFinance()
   const { parties } = useParties()
   const { bills } = useBills()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [filter, setFilter] = useState('all')
 
-  const stats = useMemo(() => {
-    const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-    const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const userRole = user?.role || 'transport'
+  const modulePrefix = userRole === 'transport' ? '/transport' : '/garage'
+
+  const liveStats = useMemo(() => {
+    if (apiStats) return apiStats
     
-    // Receivables are bills that are NOT status paid
-    const pendingBills = bills.filter(b => b.status !== 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
-    
-    // Also include party opening balances (negative balance = we owe, positive = they owe)
-    const partyBalanceSum = parties.reduce((s, p) => s + (p.balance || 0), 0)
-    
-    return { income, expense, balance: income - expense, receivables: pendingBills + (partyBalanceSum > 0 ? partyBalanceSum : 0) }
-  }, [transactions, bills, parties])
+    // Fallback if not loaded yet
+    return { totalIncome: 0, totalExpense: 0, cashBalance: 0, receivables: 0 }
+  }, [apiStats])
 
   const filtered = useMemo(() => {
     if (filter === 'all') return transactions
@@ -71,9 +77,12 @@ export default function Finance() {
   return (
     <div className="page-wrapper animate-fadeIn">
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F0D2E', marginBottom: 2 }}>Finance</h2>
+        <h2 style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F0D2E', marginBottom: 2 }}>{userRole === 'transport' ? 'Transport Finance' : 'Garage Finance'}</h2>
         <p style={{ fontSize: '0.8rem', color: '#6B7280' }}>Track your cash flow and receivables</p>
       </div>
+
+      {/* Main Stats Card */}
+      {/* ... (rest of the card code remains the same) ... */}
 
       {/* Main Stats Card */}
       <div style={{
@@ -87,16 +96,16 @@ export default function Finance() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: 0.9, marginBottom: 6 }}>
           <Wallet size={16} /> <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>CASH BALANCE</span>
         </div>
-        <div style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: 24 }}>₹{stats.balance.toLocaleString('en-IN')}</div>
+        <div style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: 24 }}>₹{liveStats.cashBalance.toLocaleString('en-IN')}</div>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div style={{ background: 'rgba(255,255,255,0.15)', padding: '12px 16px', borderRadius: 16 }}>
-            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 4, fontWeight: 600 }}>RECEIVABLES</div>
-            <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{stats.receivables.toLocaleString('en-IN')}</div>
+            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 4, fontWeight: 600 }}>TOTAL INCOME</div>
+            <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{liveStats.totalIncome.toLocaleString('en-IN')}</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.15)', padding: '12px 16px', borderRadius: 16 }}>
             <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 4, fontWeight: 600 }}>TOTAL SPENT</div>
-            <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{stats.expense.toLocaleString('en-IN')}</div>
+            <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>₹{liveStats.totalExpense.toLocaleString('en-IN')}</div>
           </div>
         </div>
       </div>
@@ -128,7 +137,7 @@ export default function Finance() {
           { icon: TrendingUp, label: 'Income', bg: '#DCFCE7', color: '#16A34A', to: '/finance/add?type=income' },
           { icon: TrendingDown, label: 'Expense', bg: '#FEE2E2', color: '#DC2626', to: '/finance/add?type=expense' },
           { icon: CreditCard, label: 'Payments', bg: '#DBEAFE', color: '#2563EB', to: '/finance/add?type=income' },
-          { icon: Wallet, label: 'Parties', bg: '#F3F4F6', color: '#4B5563', to: '/parties' },
+          { icon: Wallet, label: 'Parties', bg: '#F3F4F6', color: '#4B5563', to: `${modulePrefix}/parties` },
         ].map(item => (
           <button key={item.label} onClick={() => navigate(item.to)} style={{
             background: 'white', border: 'none', borderRadius: 16, padding: '12px 6px',
@@ -173,8 +182,12 @@ export default function Finance() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {filtered.map(tx => {
-            const party = parties.find(p => p.id === tx.partyId)
-            return <TxCard key={tx.id} tx={tx} partyName={party?.name} />
+            // Support both populated and unpopulated party field
+            const txPartyId = (typeof tx.party === 'object') ? tx.party?._id : tx.party
+            const party = parties.find(p => p._id === txPartyId || p.id === txPartyId)
+            const partyName = (typeof tx.party === 'object') ? tx.party?.name : (party?.name || tx.category)
+            
+            return <TxCard key={tx._id || tx.id} tx={tx} partyName={partyName} />
           })}
         </div>
       )}

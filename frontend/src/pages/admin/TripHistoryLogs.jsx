@@ -1,73 +1,59 @@
-import React, { useState, useMemo } from 'react'
-import { MapPin, Search, Filter, Calendar, Truck, ArrowRight, User, ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { MapPin, Search, Truck, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, Clock, Loader2 } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
+import { getAdminTripHistory } from '../../api/adminApi'
+import dayjs from 'dayjs'
 
-const ITEMS_PER_PAGE = 8
+const ITEMS_PER_PAGE = 10
 
 export default function TripHistoryLogs() {
-  const { mode, businesses } = useAdmin()
+  const { mode } = useAdmin()
   const accentColor = '#7C3AED'
   
-  // Real-time trip data generated from registered businesses
-  const trips = useMemo(() => {
-    const list = []
-    const transBiz = businesses.filter(b => b.status === 'Active')
-    
-    transBiz.forEach((biz, idx) => {
-      list.push({ 
-        id: `T-200${idx + 1}`, 
-        businessName: biz.name, 
-        vehicleNo: `${biz.city.slice(0, 2).toUpperCase()} 0${idx + 1} AB ${1000 + idx}`, 
-        route: `${biz.city} → Mumbai`, 
-        driver: 'Rahul S.', 
-        status: 'Completed', 
-        date: '2026-04-01', 
-        amount: 45000 + (idx * 5000) 
-      })
-      list.push({ 
-        id: `T-200${idx + 4}`, 
-        businessName: biz.name, 
-        vehicleNo: `${biz.city.slice(0, 2).toUpperCase()} 0${idx + 5} XY ${9000 - idx}`, 
-        route: `${biz.city} → Delhi`, 
-        driver: 'Mukesh K.', 
-        status: 'In Transit', 
-        date: '2026-04-05', 
-        amount: 18000 + (idx * 2000) 
-      })
-    })
-
-    // Add fallback if no businesses
-    if (list.length === 0) {
-      list.push({ id: 'T-1001', businessName: 'Mahakal Logistics', vehicleNo: 'GJ15AB1001', route: 'Ahmedabad → Mumbai', driver: 'Rahul S.', status: 'Completed', date: '2026-04-01', amount: 45000 })
-      list.push({ id: 'T-1002', businessName: 'RK Transport', vehicleNo: 'DL01BK4422', route: 'Delhi → Jaipur', driver: 'Mukesh K.', status: 'In Transit', date: '2026-04-01', amount: 18000 })
-    }
-
-    return list
-  }, [businesses])
-
-  const [searchBusiness, setSearchBusiness] = useState('')
-  const [searchVehicle, setSearchVehicle] = useState('')
+  const [trips, setTrips] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [search, setSearch] = useState('')
 
-  const filtered = useMemo(() => {
-    const qBus = searchBusiness.toLowerCase()
-    const qVeh = searchVehicle.toLowerCase()
-    
-    return trips.filter(t => {
-      const matchBus = !qBus || t.businessName?.toLowerCase().includes(qBus)
-      const matchVeh = !qVeh || t.vehicleNo?.toLowerCase().includes(qVeh)
-      return matchBus && matchVeh
-    })
-  }, [trips, searchBusiness, searchVehicle])
+  const fetchTrips = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await getAdminTripHistory({
+        page,
+        limit: ITEMS_PER_PAGE,
+        status: statusFilter
+      })
+      if (res.success) {
+        setTrips(res.trips)
+        setTotal(res.pagination.total)
+      }
+    } catch (error) {
+      console.error('Failed to fetch trips:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [page, statusFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  useEffect(() => {
+    fetchTrips()
+  }, [fetchTrips])
 
   const getStatusColor = (s) => {
-     if (s === 'Completed') return { bg: '#DCFCE7', text: '#16A34A', icon: CheckCircle2 }
-     if (s === 'In Transit') return { bg: '#DBEAFE', text: '#2563EB', icon: Truck }
+     const status = s?.toLowerCase()
+     if (status === 'completed') return { bg: '#DCFCE7', text: '#16A34A', icon: CheckCircle2 }
+     if (status === 'ongoing' || status === 'in transit') return { bg: '#DBEAFE', text: '#2563EB', icon: Truck }
+     if (status === 'cancelled') return { bg: '#FEE2E2', text: '#EF4444', icon: Clock }
      return { bg: '#FEF3C7', text: '#D97706', icon: Clock }
   }
+
+  // Frontend filtering for search (optional, or could move to backend)
+  const filteredTrips = trips.filter(t => 
+    t.tripId?.toLowerCase().includes(search.toLowerCase()) ||
+    t.owner?.businessName?.toLowerCase().includes(search.toLowerCase()) ||
+    t.vehicle?.vehicleNumber?.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className="animate-fadeIn">
@@ -84,6 +70,9 @@ export default function TripHistoryLogs() {
             Monitor all cross-platform trips and logistics operations
           </p>
         </div>
+        <button className="btn btn-primary" onClick={fetchTrips} disabled={loading}>
+          {loading ? <Loader2 className="animate-spin" size={18} /> : 'Refresh Data'}
+        </button>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -93,58 +82,64 @@ export default function TripHistoryLogs() {
             <input 
               type="text" 
               className="form-input" 
-              placeholder="Filter by Business Name..." 
-              value={searchBusiness} 
-              onChange={e => { setSearchBusiness(e.target.value); setPage(1) }} 
+              placeholder="Search by ID, Business or Vehicle..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
               style={{ paddingLeft: 44, height: 44 }} 
             />
           </div>
-          <div className="input-group" style={{ flex: 1, minWidth: '240px' }}>
-            <Truck className="input-icon" size={18} />
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Filter by Vehicle Number..." 
-              value={searchVehicle} 
-              onChange={e => { setSearchVehicle(e.target.value); setPage(1) }} 
-              style={{ paddingLeft: 44, height: 44 }} 
-            />
-          </div>
-          <button className="btn btn-ghost" style={{ height: 44 }} onClick={() => { setSearchBusiness(''); setSearchVehicle(''); setPage(1); }}>Reset</button>
+          <select 
+            className="form-input" 
+            style={{ width: '180px', height: 44 }}
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+          >
+            <option value="">All Status</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="ongoing">Ongoing</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button className="btn btn-ghost" style={{ height: 44 }} onClick={() => { setSearch(''); setStatusFilter(''); setPage(1); }}>Reset</button>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto', minHeight: '300px', position: 'relative' }}>
+          {loading && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+               <Loader2 className="animate-spin" size={32} color={accentColor} />
+            </div>
+          )}
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: 'var(--bg-alt)', borderBottom: '1px solid var(--border)' }}>
               <tr>
-                {['Trip ID / Date', 'Business / Logistics', 'Vehicle & Route', 'Driver', 'Status', 'Total Value'].map(h => (
+                {['Trip ID / Date', 'Business / Owner', 'Vehicle & Route', 'Driver', 'Status', 'Total Value'].map(h => (
                    <th key={h} style={{ padding: '13px 24px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {paginated.map(trip => {
+              {filteredTrips.map(trip => {
                 const colors = getStatusColor(trip.status)
                 return (
-                  <tr key={trip.id} style={{ borderBottom: '1px solid var(--border)' }} className="table-row-hover">
+                  <tr key={trip._id} style={{ borderBottom: '1px solid var(--border)' }} className="table-row-hover">
                     <td style={{ padding: '16px 24px' }}>
-                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem' }}>{trip.id}</p>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>{trip.date}</p>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem' }}>{trip.tripId}</p>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>{dayjs(trip.startDate).format('DD MMM YYYY')}</p>
                     </td>
                     <td style={{ padding: '16px 24px' }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{trip.businessName}</div>
-                      <div style={{ fontSize: '0.7rem', color: accentColor, fontWeight: 700 }}>PARTNER LOGISTICS</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{trip.owner?.businessName || 'N/A'}</div>
+                      <div style={{ fontSize: '0.7rem', color: accentColor, fontWeight: 700 }}>{trip.owner?.name}</div>
                     </td>
                     <td style={{ padding: '16px 24px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                          <Truck size={16} color="var(--text-muted)" />
-                         <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{trip.vehicleNo}</span>
+                         <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{trip.vehicle?.vehicleNumber || 'N/A'}</span>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                         <ArrowRight size={10} /> {trip.route}
+                         {trip.source} <ArrowRight size={10} /> {trip.destination}
                       </div>
                     </td>
-                    <td style={{ padding: '16px 24px', fontSize: '0.85rem', fontWeight: 600 }}>{trip.driver}</td>
+                    <td style={{ padding: '16px 24px', fontSize: '0.85rem', fontWeight: 600 }}>{trip.driverName || 'N/A'}</td>
                     <td style={{ padding: '16px 24px' }}>
                       <div style={{ 
                         display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 99,
@@ -155,12 +150,12 @@ export default function TripHistoryLogs() {
                       </div>
                     </td>
                     <td style={{ padding: '16px 24px', fontWeight: 900, fontSize: '1rem', color: '#111' }}>
-                       ₹{trip.amount.toLocaleString()}
+                       ₹{trip.amount?.toLocaleString() || 0}
                     </td>
                   </tr>
                 )
               })}
-              {paginated.length === 0 && (
+              {!loading && filteredTrips.length === 0 && (
                 <tr>
                    <td colSpan="6" style={{ padding: '80px 24px', textAlign: 'center' }}>
                       <MapPin size={48} color="var(--text-muted)" style={{ margin: '0 auto 16px', opacity: 0.3 }} />
@@ -174,10 +169,11 @@ export default function TripHistoryLogs() {
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Trip Logs: {filtered.length}</p>
+           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Records: {total}</p>
            <div style={{ display: 'flex', gap: 8 }}>
-             <button className="btn btn-ghost btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} /></button>
-             <button className="btn btn-ghost btn-sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
+             <button className="btn btn-ghost btn-sm" disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} /></button>
+             <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 700 }}>Page {page} of {Math.ceil(total/ITEMS_PER_PAGE) || 1}</span>
+             <button className="btn btn-ghost btn-sm" disabled={page >= Math.ceil(total/ITEMS_PER_PAGE) || loading} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
            </div>
         </div>
       </div>

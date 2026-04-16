@@ -1,39 +1,49 @@
-import React, { useMemo } from 'react'
-import { Truck, MapPin, Receipt, TrendingUp, TrendingDown, Clock, ArrowRight, Plus, Users, Shield } from 'lucide-react'
+import React, { useMemo, useState, useEffect } from 'react'
+import { Truck, MapPin, Receipt, TrendingUp, TrendingDown, Clock, ArrowRight, Plus, Users, Shield, Loader2 } from 'lucide-react'
 import { useBills } from '../../context/BillContext'
 import { useVehicles } from '../../context/VehicleContext'
 import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
+import { getTransportStats } from '../../api/transportApi'
 
 export default function TransportDashboard() {
   const { bills } = useBills()
   const { vehicles } = useVehicles()
   const navigate = useNavigate()
+  const [dbStats, setDbStats] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const transportBills = useMemo(() => bills.filter(b => b.type === 'transport'), [bills])
+  useEffect(() => {
+    getTransportStats().then(res => {
+      if (res.success) setDbStats(res.stats)
+      setLoading(false)
+    })
+  }, [])
+
+  const transportBills = useMemo(() => bills.filter(b => b.billType === 'transport'), [bills])
 
   const stats = useMemo(() => {
-    // subtotal or grandTotal represents the revenue
-    const totalFreight = transportBills.reduce((s, b) => s + (b.grandTotal || 0), 0)
-    const pendingAmount = transportBills.filter(b => b.status !== 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
-    const totalTrips = transportBills.reduce((s, b) => s + (b.items?.length || 0), 0)
-    const fleetSize = vehicles.length
+    const totalFreight = dbStats?.totalRevenue || 0
+    const pendingAmount = dbStats?.pendingRevenue || 0
+    const totalTrips = dbStats?.activeTrips || 0
+    const fleetSize = dbStats?.totalVehicles || 0
 
     return [
-      { label: 'Total Revenue', value: `₹${totalFreight.toLocaleString()}`, sub: 'From all bills', icon: TrendingUp, color: '#16A34A', bg: '#DCFCE7' },
-      { label: 'Pending', value: `₹${pendingAmount.toLocaleString()}`, sub: 'Unpaid bills', icon: Clock, color: '#DC2626', bg: '#FEE2E2' },
-      { label: 'Total Trips', value: totalTrips.toString(), sub: 'In system', icon: Truck, color: '#F3811E', bg: '#FFF7ED' },
-      { label: 'Active Fleet', value: fleetSize.toString(), sub: 'Vehicles', icon: Users, color: '#2563EB', bg: '#DBEAFE' },
+      { label: 'Total Revenue', value: `₹${totalFreight.toLocaleString()}`, sub: 'All bills', icon: TrendingUp, color: '#16A34A', bg: '#DCFCE7' },
+      { label: 'Outstanding', value: `₹${pendingAmount.toLocaleString()}`, sub: 'Pending payment', icon: Clock, color: '#DC2626', bg: '#FEE2E2' },
+      { label: 'Pending Trips', value: totalTrips.toString(), sub: 'Unbilled missions', icon: Truck, color: '#F3811E', bg: '#FFF7ED' },
+      { label: 'Total Fleet', value: fleetSize.toString(), sub: 'Live vehicles', icon: Users, color: '#2563EB', bg: '#DBEAFE' },
     ]
-  }, [transportBills, vehicles])
+  }, [dbStats])
 
   const chartData = useMemo(() => {
-    return transportBills.slice(-7).reverse().map(b => ({
-      date: dayjs(b.billDate).format('D MMM'),
-      amount: b.grandTotal
+    if (!bills || bills.length === 0) return []
+    return bills.filter(b => b.billType === 'transport').slice(-7).map(b => ({
+      date: dayjs(b.billingDate || b.createdAt).format('D MMM'),
+      amount: b.grandTotal || 0
     }))
-  }, [transportBills])
+  }, [bills])
 
   return (
     <div className="page-wrapper animate-fadeIn" style={{ paddingBottom: 60 }}>
@@ -124,11 +134,11 @@ export default function TransportDashboard() {
       <div style={{ background: 'white', borderRadius: 28, padding: '24px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Recent Activity</h3>
-          <button onClick={() => navigate('/bills')} className="btn btn-ghost btn-sm" style={{ color: '#4F46E5', fontWeight: 800 }}>View All</button>
+          <button onClick={() => navigate('/transport/bills')} className="btn btn-ghost btn-sm" style={{ color: '#4F46E5', fontWeight: 800 }}>View All</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {transportBills.slice(0, 4).map((b, i) => (
-            <div key={i} onClick={() => navigate(`/bills/${b.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#F9FAFB', padding: '14px', borderRadius: 20, cursor: 'pointer', transition: '0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}>
+            <div key={b._id || i} onClick={() => navigate(`/bills/${b._id}`)} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#F9FAFB', padding: '14px', borderRadius: 20, cursor: 'pointer', transition: '0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}>
               <div style={{ width: 44, height: 44, borderRadius: 14, background: '#FFF7ED', color: '#F3811E', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Receipt size={20} />
               </div>
@@ -137,7 +147,7 @@ export default function TransportDashboard() {
                   {b.billedToName || 'Consolidated Bill'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                   {b.items?.length || 0} trip(s) • {dayjs(b.billDate).format('DD MMM')}
+                   {b.items?.length || 0} trip(s) • {dayjs(b.billingDate || b.createdAt).format('DD MMM')}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -152,7 +162,7 @@ export default function TransportDashboard() {
         </div>
       </div>
 
-      <button onClick={() => navigate('/bills/new')} className="btn btn-primary" style={{ position: 'fixed', bottom: 84, right: 20, borderRadius: 18, height: 56, padding: '0 24px', boxShadow: '0 8px 30px rgba(79, 70, 229, 0.4)', zIndex: 10 }}>
+      <button onClick={() => navigate('/transport/bills/new')} className="btn btn-primary" style={{ position: 'fixed', bottom: 84, right: 20, borderRadius: 18, height: 56, padding: '0 24px', boxShadow: '0 8px 30px rgba(79, 70, 229, 0.4)', zIndex: 10 }}>
         <Plus size={22} /> <span style={{ fontWeight: 800 }}>New Bill</span>
       </button>
     </div>

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { 
   ArrowLeft, ShieldCheck, Building2, User, Phone, 
   MapPin, Calendar, FileText, CheckCircle2, XCircle, 
-  Eye, Download, AlertCircle, Clock
+  Eye, Download, AlertCircle, Clock, Image, Truck
 } from 'lucide-react'
 import dayjs from 'dayjs'
 
@@ -129,7 +129,7 @@ export default function KYCVerification() {
                       </td>
                       <td style={{ padding: '18px 24px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748B', fontSize: '0.8rem', fontWeight: 600 }}>
-                          <FileText size={14} /> 3 Documents Uploaded
+                          <FileText size={14} /> {Object.values(biz.documents || {}).filter(Boolean).length} Documents Uploaded
                         </div>
                       </td>
                       <td style={{ padding: '18px 24px' }}>
@@ -189,24 +189,34 @@ export default function KYCVerification() {
               <div>
                 <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 12 }}>Submitted Documents</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[
-                    { name: 'Aadhar Card (Front & Back)', size: '1.2 MB' },
-                    { name: 'Trade License / PAN', size: '0.8 MB' },
-                    { name: 'Business Proof (GSTR/Light Bill)', size: '2.1 MB' }
-                  ].map((doc, i) => (
-                    <div key={i} style={{ padding: 12, borderRadius: 12, border: '1px solid #F1F5F9', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {Object.entries(selectedBiz.documents || {}).filter(([key, url]) => url).map(([key, url], i) => (
+                    <div key={key} style={{ padding: 12, borderRadius: 12, border: '1px solid #F1F5F9', background: 'white', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 8, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6' }}>
-                        <FileText size={18} />
+                        {key.toLowerCase().includes('photo') ? <Image size={18} /> : 
+                         key.toLowerCase().includes('rc') || key.toLowerCase().includes('insurance') ? <Truck size={18} /> :
+                         <FileText size={18} />}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1E293B' }}>{doc.name}</div>
-                        <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>{doc.size} • PDF Upload</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1E293B', textTransform: 'capitalize' }}>
+                          {key.replace('Url', '').replace(/([A-Z])/g, ' $1').trim()}
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: '#94A3B8' }}>Image / Document</div>
                       </div>
-                      <button style={{ padding: 6, borderRadius: 6, border: 'none', background: '#F8FAFC', color: '#64748B', cursor: 'pointer' }}>
-                        <Download size={14} />
-                      </button>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, borderRadius: 6, background: '#F8FAFC', color: '#64748B', cursor: 'pointer', textDecoration: 'none' }} title="View">
+                          <Eye size={14} />
+                        </a>
+                        <a href={url} download style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, borderRadius: 6, background: '#F8FAFC', color: '#64748B', cursor: 'pointer', textDecoration: 'none' }} title="Download">
+                          <Download size={14} />
+                        </a>
+                      </div>
                     </div>
                   ))}
+                  {Object.values(selectedBiz.documents || {}).filter(Boolean).length === 0 && (
+                    <div style={{ textAlign: 'center', padding: 20, color: '#94A3B8', fontSize: '0.8rem' }}>
+                      No documents uploaded
+                    </div>
+                  )}
                 </div>
               </div>
 

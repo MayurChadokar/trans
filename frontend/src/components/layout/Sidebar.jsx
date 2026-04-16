@@ -108,9 +108,9 @@ export default function Sidebar() {
 
   // Navigation for Transporters
   const transportItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/bills', icon: Receipt, label: 'Invoices & Bills' },
-    { to: '/parties', icon: Users, label: 'Parties' },
+    { to: '/transport/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/transport/bills', icon: Receipt, label: 'Invoices & Bills' },
+    { to: '/transport/parties', icon: Users, label: 'Parties' },
     { to: '/transport/vehicles', icon: Truck, label: 'Vehicles' },
     { to: '/transport/trips', icon: MapPin || Monitor, label: 'Trip Management' },
     { to: '/finance', icon: Banknote || Receipt, label: 'Finance & Payments' },
@@ -119,9 +119,9 @@ export default function Sidebar() {
 
   // Navigation for Garage Owners
   const garageItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/bills', icon: Receipt, label: 'Billing & Records' },
-    { to: '/parties', icon: Users, label: 'Parties' },
+    { to: '/garage/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/garage/bills', icon: Receipt, label: 'Billing & Records' },
+    { to: '/garage/parties', icon: Users, label: 'Parties' },
     { to: '/garage/vehicles', icon: Truck, label: 'Vehicles' },
     { to: '/garage/services', icon: Wrench, label: 'Services' },
     { to: '/finance', icon: Banknote || Receipt, label: 'Finance & Payments' },

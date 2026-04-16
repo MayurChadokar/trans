@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Wrench, User, MapPin, Phone, Loader2, CheckCircle2, ArrowRight, FileText, Image, Files, CreditCard, Building2, Check, Info, Shield, Files as FilesIcon } from 'lucide-react'
+import { Wrench, User, MapPin, Phone, Loader2, CheckCircle2, ArrowRight, FileText, Image, Files, CreditCard, Building2, Check, Info, Shield, Files as FilesIcon, Truck } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import logo from '../../assets/trans-logo.png'
 import { uploadSingleFile } from '../../api/uploadApi'
@@ -54,8 +54,10 @@ function DocUploadField({ label, icon: Icon, register, name, required }) {
 
         <input 
           type="file" 
-          {...register(name, { required: required && `${label} is required` })}
-          onChange={(e) => setHasFile(e.target.files.length > 0)}
+          {...register(name, { 
+            required: required && `${label} is required`,
+            onChange: (e) => setHasFile(e.target.files.length > 0)
+          })}
           style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} 
         />
       </label>
@@ -64,10 +66,16 @@ function DocUploadField({ label, icon: Icon, register, name, required }) {
 }
 
 export default function GarageRegistration() {
-  const { user, updateProfile } = useAuth()
+  const { user, completeGarageSetup, isGarage } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
+
+  useEffect(() => {
+    if (user?.setupComplete && isGarage) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, isGarage, navigate])
 
   const { register, handleSubmit, formState: { errors }, trigger } = useForm({
     mode: 'onChange',
@@ -96,52 +104,58 @@ export default function GarageRegistration() {
 
   const onSubmit = async (data) => {
     setLoading(true)
-    
-    const folder = `trans/users/${user?.phone || 'unknown'}/garage`
-    const [logoUpload, aadharUpload, panUpload, addressUpload, photoUpload, gstUpload] = await Promise.all([
-      uploadSingleFile(data.docLogo?.[0], { folder }),
-      uploadSingleFile(data.docAadhar?.[0], { folder }),
-      uploadSingleFile(data.docPan?.[0], { folder }),
-      uploadSingleFile(data.docAddress?.[0], { folder }),
-      uploadSingleFile(data.docPhoto?.[0], { folder }),
-      uploadSingleFile(data.docGst?.[0], { folder }),
-    ])
+    try {
+      const folder = `trans/users/${user?.phone || 'unknown'}/garage`
+      const [logoUpload, aadharUpload, panUpload, addressUpload, gstUpload] = await Promise.all([
+        uploadSingleFile(data.docLogo?.[0], { folder }),
+        uploadSingleFile(data.docAadhar?.[0], { folder }),
+        uploadSingleFile(data.docPan?.[0], { folder }),
+        uploadSingleFile(data.docAddress?.[0], { folder }),
+        uploadSingleFile(data.docGst?.[0], { folder }),
+      ])
 
-    const logoUrl = logoUpload?.url || null
-    const documents = {
-      aadharUrl: aadharUpload?.url || null,
-      panUrl: panUpload?.url || null,
-      addressProofUrl: addressUpload?.url || null,
-      photoUrl: photoUpload?.url || null,
-      gstCertificateUrl: gstUpload?.url || null,
-    }
-
-    await new Promise(r => setTimeout(r, 1200))
-    
-    // Nest bank details to match profile schema
-    const formattedData = {
-      ...data,
-      logoUrl, // Save the Logo DataURL
-      documents,
-      bankDetails: {
-        accountName: data.name, // default to owner name
-        accountNumber: data.bankAccNo,
-        ifsc: data.bankIfsc?.toUpperCase(),
-        bankName: data.bankName
+      const logoUrl = logoUpload?.url || null
+      const documents = {
+        aadharUrl: aadharUpload?.url || null,
+        panUrl: panUpload?.url || null,
+        addressProofUrl: addressUpload?.url || null,
+        gstCertificateUrl: gstUpload?.url || null,
       }
+
+      // Nest bank details to match profile schema
+      const formattedData = {
+        ...data,
+        logoUrl,
+        documents,
+        bankDetails: {
+          accountName: data.name,
+          accountNumber: data.bankAccNo,
+          ifsc: data.bankIfsc?.toUpperCase(),
+          bankName: data.bankName
+        }
+      }
+      delete formattedData.bankAccNo
+      delete formattedData.bankIfsc
+      delete formattedData.bankName
+      delete formattedData.docAadhar
+      delete formattedData.docPan
+      delete formattedData.docAddress
+      delete formattedData.docGst
+      delete formattedData.docLogo
+
+      const res = await completeGarageSetup(formattedData)
+      if (res.success) {
+        navigate('/dashboard', { replace: true })
+      } else {
+        setLoading(false)
+        alert(res.message || 'Setup failed. Please try again.')
+      }
+    } catch (error) {
+      setLoading(false)
+      console.error('Registration error:', error)
+      const errMs = error?.response?.data?.message || error?.message || 'Check your internet connection and file sizes.'
+      alert(`Registration Failed: ${errMs}`)
     }
-    delete formattedData.bankAccNo
-    delete formattedData.bankIfsc
-    delete formattedData.bankName
-    delete formattedData.docAadhar
-    delete formattedData.docPan
-    delete formattedData.docAddress
-    delete formattedData.docPhoto
-    delete formattedData.docGst
-    delete formattedData.docLogo // remove file object
-    
-    updateProfile({ ...formattedData, setupComplete: true })
-    navigate('/dashboard', { replace: true })
   }
 
   return (
@@ -355,7 +369,6 @@ export default function GarageRegistration() {
                 <DocUploadField label="Aadhar Card" icon={FileText} register={register} name="docAadhar" required />
                 <DocUploadField label="PAN Card" icon={FileText} register={register} name="docPan" required />
                 <DocUploadField label="Address Proof" icon={MapPin} register={register} name="docAddress" required />
-                <DocUploadField label="Passport Photo" icon={Image} register={register} name="docPhoto" required />
                 <DocUploadField label="GST Certificate" icon={Building2} register={register} name="docGst" required />
                 <DocUploadField label="Business Logo" icon={Image} register={register} name="docLogo" required />
               </div>
