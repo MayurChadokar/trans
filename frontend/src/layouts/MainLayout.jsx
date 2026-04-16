@@ -4,6 +4,7 @@ import BottomNav from '../components/layout/BottomNav'
 import TopHeader from '../components/layout/TopHeader'
 import MobileHeader from '../components/layout/MobileHeader'
 import { useApp } from '../context/AppContext'
+import { useAuth } from '../context/AuthContext'
 
 // Map route → page title & subtitle
 const pageMeta = {
@@ -29,6 +30,7 @@ const pageMeta = {
 
 export default function MainLayout() {
   const { sidebarCollapsed, mobileMenuOpen, closeMobileMenu } = useApp()
+  const { user, isAdmin } = useAuth()
   const location = useLocation()
   const isTransport = (localStorage.getItem('view_mode') || 'transport') === 'transport'
 
@@ -79,7 +81,7 @@ export default function MainLayout() {
       </main>
 
       {/* Mobile bottom navbar */}
-      <BottomNav />
+      {!isAdmin && <BottomNav />}
     </div>
   )
 }

@@ -90,7 +90,7 @@ export default function AdminDashboard() {
   return (
     <div className="animate-fadeIn">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 admin-header-flex">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <Globe size={18} color="var(--primary)" />
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20, marginBottom: 32 }}>
+      <div className="admin-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20, marginBottom: 32 }}>
         {kpiCards.map((kpi, i) => (
           <div key={i} className="card" style={{ padding: '22px 24px', borderTop: `3px solid ${kpi.color}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Charts Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 28 }}>
+      <div className="admin-charts-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 28 }}>
 
         {/* Area Chart */}
         <div className="card" style={{ padding: '24px' }}>
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Bottom Row: Recent Users + Recent Invoices ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="admin-recent-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
 
         {/* Recent Users */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -318,6 +318,30 @@ export default function AdminDashboard() {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
+        }
+
+        @media (max-width: 768px) {
+          .admin-header-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 16px !important;
+          }
+          
+          .admin-header-flex button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+
+          .admin-stats-grid, 
+          .admin-charts-grid, 
+          .admin-recent-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+
+          .admin-charts-grid > div {
+            width: 100% !important;
+          }
         }
       `}</style>
     </div>
