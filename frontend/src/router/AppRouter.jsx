@@ -15,6 +15,9 @@ import OTPVerify  from '../pages/auth/OTPVerify'
 import RoleSelect from '../pages/auth/RoleSelect'
 import TransportRegistration from '../pages/auth/TransportRegistration'
 import GarageRegistration    from '../pages/auth/GarageRegistration'
+import TransportVehicleSetup from '../pages/auth/TransportVehicleSetup'
+import SubscriptionPlans     from '../pages/auth/SubscriptionPlans'
+
 
 // App pages (lazy)
 const Dashboard        = lazy(() => import('../pages/dashboard/Dashboard'))
@@ -90,6 +93,8 @@ export default function AppRouter() {
           <Route path="/role-select"   element={<RoleSelect />} />
           <Route path="/register/transport" element={<TransportRegistration />} />
           <Route path="/register/garage"    element={<GarageRegistration />} />
+          <Route path="/setup/vehicles"     element={<TransportVehicleSetup />} />
+          <Route path="/subscription"       element={<SubscriptionPlans />} />
         </Route>
 
         {/* ── App (protected) ── */}

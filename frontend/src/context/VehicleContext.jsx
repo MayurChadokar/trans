@@ -26,16 +26,13 @@ export function VehicleProvider({ children }) {
   }, [user, isGarage])
 
   const addVehicle = useCallback(async (data) => {
-    try {
-      const res = isGarage ? await addGarageVehicle(data) : await createVehicle(data)
-      if (res.success) {
-        const normalized = { ...res.vehicle, id: res.vehicle._id || res.vehicle.id }
-        setVehicles(prev => [normalized, ...prev])
-        return normalized
-      }
-    } catch (e) {
-      console.error('Add vehicle failed:', e.message)
+    const res = isGarage ? await addGarageVehicle(data) : await createVehicle(data)
+    if (res.success) {
+      const normalized = { ...res.vehicle, id: res.vehicle._id || res.vehicle.id }
+      setVehicles(prev => [normalized, ...prev])
+      return normalized
     }
+    return null
   }, [isGarage])
 
   const deleteVehicleInDb = useCallback(async (id) => {

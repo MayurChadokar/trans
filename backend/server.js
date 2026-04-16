@@ -48,7 +48,9 @@ app.use("/api/admin/sales", require("./src/routes/admin.sales.routes"));
 app.use("/api/admin/garage", require("./src/routes/admin.garage.routes"));
 app.use("/api/admin/plans", require("./src/routes/admin.plan.routes"));
 app.use("/api/admin/special", require("./src/routes/admin.special.routes"));
+app.use("/api/plans", require("./src/routes/plan.routes"));
 app.use("/api/transport", require("./src/routes/transport.routes"));
+
 app.use("/api/parties", require("./src/routes/party.routes"));
 app.use("/api/bills", require("./src/routes/bill.routes"));
 app.use("/api/finance", require("./src/routes/finance.routes"));

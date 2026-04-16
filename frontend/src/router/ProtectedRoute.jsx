@@ -41,5 +41,37 @@ export default function ProtectedRoute({ requireRole }) {
     return <Navigate to="/dashboard" replace />
   }
 
+  // Transport Role Onboarding & Subscription Enforcement
+  if (user?.role === 'transport' && user?.id) {
+    const currentPath = window.location.pathname;
+    const isOnboardingPath = currentPath === '/register/transport' || 
+                             currentPath === '/setup/vehicles' || 
+                             currentPath === '/subscription' ||
+                             currentPath === '/role-select';
+
+    // 1. Force Profile Registration (Steps 1-3)
+    if (!user.setupComplete) {
+      if (currentPath !== '/register/transport') return <Navigate to="/register/transport" replace />;
+    } 
+    // 2. Force Subscription (after profile is complete)
+    else if (!user.subscriptionActive) {
+      if (!isOnboardingPath) {
+        return <Navigate to="/setup/vehicles" replace />;
+      }
+    }
+    // 3. Expiry Check
+    else {
+      const isExpired = user.subscriptionExpiry && new Date(user.subscriptionExpiry).getTime() < Date.now();
+      if (isExpired && !isOnboardingPath) {
+        return <Navigate to="/subscription" replace />;
+      }
+    }
+  }
+
+  // Garage Role Onboarding (Simplified)
+  if (user?.role === 'garage' && user?.id && !user.setupComplete) {
+    if (!window.location.pathname.startsWith('/register/')) return <Navigate to="/register/garage" replace />;
+  }
+
   return <Outlet />
 }

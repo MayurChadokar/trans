@@ -61,7 +61,9 @@ async function createVehicle(req, res, next) {
     const vehicle = await Vehicle.create({ ...req.body, vehicleNumber: cleanNumber, owner: req.user.id });
     return res.json({ success: true, vehicle });
   } catch (e) {
-    return res.status(500).json({ success: false, message: e.message || "Failed to add vehicle" });
+    console.error("Vehicle Creation Error:", e);
+    const msg = e.name === 'ValidationError' ? "Invalid vehicle data" : "Failed to add vehicle";
+    return res.status(400).json({ success: false, message: e.message || msg });
   }
 }
 

@@ -36,6 +36,8 @@ function userDto(user) {
     signatureUrl: user.signatureUrl || null,
     bankDetails: user.bankDetails || null,
     setupComplete: !!user.setupComplete,
+    subscriptionActive: !!user.subscriptionActive,
+    subscriptionExpiry: user.subscriptionExpiry || null,
   };
 }
 
@@ -379,5 +381,6 @@ module.exports = {
   registerGarage,
   login,
   setPassword,
+  userDto,
 };
 
