@@ -64,7 +64,7 @@ async function subscribeToPlan(req, res, next) {
       message: "Subscription successful", 
       subscriptionExpiry: expiryDate,
       accessToken,
-      user: authController.userDto(user)
+      user: authController.userDto({ ...user.toObject(), planId: plan })
     });
   } catch (e) {
     next(e);
@@ -157,7 +157,7 @@ async function verifyPayment(req, res, next) {
       message: "Subscription successful", 
       subscriptionExpiry: expiryDate,
       accessToken,
-      user: authController.userDto(user)
+      user: authController.userDto({ ...user.toObject(), planId: plan })
     });
   } catch (e) {
     next(e);

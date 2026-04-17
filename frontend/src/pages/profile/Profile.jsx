@@ -56,7 +56,7 @@ export default function Profile() {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Current Plan</div>
             <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1E293B' }}>
-              {user?.subscriptionActive ? 'Premium Plan' : 'No Active Plan'}
+              {user?.subscriptionActive ? (user?.planName || 'Active Plan') : 'No Active Plan'}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
