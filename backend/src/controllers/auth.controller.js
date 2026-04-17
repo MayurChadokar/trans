@@ -38,6 +38,8 @@ function userDto(user) {
     setupComplete: !!user.setupComplete,
     subscriptionActive: !!user.subscriptionActive,
     subscriptionExpiry: user.subscriptionExpiry || null,
+    allowedVehicles: user.allowedVehicles || 0,
+    planName: user.planId?.name || null,
   };
 }
 
@@ -96,7 +98,7 @@ async function verifyOtp(req, res, next) {
         ...(isAdminOtpLogin ? { $set: { role: "admin" } } : {}),
       },
       { new: true, upsert: true }
-    );
+    ).populate('planId');
 
     const isNewUser = !user.role;
     const accessToken = tokenService.signAccessToken(user);
@@ -132,7 +134,7 @@ async function refresh(req, res, next) {
       userAgent: req.get("user-agent"),
     });
 
-    const user = await User.findById(rotated.userId);
+    const user = await User.findById(rotated.userId).populate('planId');
     if (!user) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
@@ -162,7 +164,7 @@ async function logout(req, res, next) {
 
 async function me(req, res, next) {
   try {
-    const user = await User.findById(req.user?.id);
+    const user = await User.findById(req.user?.id).populate('planId');
     if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
     return res.json({ success: true, user: userDto(user) });
   } catch (e) {
@@ -181,7 +183,7 @@ async function setRole(req, res, next) {
       { phone: req.user.phone },
       { $set: { role } },
       { new: true, upsert: false }
-    );
+    ).populate('planId');
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     return res.json({ success: true, user: userDto(user) });
@@ -214,7 +216,7 @@ async function registerTransport(req, res, next) {
         } 
       },
       { new: true, upsert: false }
-    );
+    ).populate('planId');
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -250,7 +252,7 @@ async function registerGarage(req, res, next) {
         } 
       },
       { new: true, upsert: false }
-    );
+    ).populate('planId');
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -293,7 +295,7 @@ async function updateProfile(req, res, next) {
       { phone: req.user.phone },
       { $set: updates },
       { new: true, upsert: false }
-    );
+    ).populate('planId');
     
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -314,7 +316,7 @@ async function login(req, res, next) {
       return res.status(400).json({ success: false, message: "Email and password required" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('planId');
     if (!user || !user.passwordHash) {
       return res.status(401).json({ success: false, message: "Invalid credentials or password not set" });
     }
