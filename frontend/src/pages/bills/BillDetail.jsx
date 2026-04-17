@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBills } from '../../context/BillContext'
 import { useAuth } from '../../context/AuthContext'
-import { ArrowLeft, Printer, Trash2, Download, FileText, Pencil } from 'lucide-react'
+import { ArrowLeft, Printer, Trash2, Download, FileText, Pencil, CheckCircle2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useRef, useState, useEffect } from 'react'
 import html2canvas from 'html2canvas'
@@ -472,6 +472,21 @@ export default function BillDetail() {
           <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{dayjs(bill.billingDate || bill.createdAt).format('DD MMM YYYY')}</p>
         </div>
         <div style={{ display: 'flex', gap: 6, marginLeft: window.innerWidth < 640 ? 0 : 'auto', order: window.innerWidth < 640 ? 2 : 3 }}>
+          {bill.status !== 'paid' && (
+            <button 
+              id="btn-mark-paid" 
+              onClick={() => {
+                if(window.confirm('Mark this bill as fully paid?')) {
+                  recordPayment(bill._id, bill.grandTotal || 0).then(() => {
+                    setBill(prev => ({ ...prev, status: 'paid' }))
+                  })
+                }
+              }} 
+              style={{ padding: '0 12px', borderRadius: 12, height: 40, border: 'none', background: '#DCFCE7', color: '#16A34A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 800 }}
+            >
+              <CheckCircle2 size={16} /> Mark Paid
+            </button>
+          )}
           {bill.status === 'draft' && (
             <button 
               id="btn-edit-bill" 

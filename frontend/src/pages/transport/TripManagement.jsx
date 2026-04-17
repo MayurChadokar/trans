@@ -652,7 +652,7 @@ export default function TripManagement() {
       <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" capture="environment" onChange={onFileChange} />
 
       <style>{`
-        .trip-mgmt-container { padding-bottom: 160px; }
+        .trip-mgmt-container { padding-bottom: 200px; }
         .trip-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
         .trip-title { fontSize: 1.25rem; font-weight: 900; color: #0F0D2E; margin: 0; }
         .trip-subtitle { color: #6B7280; font-size: 0.8125rem; margin-top: 2px; }
@@ -728,7 +728,7 @@ export default function TripManagement() {
         
         .trip-form-card { background: white; border-radius: 24px; padding: 20px; border: 1px solid #F1F5F9; }
 
-        .billing-action-bar { position: fixed; bottom: 80px; left: 16px; right: 16px; background: rgba(15, 13, 46, 0.95); backdrop-filter: blur(12px); border-radius: 24px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 900; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+        .billing-action-bar { position: fixed; bottom: 96px; left: 16px; right: 16px; background: rgba(15, 13, 46, 0.95); backdrop-filter: blur(12px); border-radius: 20px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 900; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
         .selection-count { color: white; font-weight: 800; font-size: 0.9rem; }
         .btn-clear-selection { background: transparent; border: none; color: #94A3B8; font-size: 0.75rem; font-weight: 700; margin-left: 10px; cursor: pointer; }
         
