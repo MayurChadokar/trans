@@ -37,7 +37,7 @@ export default function TransportVehicleSetup() {
   return (
     <div className="animate-fadeIn" style={{ maxWidth: 640, margin: '0 auto', paddingBottom: 40 }}>
       {/* Header (Outside Card) */}
-      <div style={{ textAlign: 'center', marginBottom: 30 }}>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <div style={{ 
           width: 50, height: 50, borderRadius: 16, background: 'white',
           display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
@@ -65,13 +65,13 @@ export default function TransportVehicleSetup() {
       <div style={{ 
         background: 'white', 
         borderRadius: 24, 
-        padding: '30px', 
+        padding: '24px', 
         boxShadow: '0 20px 50px rgba(0,0,0,0.04)',
         border: '1px solid rgba(0,0,0,0.05)'
       }}>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ background: '#F8FAFC', borderRadius: 20, padding: 20, marginBottom: 20, border: '1px solid #E2E8F0' }}>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ background: '#F8FAFC', borderRadius: 20, padding: 16, marginBottom: 16, border: '1px solid #E2E8F0' }}>
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div className="form-group">
                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: 6, display: 'block' }}>Vehicle Number</label>
                  <input 
@@ -80,7 +80,7 @@ export default function TransportVehicleSetup() {
                      pattern: { value: /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/i, message: 'Invalid format' }
                    })} 
                    placeholder="GJ15XX1234"
-                   style={{ height: 50, borderRadius: 14, background: 'white' }}
+                   style={{ height: 42, borderRadius: 14, background: 'white' }}
                    className={`form-input ${errors.vehicleNumber ? 'error' : ''}`}
                  />
                </div>
@@ -88,7 +88,7 @@ export default function TransportVehicleSetup() {
                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: 6, display: 'block' }}>Type</label>
                  <select 
                    {...register('vehicleType')} 
-                   style={{ height: 50, borderRadius: 14, background: 'white' }}
+                   style={{ height: 42, borderRadius: 14, background: 'white' }}
                    className="form-input"
                  >
                    <option>Tempo</option>
@@ -101,7 +101,7 @@ export default function TransportVehicleSetup() {
              </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
             <button 
               type="submit" 
               disabled={loading}
@@ -125,8 +125,8 @@ export default function TransportVehicleSetup() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
               {vehicles.map(v => (
                 <div key={v._id} style={{ 
-                  background: '#F8FAFC', padding: '12px 14px', borderRadius: '16px', 
-                  display: 'flex', flexDirection: 'column', gap: 4, border: '1px solid #E2E8F0',
+                  background: '#F8FAFC', padding: '8px 12px', borderRadius: '16px', 
+                  display: 'flex', flexDirection: 'column', gap: 2, border: '1px solid #E2E8F0',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -144,14 +144,15 @@ export default function TransportVehicleSetup() {
           <button 
             onClick={() => navigate('/subscription')}
             style={{ 
-              width: '100%', height: 56, borderRadius: 18, background: '#7C3AED',
-              color: 'white', fontSize: '0.9375rem', fontWeight: 800, border: 'none',
-              marginTop: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              boxShadow: '0 10px 25px rgba(124, 58, 237, 0.25)', transition: 'all 0.2s'
+              width: '100%', height: 48, borderRadius: 14, 
+              background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+              color: 'white', fontSize: '0.875rem', fontWeight: 800, border: 'none',
+              marginTop: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)', transition: 'all 0.2s'
             }}
-            className="hover:scale-[1.02]"
+            className="hover:scale-[1.01] active:scale-[0.98]"
           >
-            Manage Plans for {vehicles.length} Vehicles <ChevronRight size={18} />
+            Continue to Plans <ChevronRight size={18} />
           </button>
         )}
       </div>

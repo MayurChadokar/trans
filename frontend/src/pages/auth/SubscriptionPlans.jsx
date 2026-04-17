@@ -122,7 +122,7 @@ export default function SubscriptionPlans() {
   return (
     <div className="animate-fadeIn" style={{ maxWidth: 940, margin: '0 auto', paddingBottom: 60 }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+      <div className="text-center mb-6 sm:mb-10">
         <div style={{ 
           width: 50, height: 50, borderRadius: 16, background: 'white',
           display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
@@ -133,7 +133,7 @@ export default function SubscriptionPlans() {
         <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', marginBottom: 8, letterSpacing: '-0.03em' }}>
           Step {user?.role === 'transport' ? '6' : '5'}: Choose a Plan
         </h2>
-        <p style={{ fontSize: '1rem', color: '#64748B', fontWeight: 500, maxWidth: 480, margin: '0 auto' }}>
+        <p className="text-sm sm:text-base" style={{ color: '#64748B', fontWeight: 500, maxWidth: 480, margin: '0 auto' }}>
           {user?.role === 'transport' ? (
             <>You have <strong style={{color: '#7C3AED'}}>{vehicles.length} vehicles</strong>. Pick a plan to get started.</>
           ) : (
@@ -163,30 +163,32 @@ export default function SubscriptionPlans() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, padding: '0 10px' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
         {filteredPlans.map((plan, idx) => {
           const isPro = plan.name.toLowerCase().includes('pro');
           const isAllowed = plan.allowedVehicles === 0 || vehicles.length <= plan.allowedVehicles;
 
           return (
-            <div key={plan._id} style={{ 
-              background: 'white', borderRadius: 28, padding: '36px 30px', border: isPro ? '2.5px solid #7C3AED' : '1px solid #E2E8F0',
-              boxShadow: isPro ? '0 20px 40px rgba(124, 58, 237, 0.08)' : '0 10px 25px rgba(0,0,0,0.02)', position: 'relative', 
-              overflow: 'hidden', transform: submitting === plan._id ? 'scale(0.98)' : 'none', transition: 'all 0.2s'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                 <div style={{ width: 40, height: 40, borderRadius: 12, background: isPro ? '#F5F3FF' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isPro ? '#7C3AED' : '#64748B' }}>
-                   {isPro ? <Zap size={20} fill="#7C3AED" /> : <Star size={20} />}
+            <div key={plan._id} 
+              className={`relative overflow-hidden transition-all duration-200 ${submitting === plan._id ? 'scale-[0.98]' : ''} px-5 pt-4 pb-2 sm:px-8 sm:py-7 flex flex-col items-center text-center`}
+              style={{ 
+                background: 'white', borderRadius: 20, border: isPro ? '2px solid #7C3AED' : '1.5px solid #CBD5E1',
+                boxShadow: isPro ? '0 15px 30px rgba(124, 58, 237, 0.06)' : '0 8px 20px rgba(0,0,0,0.02)',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+                 <div style={{ width: 26, height: 26, borderRadius: 6, background: isPro ? '#F5F3FF' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isPro ? '#7C3AED' : '#64748B' }}>
+                   {isPro ? <Zap size={14} fill="#7C3AED" /> : <Star size={14} />}
                  </div>
-                 <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1E293B', margin: 0 }}>{plan.name}</h3>
+                 <h3 style={{ fontSize: '0.9375rem', fontWeight: 900, color: '#1E293B', margin: 0 }}>{plan.name}</h3>
               </div>
-              <div style={{ marginBottom: 24 }}>
-                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                   <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0F172A' }}>₹{plan.price}</span>
-                   <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 600 }}>/{plan.interval === 'Monthly' ? 'mo' : 'yr'}</span>
+              <div style={{ marginBottom: 10 }}>
+                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
+                    <span className="text-lg sm:text-xl" style={{ fontWeight: 900, color: '#0F172A' }}>₹{plan.price}</span>
+                   <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>/{plan.interval === 'Monthly' ? 'mo' : 'yr'}</span>
                  </div>
                  {plan.allowedVehicles > 0 && (
-                    <div style={{ fontSize: '0.75rem', color: isAllowed ? '#16A34A' : '#EF4444', fontWeight: 700, marginTop: 4 }}>
+                    <div style={{ fontSize: '0.6rem', color: isAllowed ? '#16A34A' : '#EF4444', fontWeight: 700, marginTop: 2 }}>
                        Up to {plan.allowedVehicles} Vehicles Allowed
                     </div>
                  )}
@@ -194,12 +196,12 @@ export default function SubscriptionPlans() {
               <button 
                 onClick={() => handleSubscribe(plan)} 
                 disabled={!!submitting || !isAllowed} 
+                className="h-[38px] sm:h-[42px] w-full rounded-[10px] flex items-center justify-center gap-2 transition-all duration-200"
                 style={{ 
-                  width: '100%', height: 50, borderRadius: 14, border: 'none', 
-                  background: isPro ? '#7C3AED' : '#F8FAFC', color: isPro ? 'white' : '#1E293B', 
-                  fontSize: '0.875rem', fontWeight: 800, cursor: (submitting || !isAllowed) ? 'not-allowed' : 'pointer', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, 
-                  opacity: !isAllowed ? 0.6 : 1, transition: 'all 0.2s' 
+                  border: 'none', 
+                  background: '#8B5CF6', color: 'white', 
+                  fontSize: '0.75rem', fontWeight: 800, cursor: (submitting || !isAllowed) ? 'not-allowed' : 'pointer', 
+                  opacity: !isAllowed ? 0.6 : 1, 
                 }}
               >
                 {submitting === plan._id ? <Loader2 size={18} className="spin" /> : (!isAllowed ? (user?.role === 'transport' ? 'Fleet too large' : 'Limit reached') : 'Subscribe Now')}
