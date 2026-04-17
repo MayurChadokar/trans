@@ -3,11 +3,13 @@ import { Truck, MapPin, Receipt, TrendingUp, TrendingDown, Clock, ArrowRight, Pl
 import { useBills } from '../../context/BillContext'
 import { useVehicles } from '../../context/VehicleContext'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
 import { getTransportStats } from '../../api/transportApi'
 
 export default function TransportDashboard() {
+  const { t } = useTranslation()
   const { bills } = useBills()
   const { vehicles } = useVehicles()
   const navigate = useNavigate()
@@ -30,12 +32,12 @@ export default function TransportDashboard() {
     const fleetSize = dbStats?.totalVehicles || 0
 
     return [
-      { label: 'Total Revenue', value: `₹${totalFreight.toLocaleString()}`, sub: 'All bills', icon: TrendingUp, color: '#16A34A', bg: '#DCFCE7' },
-      { label: 'Outstanding', value: `₹${pendingAmount.toLocaleString()}`, sub: 'Pending payment', icon: Clock, color: '#DC2626', bg: '#FEE2E2' },
-      { label: 'Pending Trips', value: totalTrips.toString(), sub: 'Unbilled missions', icon: Truck, color: '#F3811E', bg: '#FFF7ED' },
-      { label: 'Total Fleet', value: fleetSize.toString(), sub: 'Live vehicles', icon: Users, color: '#2563EB', bg: '#DBEAFE' },
+      { label: t('total_revenue'), value: `₹${totalFreight.toLocaleString()}`, sub: 'All bills', icon: TrendingUp, color: '#16A34A', bg: '#DCFCE7' },
+      { label: t('outstanding'), value: `₹${pendingAmount.toLocaleString()}`, sub: 'Pending payment', icon: Clock, color: '#DC2626', bg: '#FEE2E2' },
+      { label: t('pending_trips'), value: totalTrips.toString(), sub: 'Unbilled missions', icon: Truck, color: '#F3811E', bg: '#FFF7ED' },
+      { label: t('total_fleet'), value: fleetSize.toString(), sub: 'Live vehicles', icon: Users, color: '#2563EB', bg: '#DBEAFE' },
     ]
-  }, [dbStats])
+  }, [dbStats, t])
 
   const chartData = useMemo(() => {
     if (!bills || bills.length === 0) return []
@@ -50,7 +52,7 @@ export default function TransportDashboard() {
       {/* Banner */}
       <div style={{ background: 'linear-gradient(135deg, #0F0D2E, #2D2A5A)', borderRadius: 28, padding: '28px', color: 'white', marginBottom: 20, position: 'relative', overflow: 'hidden', boxShadow: '0 10px 30px rgba(15, 13, 46, 0.2)' }}>
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'white' }}>Transport Dashboard</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'white' }}>{t('transport')} {t('dashboard')}</h1>
           <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>Manage logistics fleet and consolidated freight</p>
         </div>
         <Truck size={100} color="rgba(255,255,255,0.05)" style={{ position: 'absolute', bottom: -20, right: 10, transform: 'rotate(-10deg)' }} />
@@ -86,7 +88,7 @@ export default function TransportDashboard() {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 850, color: '#1F2937', display: 'flex', alignItems: 'center', gap: 6 }}>
-            Insurance Service <span style={{ fontSize: '0.6rem', background: '#F59E0B', color: 'white', padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase' }}>New</span>
+            {t('insurance_service')} <span style={{ fontSize: '0.6rem', background: '#F59E0B', color: 'white', padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase' }}>{t('new_badge')}</span>
           </div>
           <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: 2 }}>Secure your fleet with 20+ insurers starting at ₹2094/yr</div>
         </div>
@@ -109,7 +111,7 @@ export default function TransportDashboard() {
       {/* Analytics Chart */}
       <div style={{ background: 'white', borderRadius: 28, padding: '24px', marginBottom: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.02)' }}>
         <h3 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-           <TrendingUp size={18} color="#16A34A" /> Freight Revenue Trend
+           <TrendingUp size={18} color="#16A34A" /> {t('revenue_trend')}
         </h3>
         <div style={{ width: '100%', height: 180 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -133,8 +135,8 @@ export default function TransportDashboard() {
       {/* Recent Activity */}
       <div style={{ background: 'white', borderRadius: 28, padding: '24px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Recent Activity</h3>
-          <button onClick={() => navigate('/transport/bills')} className="btn btn-ghost btn-sm" style={{ color: '#4F46E5', fontWeight: 800 }}>View All</button>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>{t('recent_activity')}</h3>
+          <button onClick={() => navigate('/transport/bills')} className="btn btn-ghost btn-sm" style={{ color: '#4F46E5', fontWeight: 800 }}>{t('view_all')}</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {transportBills.slice(0, 4).map((b, i) => (
@@ -152,18 +154,18 @@ export default function TransportDashboard() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '1rem', fontWeight: 900, color: '#111827' }}>₹{(b.grandTotal || 0).toLocaleString()}</div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: b.status === 'paid' ? '#16A34A' : '#DC2626' }}>{b.status}</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: b.status === 'paid' ? '#16A34A' : '#DC2626' }}>{t(b.status)}</div>
               </div>
             </div>
           ))}
           {transportBills.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#9CA3AF', fontSize: '0.875rem' }}>No recent activity</div>
+            <div style={{ textAlign: 'center', padding: '20px', color: '#9CA3AF', fontSize: '0.875rem' }}>{t('no_activity')}</div>
           )}
         </div>
       </div>
 
       <button onClick={() => navigate('/transport/bills/new')} className="btn btn-primary" style={{ position: 'fixed', bottom: 84, right: 20, borderRadius: 18, height: 56, padding: '0 24px', boxShadow: '0 8px 30px rgba(79, 70, 229, 0.4)', zIndex: 10 }}>
-        <Plus size={22} /> <span style={{ fontWeight: 800 }}>New Bill</span>
+        <Plus size={22} /> <span style={{ fontWeight: 800 }}>{t('new_bill')}</span>
       </button>
     </div>
   )

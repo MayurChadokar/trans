@@ -28,7 +28,11 @@ function requireRole(role) {
   return function roleMiddleware(req, res, next) {
     const r = req.user?.role;
     if (r === "admin" || r === role) return next();
-    return res.status(403).json({ success: false, message: "Forbidden" });
+    return res.status(403).json({ 
+      success: false, 
+      message: "Forbidden: Role mismatch", 
+      debug: { currentRole: r, requiredRole: role } 
+    });
   };
 }
 

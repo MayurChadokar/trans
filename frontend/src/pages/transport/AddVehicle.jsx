@@ -39,11 +39,17 @@ export default function AddVehicle() {
       if (isEdit) {
         await updateVehicle(id, data)
       } else {
+        // Front-end safety check (server will also double check)
+        const userRole = localStorage.getItem('billing_user') ? JSON.parse(localStorage.getItem('billing_user')) : null
+        if (userRole?.allowedVehicles > 0 && vehicles.length >= userRole.allowedVehicles) {
+          alert(`Vehicle limit reached! Your current plan allows only ${userRole.allowedVehicles} vehicles. Please upgrade your plan to add more.`)
+          return
+        }
         await addVehicle({ ...data, vehicleNumber: data.vehicleNumber.toUpperCase() })
       }
       navigate('/transport/vehicles')
     } catch (e) {
-      alert('Failed to save vehicle')
+      alert(e.response?.data?.message || 'Failed to save vehicle')
     }
   }
 

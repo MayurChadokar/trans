@@ -13,15 +13,20 @@ function userRow(u) {
   return {
     id: String(u._id),
     name: u.name || null,
+    ownerName: u.name || null, // mapping alias
     businessName: u.businessName || null,
     phone: u.phone,
     email: u.email || null,
     role: u.role || null,
     city: u.city || null,
     address: u.address || null,
-    kycStatus: u.kycStatus || "Pending",
-    documents: u.documents || {},
+    location: u.address || null, // mapping alias
+    gstin: u.gstin || null,
+    gstNo: u.gstin || null, // mapping alias
     setupComplete: !!u.setupComplete,
+    documents: u.documents || {},
+    signatureUrl: u.signatureUrl || null,
+    logoUrl: u.logoUrl || null,
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
   };
@@ -85,7 +90,16 @@ async function create(req, res, next) {
     const user = await User.findOneAndUpdate(
       { phone },
       {
-        $set: { role, name, email, setupComplete: true },
+        $set: { 
+          role, 
+          name: name || req.body.ownerName, // handle both keys
+          businessName: req.body.name || req.body.businessName, 
+          email, 
+          address: req.body.location || req.body.address,
+          city: req.body.city,
+          gstin: req.body.gstNo || req.body.gstin,
+          setupComplete: true 
+        },
         $setOnInsert: { phone },
       },
       { new: true, upsert: true }
@@ -115,6 +129,18 @@ async function update(req, res, next) {
       updates.role = role || null;
     }
 
+    // Business Fields
+    if (req.body?.name !== undefined) updates.businessName = req.body.name ? String(req.body.name).trim() : null;
+    if (req.body?.businessName !== undefined) updates.businessName = req.body.businessName ? String(req.body.businessName).trim() : null;
+    if (req.body?.ownerName !== undefined) updates.name = req.body.ownerName ? String(req.body.ownerName).trim() : null;
+    if (req.body?.phone !== undefined) updates.phone = sanitizePhone(req.body.phone);
+    if (req.body?.location !== undefined) updates.address = req.body.location ? String(req.body.location).trim() : null;
+    if (req.body?.address !== undefined) updates.address = req.body.address ? String(req.body.address).trim() : null;
+    if (req.body?.city !== undefined) updates.city = req.body.city ? String(req.body.city).trim() : null;
+    if (req.body?.gstNo !== undefined) updates.gstin = req.body.gstNo ? String(req.body.gstNo).trim() : null;
+    if (req.body?.gstin !== undefined) updates.gstin = req.body.gstin ? String(req.body.gstin).trim() : null;
+    if (req.body?.status !== undefined) updates.setupComplete = (req.body.status === 'Active');
+
     const user = await User.findByIdAndUpdate(id, { $set: updates }, { new: true });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
@@ -138,32 +164,50 @@ async function remove(req, res, next) {
 async function getUserHistory(req, res, next) {
   try {
     const { id } = req.params;
-    const [trips, bills, fleet] = await Promise.all([
-      require("../models/Trip").find({ owner: id }).populate("vehicle").sort({ createdAt: -1 }).limit(100),
-      require("../models/TransportBill").find({ owner: id }).sort({ createdAt: -1 }).limit(100),
-      require("../models/Vehicle").find({ owner: id }).sort({ createdAt: -1 })
-    ]);
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const isGarage = user.role === 'garage';
+    let tripsRaw = [], billsRaw = [], fleetRaw = [];
+
+    if (isGarage) {
+      const [gBills, gFleet] = await Promise.all([
+        require("../models/GarageBill").find({ owner: id }).sort({ createdAt: -1 }).limit(100),
+        require("../models/GarageVehicle").find({ owner: id }).sort({ createdAt: -1 })
+      ]);
+      billsRaw = gBills;
+      fleetRaw = gFleet;
+    } else {
+      const [tTrips, tBills, tVehicles] = await Promise.all([
+        require("../models/Trip").find({ owner: id }).populate("vehicle").sort({ createdAt: -1 }).limit(100),
+        require("../models/TransportBill").find({ owner: id }).sort({ createdAt: -1 }).limit(100),
+        require("../models/Vehicle").find({ owner: id }).sort({ createdAt: -1 })
+      ]);
+      tripsRaw = tTrips;
+      billsRaw = tBills;
+      fleetRaw = tVehicles;
+    }
 
     return res.json({
       success: true,
       history: {
-        trips: trips.map(t => ({
+        trips: tripsRaw.map(t => ({
           id: t._id,
-          date: t.startDate,
+          date: t.startDate || t.createdAt,
           vehicle: t.vehicle?.vehicleNumber || "N/A",
           status: t.billed ? "Billed" : "Pending",
           amount: t.totalFreight || 0
         })),
-        bills: bills.map(b => ({
+        bills: billsRaw.map(b => ({
           id: b.billNumber || b._id,
-          date: b.billingDate,
-          total: b.grandTotal,
-          status: b.status
+          date: b.billingDate || b.createdAt,
+          total: b.grandTotal || 0,
+          status: b.status || 'Active'
         })),
-        vehicles: fleet.map(v => ({
+        vehicles: fleetRaw.map(v => ({
           id: v._id,
           plateNo: v.vehicleNumber,
-          type: v.vehicleType || 'Truck',
+          type: v.vehicleType || (isGarage ? 'Car' : 'Truck'),
           model: v.model || 'N/A'
         }))
       }

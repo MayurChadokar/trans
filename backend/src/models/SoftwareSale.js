@@ -19,7 +19,7 @@ const SoftwareSaleSchema = new mongoose.Schema(
       {
         amount: Number,
         date: { type: Date, default: Date.now },
-        mode: { type: String, enum: ["cash", "upi", "bank_transfer", "check"], default: "cash" },
+        mode: { type: String, enum: ["cash", "upi", "bank_transfer", "check", "razorpay"], default: "cash" },
         transactionId: String
       }
     ],

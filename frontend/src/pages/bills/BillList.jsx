@@ -11,6 +11,7 @@ const STATUS_MAP = {
   partial: { label: 'Partial', color: '#D97706', bg: '#FEF3C7' },
   topay:   { label: 'To Pay',  color: '#D97706', bg: '#FEF3C7' },
   tbb:     { label: 'TBB',     color: '#2563EB', bg: '#DBEAFE' },
+  draft:   { label: 'Draft',   color: '#6B7280', bg: '#F3F4F6' },
 }
 
 function BillCard({ bill, onClick, onDelete }) {
@@ -51,7 +52,7 @@ function BillCard({ bill, onClick, onDelete }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0F0D2E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {bill.billNumber || 'Draft'}
+            {bill.billNumber || 'DRAFT'}
           </span>
           <span style={{
             fontSize: '0.6rem', fontWeight: 800, padding: '2px 6px', borderRadius: 6,
@@ -107,7 +108,8 @@ export default function BillList({ type }) {
     }
 
     if (filter === 'paid')      list = list.filter(b => b.status === 'paid')
-    if (filter === 'unpaid')    list = list.filter(b => b.status !== 'paid')
+    if (filter === 'draft')     list = list.filter(b => b.status === 'draft')
+    if (filter === 'unpaid')    list = list.filter(b => (b.status !== 'paid' && b.status !== 'draft'))
     if (filter === 'transport') list = list.filter(b => b.billType === 'transport')
     if (filter === 'garage')    list = list.filter(b => b.billType === 'garage')
     
@@ -131,7 +133,7 @@ export default function BillList({ type }) {
   const totals = useMemo(() => {
     const list = (isAdmin && !type) ? bills : bills.filter(b => b.billType === (type || userRole))
     const paid = list.filter(b => b.status === 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
-    const pending = list.filter(b => b.status !== 'paid').reduce((s, b) => s + (b.grandTotal || 0), 0)
+    const pending = list.filter(b => b.status !== 'paid' && b.status !== 'draft').reduce((s, b) => s + (b.grandTotal || 0), 0)
     return { paid, pending, count: list.length }
   }, [bills, isAdmin, userRole, type])
 
@@ -139,6 +141,7 @@ export default function BillList({ type }) {
     { val: 'all',       label: 'All' },
     { val: 'unpaid',    label: 'Pending' },
     { val: 'paid',      label: 'Paid' },
+    { val: 'draft',     label: 'Draft' },
     ...(isAdmin && !type ? [
       { val: 'transport', label: '🚛 Transport' },
       { val: 'garage',    label: '🔧 Garage' }

@@ -136,7 +136,7 @@ export default function UserManagement() {
         role: fromBackendRole(mode, u.role),
         status: u.setupComplete ? 'Active' : 'Inactive',
         joinedAt: toJoinedAt(u.createdAt),
-        documents: u.documents || []
+        documents: u.documents || {}
       }))
       
       setUsers(rows)
@@ -317,12 +317,13 @@ export default function UserManagement() {
                           try {
                             const res = await getAdminUserHistory(user.id)
                             if (res.success) {
-                              setHistory({
-                                name: user.name,
-                                isTransport: isTransport,
-                                invoices: res.history.bills,
-                                vehicles: res.history.vehicles // New: vehicles from backend
-                              })
+                                setHistory({
+                                  name: user.name,
+                                  isTransport: isTransport,
+                                  invoices: res.history.bills,
+                                  trips: res.history.trips,
+                                  vehicles: res.history.vehicles
+                                })
                             }
                           } catch (e) {
                             console.error('Failed to load user history', e)
@@ -403,9 +404,33 @@ export default function UserManagement() {
               <button className="btn-icon" onClick={() => setHistory(null)}><X size={20} /></button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-              {history.isTransport && history.vehicles && history.vehicles.length > 0 && (
+              {/* Trips Section (Transport Only) */}
+              {history.isTransport && history.trips && history.trips.length > 0 && (
                 <div style={{ marginBottom: 24 }}>
-                  <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase', marginBottom: 12 }}>Registered Fleet ({history.vehicles.length})</h4>
+                   <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', marginBottom: 12 }}>Recent Operational Trips</h4>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {history.trips.map(trip => (
+                        <div key={trip.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <div>
+                              <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{trip.vehicle}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(trip.date).toLocaleDateString()}</div>
+                           </div>
+                           <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 900 }}>₹{Number(trip.amount).toLocaleString()}</div>
+                              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase' }}>{trip.status}</div>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              )}
+
+              {/* Fleet/Vehicles Section */}
+              {history.vehicles && history.vehicles.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase', marginBottom: 12 }}>
+                    {history.isTransport ? 'Registered Fleet' : 'Registered Customer Vehicles'} ({history.vehicles.length})
+                  </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     {history.vehicles.map(v => (
                       <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F9FAFB', padding: '10px 14px', borderRadius: 14, border: '1px solid #F3F4F6' }}>
@@ -545,12 +570,26 @@ export default function UserManagement() {
                <div>
                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Uploaded Documents</div>
                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                   {(!viewDetails.documents || viewDetails.documents.length === 0) ? (
-                     <div style={{ padding: '12px', border: '1px dashed var(--border)', borderRadius: 8, width: '100%', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                       No documents uploaded for this user.
-                     </div>
-                   ) : (
-                     viewDetails.documents.map((doc, idx) => (
+                   {(() => {
+                     const docs = viewDetails.documents || {};
+                     const docList = [];
+                     if (docs.aadharUrl) docList.push({ label: 'Aadhar Card', url: docs.aadharUrl });
+                     if (docs.panUrl) docList.push({ label: 'PAN Card', url: docs.panUrl });
+                     if (docs.photoUrl) docList.push({ label: 'Owner Photo', url: docs.photoUrl });
+                     if (docs.rcUrl) docList.push({ label: 'Vehicle RC', url: docs.rcUrl });
+                     if (docs.insuranceUrl) docList.push({ label: 'Insurance', url: docs.insuranceUrl });
+                     if (docs.addressProofUrl) docList.push({ label: 'Address Proof', url: docs.addressProofUrl });
+                     if (docs.gstCertificateUrl) docList.push({ label: 'GST Certificate', url: docs.gstCertificateUrl });
+                     
+                     if (docList.length === 0) {
+                       return (
+                         <div style={{ padding: '12px', border: '1px dashed var(--border)', borderRadius: 8, width: '100%', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                           No documents uploaded for this user.
+                         </div>
+                       );
+                     }
+
+                     return docList.map((doc, idx) => (
                        <a key={idx} href={doc.url} target="_blank" rel="noreferrer" 
                           style={{ 
                             textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', 
@@ -564,8 +603,8 @@ export default function UserManagement() {
                           <FileText size={14} />
                           {doc.label}
                        </a>
-                     ))
-                   )}
+                     ));
+                   })()}
                  </div>
                </div>
                

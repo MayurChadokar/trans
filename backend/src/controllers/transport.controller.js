@@ -58,6 +58,18 @@ async function createVehicle(req, res, next) {
     const existing = await Vehicle.findOne({ vehicleNumber: cleanNumber });
     if (existing) return res.status(400).json({ success: false, message: "This vehicle is already registered" });
 
+    // Plan Limit Check
+    const user = req.user;
+    if (user.role === 'transport' && user.allowedVehicles > 0) {
+      const count = await Vehicle.countDocuments({ owner: user.id });
+      if (count >= user.allowedVehicles) {
+        return res.status(403).json({ 
+          success: false, 
+          message: `Vehicle limit reached! Your plan allows only ${user.allowedVehicles} vehicles. Please upgrade your plan.` 
+        });
+      }
+    }
+
     const vehicle = await Vehicle.create({ ...req.body, vehicleNumber: cleanNumber, owner: req.user.id });
     return res.json({ success: true, vehicle });
   } catch (e) {

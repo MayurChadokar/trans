@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
 import { useAdmin } from '../../context/AdminContext'
+import { useTranslation } from 'react-i18next'
 import logo from '../../assets/trans-logo.png'
 
 function NavItem({ item, expanded, toggleSection, sidebarCollapsed, mobileMenuOpen, closeMobileMenu, accentColor, level = 0 }) {
@@ -98,6 +99,7 @@ export default function Sidebar() {
 
   const toggleSection = (s) => setExpanded(p => ({ ...p, [s]: !p[s] }))
 
+  const { t } = useTranslation()
   const isTransport = mode === 'transport'
   const accentColor = '#7C3AED'
 
@@ -108,36 +110,36 @@ export default function Sidebar() {
 
   // Navigation for Transporters
   const transportItems = [
-    { to: '/transport/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/transport/bills', icon: Receipt, label: 'Invoices & Bills' },
-    { to: '/transport/parties', icon: Users, label: 'Parties' },
-    { to: '/transport/vehicles', icon: Truck, label: 'Vehicles' },
-    { to: '/transport/trips', icon: MapPin || Monitor, label: 'Trip Management' },
-    { to: '/finance', icon: Banknote || Receipt, label: 'Finance & Payments' },
-    { to: '/profile', icon: UserCircle, label: 'Profile' },
+    { to: '/transport/dashboard', icon: LayoutDashboard, label: t('dashboard') },
+    { to: '/transport/bills', icon: Receipt, label: t('bills') },
+    { to: '/transport/parties', icon: Users, label: t('parties') },
+    { to: '/transport/vehicles', icon: Truck, label: t('vehicles') },
+    { to: '/transport/trips', icon: MapPin || Monitor, label: t('trips') },
+    { to: '/finance', icon: Banknote || Receipt, label: t('finance') },
+    { to: '/profile', icon: UserCircle, label: t('profile') },
   ]
 
   // Navigation for Garage Owners
   const garageItems = [
-    { to: '/garage/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/garage/bills', icon: Receipt, label: 'Billing & Records' },
-    { to: '/garage/parties', icon: Users, label: 'Parties' },
-    { to: '/garage/vehicles', icon: Truck, label: 'Vehicles' },
-    { to: '/garage/services', icon: Wrench, label: 'Services' },
-    { to: '/finance', icon: Banknote || Receipt, label: 'Finance & Payments' },
-    { to: '/profile', icon: UserCircle, label: 'Profile' },
+    { to: '/garage/dashboard', icon: LayoutDashboard, label: t('dashboard') },
+    { to: '/garage/bills', icon: Receipt, label: t('bills') },
+    { to: '/garage/parties', icon: Users, label: t('parties') },
+    { to: '/garage/vehicles', icon: Truck, label: t('vehicles') },
+    { to: '/garage/services', icon: Wrench, label: t('services') },
+    { to: '/finance', icon: Banknote || Receipt, label: t('finance') },
+    { to: '/profile', icon: UserCircle, label: t('profile') },
   ]
 
   // Navigation for Admins
   const adminItems = [
-    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Admin Dashboard' },
-    { to: '/admin/users', icon: Users, label: isTransport ? 'Transporter List' : 'Garage Owners' },
-    { to: '/admin/manage', icon: Building2, label: isTransport ? 'Transport Businesses' : 'Garage Businesses' },
-    { to: '/admin/billing', icon: Receipt, label: 'Billing Monitor' },
-    { to: '/admin/software-sales', icon: CreditCard, label: isTransport ? 'Transporter Sales' : 'Garage Sales' },
+    { to: '/admin/dashboard', icon: LayoutDashboard, label: t('dashboard') },
+    { to: '/admin/users', icon: Users, label: isTransport ? "Transport Owners" : "Garage Owners" },
+    { to: '/admin/manage', icon: Building2, label: isTransport ? "Transport Business" : "Garage Business" },
+    { to: '/admin/billing', icon: Receipt, label: t('bills') },
+    { to: '/admin/software-sales', icon: CreditCard, label: t('software_sales') },
     
     // Only show Trip Management in Transport Mode
-    ...(isTransport ? [{ to: '/admin/trips/history', icon: MapPin, label: 'Trip History' }] : []),
+    ...(isTransport ? [{ to: '/admin/trips/history', icon: MapPin, label: t('trips') }] : []),
   ]
 
   const navItems = isAdmin ? adminItems : (user?.role === 'transport' ? transportItems : garageItems)
@@ -145,7 +147,7 @@ export default function Sidebar() {
   const sidebarCls = `sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`
 
   return (
-    <aside className={sidebarCls} style={{ zIndex: 400 }}>
+    <aside className={sidebarCls}>
       {/* ── Close Button (Mobile Only) ── */}
       {mobileMenuOpen && (
         <button 
@@ -241,7 +243,9 @@ export default function Sidebar() {
 
       {/* ── Footer ── */}
       <div className="sidebar-footer" style={{ padding: 18, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}
+        >
           <div className="avatar" style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white', fontWeight: 900 }}>
              {user?.name?.[0]?.toUpperCase() || 'A'}
           </div>
@@ -257,7 +261,7 @@ export default function Sidebar() {
           className="btn-icon"
           style={{ width: '100%', background: 'rgba(255,100,100,0.08)', padding: '10px', borderRadius: 10, color: '#FF6B6B', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, border: 'none', cursor: 'pointer' }}
         >
-          <LogOut size={18} /> {!sidebarCollapsed && 'Logout Account'}
+          <LogOut size={18} /> {!sidebarCollapsed && t('logout')}
         </button>
       </div>
 
@@ -266,7 +270,7 @@ export default function Sidebar() {
         onClick={toggleSidebar} 
         style={{
           position: 'absolute', top: 50, right: -12, width: 24, height: 24, borderRadius: '50%', background: accentColor, border: '2px solid #111',
-          color: 'white', cursor: 'pointer', zIndex: 401, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          color: 'white', cursor: 'pointer', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}
       >
         {sidebarCollapsed ? <ChevronRight size={14} strokeWidth={3} /> : <ChevronLeft size={14} strokeWidth={3} />}

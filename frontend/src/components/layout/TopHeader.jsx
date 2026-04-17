@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Bell, Search, Menu, X, ChevronDown, FileText,
   LogOut, Settings, UserCircle
@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext'
 export default function TopHeader({ title, subtitle }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [profileOpen, setProfileOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -35,7 +36,7 @@ export default function TopHeader({ title, subtitle }) {
             className="btn-icon" 
             aria-label="Search" 
             id="btn-header-search"
-            onClick={() => navigate('/bills')}
+            onClick={() => navigate(location.pathname.startsWith('/transport') ? '/transport/bills' : '/garage/bills')}
             style={{ background: 'rgba(0,0,0,0.05)', borderRadius: 10, width: 36, height: 36, cursor: 'pointer' }}
           >
             <Search size={18} />

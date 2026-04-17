@@ -8,7 +8,7 @@ const User = require("../models/User");
 async function listSales(req, res, next) {
   try {
     const sales = await SoftwareSale.find()
-      .populate("transporter", "name businessName phone email")
+      .populate("transporter", "name businessName phone email role")
       .sort({ createdAt: -1 })
       .lean();
 

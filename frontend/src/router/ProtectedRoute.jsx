@@ -37,26 +37,32 @@ export default function ProtectedRoute({ requireRole }) {
   if (!hasRole) return <Navigate to="/role-select" replace />
 
   // Role-gated route check
-  if (requireRole && user?.role !== requireRole && user?.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />
+  if (requireRole && user?.role !== requireRole) {
+    // If mismatch, send to their own specific module home
+    const dest = user?.role === 'admin' ? '/admin/dashboard' : '/dashboard'
+    return <Navigate to={dest} replace />
   }
 
-  // Transport Role Onboarding & Subscription Enforcement
-  if (user?.role === 'transport' && user?.id) {
+  // Role-specific Onboarding & Subscription Enforcement
+  if ((user?.role === 'transport' || user?.role === 'garage') && user?.id) {
+    const rolePrefix = user.role;
     const currentPath = window.location.pathname;
-    const isOnboardingPath = currentPath === '/register/transport' || 
+    const isOnboardingPath = currentPath === `/register/${rolePrefix}` || 
                              currentPath === '/setup/vehicles' || 
                              currentPath === '/subscription' ||
-                             currentPath === '/role-select';
+                             currentPath === '/role-select' ||
+                             currentPath === '/language-select';
 
-    // 1. Force Profile Registration (Steps 1-3)
+    // 1. Force Profile Registration
     if (!user.setupComplete) {
-      if (currentPath !== '/register/transport') return <Navigate to="/register/transport" replace />;
+      if (currentPath !== `/register/${rolePrefix}`) return <Navigate to={`/register/${rolePrefix}`} replace />;
     } 
-    // 2. Force Subscription (after profile is complete)
+    // 2. Force Vehicle Setup (Transport only) and Subscription
     else if (!user.subscriptionActive) {
       if (!isOnboardingPath) {
-        return <Navigate to="/setup/vehicles" replace />;
+        // Transport needs vehicle setup first, Garage goes straight to subscription
+        const nextStep = (rolePrefix === 'transport') ? '/setup/vehicles' : '/subscription';
+        return <Navigate to={nextStep} replace />;
       }
     }
     // 3. Expiry Check
@@ -66,11 +72,6 @@ export default function ProtectedRoute({ requireRole }) {
         return <Navigate to="/subscription" replace />;
       }
     }
-  }
-
-  // Garage Role Onboarding (Simplified)
-  if (user?.role === 'garage' && user?.id && !user.setupComplete) {
-    if (!window.location.pathname.startsWith('/register/')) return <Navigate to="/register/garage" replace />;
   }
 
   return <Outlet />

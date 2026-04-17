@@ -1,12 +1,14 @@
-import { UserCircle, Building2, CreditCard, QrCode, ChevronRight, LogOut } from 'lucide-react'
+import { UserCircle, Building2, CreditCard, QrCode, ChevronRight, LogOut, Zap, Calendar } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
 import { useNavigate } from 'react-router-dom'
+import dayjs from 'dayjs'
 
 const menuItems = [
   { icon: Building2,  label: 'Business Details', sub: 'Name, address, GST/PAN', to: '/profile/business', color: 'var(--primary)' },
   { icon: CreditCard, label: 'Bank Details',     sub: 'Account & UPI info',     to: '/profile/bank',     color: '#2563EB'        },
   { icon: QrCode,     label: 'QR Code',          sub: 'Payment QR code',         to: '/profile/qr',       color: '#16A34A'        },
+  { icon: Zap,        label: 'Subscription',     sub: 'Plan & Billing',          to: '/subscription',     color: '#D97706'        },
 ]
 
 export default function Profile() {
@@ -43,6 +45,42 @@ export default function Profile() {
             {user?.role || 'User'} Account
           </span>
         </div>
+      </div>
+
+      {/* Subscription Status Card */}
+      <div className="card" style={{ padding: '16px 20px', marginBottom: 16, background: 'linear-gradient(135deg, #FDFCFB 0%, #F5F3FF 100%)', border: '1px solid #7C3AED20' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.1)' }}>
+            <Zap size={22} color={user?.subscriptionActive ? '#7C3AED' : '#94A3B8'} fill={user?.subscriptionActive ? '#7C3AED' : 'none'} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Current Plan</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1E293B' }}>
+              {user?.subscriptionActive ? 'Premium Plan' : 'No Active Plan'}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            {user?.subscriptionActive ? (
+              <span className="badge badge-success">Active</span>
+            ) : (
+              <span className="badge badge-danger">Expired</span>
+            )}
+          </div>
+        </div>
+        
+        {user?.subscriptionExpiry && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>
+              <Calendar size={14} /> Expires on {dayjs(user.subscriptionExpiry).format('DD MMM YYYY')}
+            </div>
+            <button 
+              onClick={() => navigate('/subscription')}
+              style={{ background: 'none', border: 'none', color: '#7C3AED', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+            >
+              Manage
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Language Selection */}

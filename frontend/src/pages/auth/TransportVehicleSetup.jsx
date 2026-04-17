@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Truck, Plus, Loader2, ArrowRight, X, Info, CheckCircle2, Check, ChevronRight } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import { useVehicles } from '../../context/VehicleContext'
 import logo from '../../assets/trans-logo.png'
 
 export default function TransportVehicleSetup() {
+  const { user, logout } = useAuth()
   const { addVehicle, vehicles } = useVehicles()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -49,6 +51,15 @@ export default function TransportVehicleSetup() {
         <p style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500 }}>
           Add at least one vehicle to your transport business.
         </p>
+        <button 
+          onClick={() => logout()}
+          style={{ 
+            background: 'none', border: 'none', color: '#7C3AED', fontSize: '0.75rem', 
+            fontWeight: 700, marginTop: 12, cursor: 'pointer', textDecoration: 'underline' 
+          }}
+        >
+          Logout & Start Over
+        </button>
       </div>
 
       <div style={{ 

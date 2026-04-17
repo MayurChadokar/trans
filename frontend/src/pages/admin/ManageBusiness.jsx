@@ -2,17 +2,27 @@ import React, { useState, useMemo } from 'react'
 import {
   Building2, Search, Plus, Edit3, Trash2, MapPin,
   Phone, ChevronLeft, ChevronRight, X, Globe,
-  Truck, Wrench, Users, CreditCard, MoreVertical
+  Truck, Wrench, Users, CreditCard, MoreVertical, Loader2
 } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
+import { getAdminUserHistory } from '../../api/adminApi'
 
 const ITEMS_PER_PAGE = 8
 
 function BusinessModal({ mode, existing, onSave, onClose }) {
   const isTransport = mode === 'transport'
   const label = isTransport ? 'Transport Business' : 'Garage / Workshop'
-  const [form, setForm] = useState(existing || {
-    name: '', ownerName: '', phone: '', location: '', city: '', gstNo: '', status: 'Active'
+  const [form, setForm] = useState(() => {
+    if (!existing) return { name: '', ownerName: '', phone: '', location: '', city: '', gstNo: '', status: 'Active' }
+    return {
+      name: existing.name || '',
+      ownerName: existing.ownerName || '',
+      phone: existing.phone || '',
+      location: (existing.location && existing.location !== 'null') ? existing.location : '',
+      city: (existing.city && existing.city !== 'null') ? existing.city : '',
+      gstNo: (existing.gstNo && existing.gstNo !== 'null') ? existing.gstNo : '',
+      status: existing.status || 'Active'
+    }
   })
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
@@ -98,7 +108,27 @@ export default function ManageBusiness() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [page, setPage] = useState(1)
   const [modal, setModal] = useState(null)
-  const [history, setHistory] = useState(null) // { id, name, invoices }
+  const [history, setHistory] = useState(null) // { id, name, data }
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  const handleViewHistory = async (biz) => {
+    setLoadingHistory(true)
+    try {
+      const res = await getAdminUserHistory(biz.id)
+      if (res.success) {
+        setHistory({
+          id: biz.id,
+          name: biz.name,
+          isTransport: isTransport,
+          data: res.history // contains { trips, bills, vehicles }
+        })
+      }
+    } catch (e) {
+      alert("Failed to fetch history")
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -207,11 +237,11 @@ export default function ManageBusiness() {
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                       <MapPin size={13} color="var(--text-muted)" />
-                      {biz.city ? `${biz.location || ''} ${biz.city}`.trim() : biz.location || '—'}
+                      {biz.city && biz.city !== 'null' ? `${(biz.location && biz.location !== 'null') ? biz.location : ''} ${biz.city}`.trim() : (biz.location && biz.location !== 'null' ? biz.location : '—')}
                     </div>
                   </td>
                   <td style={{ padding: '14px 20px', fontSize: '0.8125rem', fontFamily: 'monospace', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
-                    {biz.gstNo || '—'}
+                    {(biz.gstNo && biz.gstNo !== 'null') ? biz.gstNo : '—'}
                   </td>
                   <td style={{ padding: '14px 20px' }}>
                     <span style={{
@@ -224,15 +254,11 @@ export default function ManageBusiness() {
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                       <button className="btn btn-ghost btn-sm btn-icon" style={{ color: accentColor }} 
-                        onClick={() => setHistory({ 
-                          id: biz.id, 
-                          name: biz.name, 
-                          isTransport: isTransport,
-                          invoices: invoices.filter(i => (i.businessId === biz.id || i.businessName === biz.name)) 
-                        })} 
+                        onClick={() => handleViewHistory(biz)} 
                         title={isTransport ? "Trip History" : "Service History"}
+                        disabled={loadingHistory}
                       >
-                        {isTransport ? <MapPin size={15} /> : <CreditCard size={15} />}
+                        {loadingHistory && history?.id === biz.id ? <Loader2 className="spin" size={14} /> : (isTransport ? <MapPin size={15} /> : <CreditCard size={15} />)}
                       </button>
                       <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setModal(biz)} title="Edit"><Edit3 size={15} /></button>
                       <button className="btn btn-sm btn-icon" onClick={() => deleteBusiness(biz.id)} style={{ color: 'var(--danger)', background: '#FEE2E2', border: 'none' }} title="Delete"><Trash2 size={15} /></button>
@@ -294,29 +320,69 @@ export default function ManageBusiness() {
               <button className="btn-icon" onClick={() => setHistory(null)}><X size={20} /></button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-              {history.invoices.length === 0 ? (
+              {!history.data || (history.data.trips?.length === 0 && history.data.bills?.length === 0) ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   {history.isTransport ? <Truck size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} /> : <CreditCard size={40} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: 12 }} />}
-                  <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>No {history.isTransport ? 'trips' : 'services'} recorded yet.</p>
+                  <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>No fresh data found for this business.</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {history.invoices.map(inv => (
-                    <div key={inv.id} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                      <div style={{ background: 'var(--bg-alt)', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.85rem' }}>{inv.id} — {inv.date}</span>
-                        <span style={{ fontWeight: 900, color: accentColor }}>₹{Number(inv.total).toLocaleString()}</span>
-                      </div>
-                      <div style={{ padding: 12 }}>
-                        {inv.items && inv.items.map((it, i) => (
-                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '4px 0', borderBottom: i < inv.items.length-1 ? '1px dashed #eee' : 'none' }}>
-                             <span style={{ fontWeight: 600 }}>{it.description} (x{it.qty})</span>
-                             <span style={{ color: 'var(--text-secondary)' }}>₹{Number(it.amount).toLocaleString()}</span>
-                           </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {/* Bills Section */}
+                  <div>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 850, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 10 }}>Recent Invoices</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {history.data.bills.map(inv => (
+                        <div key={inv.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{inv.id}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(inv.date).toLocaleDateString()}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 900, color: accentColor }}>₹{Number(inv.total).toLocaleString()}</div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: inv.status === 'paid' ? 'var(--success)' : 'var(--danger)', textTransform: 'uppercase' }}>{inv.status}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Trips Section (Transport Only) */}
+                  {history.isTransport && history.data.trips?.length > 0 && (
+                    <div>
+                      <h4 style={{ fontSize: '0.8rem', fontWeight: 850, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 10 }}>Recent Trips</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {history.data.trips.map(trip => (
+                          <div key={trip.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                               <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{trip.vehicle}</div>
+                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(trip.date).toLocaleDateString()}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                               <div style={{ fontWeight: 900 }}>₹{Number(trip.amount).toLocaleString()}</div>
+                               <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase' }}>{trip.status}</div>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Fleet Section */}
+                  {history.data.vehicles?.length > 0 && (
+                    <div>
+                      <h4 style={{ fontSize: '0.8rem', fontWeight: 850, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 10 }}>
+                        {history.isTransport ? "Business Fleet" : "Registered Customer Vehicles"}
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        {history.data.vehicles.map(v => (
+                          <div key={v.id} style={{ background: 'var(--bg-alt)', borderRadius: 12, padding: '10px 14px', border: '1px solid var(--border)' }}>
+                            <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>{v.plateNo}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{v.type} · {v.model}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

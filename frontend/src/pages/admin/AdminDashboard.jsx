@@ -11,11 +11,13 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts'
 import { useAdmin } from '../../context/AdminContext'
+import { useTranslation } from 'react-i18next'
 
 const COLORS_T = ['#7C3AED', '#6366F1', '#10B981', '#EF4444']
 const COLORS_G = ['#7C3AED', '#10B981', '#8B5CF6', '#EF4444']
 
 export default function AdminDashboard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const {
     mode, stats,
@@ -35,31 +37,31 @@ export default function AdminDashboard() {
       return d.toISOString().split('T')[0]
     })
     return days.map(date => ({
-      name: new Date(date).toLocaleDateString('en', { weekday: 'short' }),
+      name: new Date(date).toLocaleDateString(t('en'), { weekday: 'short' }),
       invoices: invoices.filter(inv => inv.date === date).length,
       revenue: invoices.filter(inv => inv.date === date && inv.status === 'Paid')
         .reduce((s, inv) => s + (Number(inv.total) || 0), 0),
     }))
-  }, [invoices])
+  }, [invoices, t])
 
   const pieData = [
-    { name: 'Paid', value: stats.paidInvoices },
-    { name: 'Pending', value: stats.pendingInvoices },
-    { name: 'Businesses', value: stats.totalBusinesses },
-    { name: 'Users', value: stats.totalUsers },
+    { name: t('paid'), value: stats.paidInvoices },
+    { name: t('outstanding'), value: stats.pendingInvoices },
+    { name: t('parties'), value: stats.totalBusinesses },
+    { name: t('user_mgmt'), value: stats.totalUsers },
   ].filter(d => d.value > 0)
 
   const kpiCards = [
     {
-      label: isTransport ? 'Transporters' : 'Garage Owners',
+      label: isTransport ? t('transport') : t('garage'),
       value: stats.totalUsers,
       icon: Users,
       color: '#6366F1',
       bg: '#EEF2FF',
-      sub: `${stats.activeUsers} active`
+      sub: `${stats.activeUsers} ${t('active')}`
     },
     {
-      label: isTransport ? 'Transport Businesses' : 'Garage Businesses',
+      label: isTransport ? t('transport') : t('garage'),
       value: stats.totalBusinesses,
       icon: Building2,
       color: accentColor,
@@ -67,7 +69,7 @@ export default function AdminDashboard() {
       sub: 'registered'
     },
     {
-      label: isTransport ? 'Transport Invoices' : 'Service Invoices',
+      label: isTransport ? t('bills') : t('bills'),
       value: stats.totalInvoices,
       icon: FileText,
       color: '#10B981',
@@ -75,7 +77,7 @@ export default function AdminDashboard() {
       sub: `${stats.pendingInvoices} pending`
     },
     {
-      label: 'Collected Revenue',
+      label: t('total_revenue'),
       value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`,
       icon: IndianRupee,
       color: '#059669',
@@ -95,14 +97,14 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <Globe size={18} color="var(--primary)" />
             <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              {isTransport ? '🚛 Transport Mode' : '🔧 Garage Mode'} · Live Dashboard
+              {isTransport ? '🚛 ' + t('transport') : '🔧 ' + t('garage')} · Live Dashboard
             </span>
           </div>
           <h1 style={{ fontSize: '1.875rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
-            Admin Console
+            {t('admin')} Console
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 4 }}>
-            Real-time overview of all {isTransport ? 'transport' : 'garage'} operations
+            Real-time overview of all {isTransport ? t('transport') : t('garage')} operations
           </p>
         </div>
         <button
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
           style={{ background: accentColor, borderColor: accentColor }}
         >
           {isTransport ? <Truck size={16} /> : <Wrench size={16} />}
-          Manage {isTransport ? 'Transport' : 'Garage'}
+          {t('edit')} {isTransport ? t('transport') : t('garage')}
         </button>
       </div>
 

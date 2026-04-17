@@ -581,21 +581,25 @@ a:hover { color: var(--primary-dark); }
 
 /* Top Header Bar — blends with page gradient, no box */
 .top-header {
-  background: transparent;
-  border-bottom: none;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
   padding: 0 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 500; /* Increased to be above page content but below sidebar drawer on mobile */
   height: 64px;
+  transition: var(--transition);
 }
 
 @media (max-width: 768px) {
   .top-header {
-    padding: 0 14px;
+    padding: 0 16px;
+    height: 60px;
   }
 }
 
@@ -614,6 +618,7 @@ a:hover { color: var(--primary-dark); }
 
 /* ═══════════════════════════════════════
    BOTTOM NAVIGATION (MOBILE)
+   Standardized fixed behavior for mobile layout
 ═══════════════════════════════════════ */
 .bottom-nav {
   display: none;
@@ -622,13 +627,14 @@ a:hover { color: var(--primary-dark); }
   left: 0;
   right: 0;
   height: var(--bottom-nav-h);
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
-  z-index: 200;
+  z-index: 500; /* Above fixed headers and content */
   padding: 0 8px;
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.09);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
   flex-shrink: 0;
-  display: none;
 }
 
 @media (max-width: 768px) {
@@ -706,8 +712,8 @@ a:hover { color: var(--primary-dark); }
   -webkit-tap-highlight-color: transparent;
 }
 .bottom-nav-fab .fab-btn {
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
   background: linear-gradient(135deg, var(--primary-light), var(--primary-dark));
   border-radius: var(--radius-full);
   display: flex;
@@ -715,8 +721,8 @@ a:hover { color: var(--primary-dark); }
   justify-content: center;
   box-shadow: 0 6px 20px rgba(124,58,237,0.45);
   transition: var(--transition);
-  margin-top: -14px;
-  border: 3px solid white;
+  margin-top: -18px;
+  border: 4px solid white;
 }
 .bottom-nav-fab .fab-btn:hover { transform: scale(1.06); box-shadow: 0 8px 28px rgba(124,58,237,0.55); }
 .bottom-nav-fab .fab-btn:active { transform: scale(0.92); }
@@ -734,7 +740,7 @@ a:hover { color: var(--primary-dark); }
     display: flex !important;
     transform: translateX(-100%);
     width: 280px;
-    z-index: 400; /* above everything */
+    z-index: 1100; /* Above BottomNav for drawer effect */
   }
   .sidebar.mobile-open {
     transform: translateX(0);
@@ -743,10 +749,34 @@ a:hover { color: var(--primary-dark); }
   .sidebar.collapsed { width: 280px; } /* Don't collapse on mobile */
   .sidebar-toggle-btn { display: none !important; }
 
-  .main-content { margin-left: 0 !important; padding-bottom: calc(var(--bottom-nav-h) + 8px); }
+  .main-content { 
+    margin-left: 0 !important; 
+    padding-bottom: calc(var(--bottom-nav-h) + 16px); /* Better spacing */
+  }
   .bottom-nav { display: flex; }
   .top-header { display: none; }
-  .page-content { padding: 14px; padding-top: 74px; } /* Space for MobileHeader */
+  .page-content { 
+    padding: 16px; 
+    padding-top: 76px; /* Space for fixed MobileHeader (60px) + margin */
+  }
+
+  .admin-layout .top-header {
+    display: flex !important;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 0 16px;
+    height: 60px;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+  }
+  
+  .admin-layout .page-content {
+    padding-top: 20px; /* TopHeader is sticky here, not fixed, but we want some space */
+  }
 }
 
 .mobile-overlay {
@@ -754,7 +784,7 @@ a:hover { color: var(--primary-dark); }
   inset: 0;
   background: rgba(0,0,0,0.5);
   backdrop-filter: blur(4px);
-  z-index: 350;
+  z-index: 1050; /* Above BottomNav (500), Below Sidebar (1100) */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s;
@@ -762,6 +792,15 @@ a:hover { color: var(--primary-dark); }
 .mobile-overlay.active {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Mobile Header fixed stack */
+#mob-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* Below overlay (1050) but above content */
 }
 
 /* ═══════════════════════════════════════
