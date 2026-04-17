@@ -3,7 +3,9 @@ import { createContext, useContext, useState } from 'react'
 const AppContext = createContext(null)
 
 export function AppProvider({ children }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem('sidebar_collapsed') === 'true'
+  )
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [viewMode, setViewMode] = useState(
     () => localStorage.getItem('view_mode') || 'transport'
@@ -12,7 +14,11 @@ export function AppProvider({ children }) {
     () => localStorage.getItem('app_lang') || 'en'
   )
 
-  const toggleSidebar = () => setSidebarCollapsed(p => !p)
+  const toggleSidebar = () => setSidebarCollapsed(p => {
+    const next = !p
+    localStorage.setItem('sidebar_collapsed', String(next))
+    return next
+  })
   const toggleMobileMenu = () => setMobileMenuOpen(p => !p)
   const closeMobileMenu = () => setMobileMenuOpen(false)
 

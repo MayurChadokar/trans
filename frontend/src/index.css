@@ -796,11 +796,18 @@ a:hover { color: var(--primary-dark); }
 
 /* Mobile Header fixed stack */
 #mob-header {
+  display: none; /* Hidden on desktop by default */
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000; /* Below overlay (1050) but above content */
+}
+
+@media (max-width: 768px) {
+  #mob-header {
+    display: block; /* Show only on mobile */
+  }
 }
 
 /* ═══════════════════════════════════════

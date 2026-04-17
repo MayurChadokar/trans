@@ -291,7 +291,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
         </div>
 
         {/* Payment & Notes Section */}
-        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 640 ? '1fr' : '1.1fr 0.9fr', gap: 30, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 30, marginBottom: 20 }}>
           <div>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 800 }}>Payment Information</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem' }}>
@@ -313,7 +313,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
         <div style={{ borderTop: '1px solid #ddd', margin: '20px 0' }} />
 
         {/* Footer info splits */}
-        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 640 ? '1fr' : '1.4fr 1fr', gap: window.innerWidth < 640 ? 20 : 40, borderTop: '1px solid #ddd', paddingTop: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 30, borderTop: '1px solid #ddd', paddingTop: 20 }}>
           <div style={{ border: '1px solid #ddd', padding: 12, borderRadius: 6, background: '#fafafa' }}>
              <h4 style={{ margin: '0 0 10px 0', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Terms and Conditions</h4>
              <p style={{ margin: 0, fontSize: '0.65rem', color: '#555', lineHeight: 1.6 }}>

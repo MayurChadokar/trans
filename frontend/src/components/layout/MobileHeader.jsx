@@ -19,6 +19,7 @@ export default function MobileHeader({
 
   return (
     <header
+      id="mob-header"
       className="mobile-header fixed top-0 left-0 right-0"
       style={{
         position: 'fixed',
@@ -58,7 +59,7 @@ export default function MobileHeader({
               style={{
                 width: 34, height: 34, borderRadius: 10,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(0,0,0,0.05)', border: 'none', cursor: 'pointer',
+                background: 'transparent', border: 'none', cursor: 'pointer',
                 color: 'var(--text-primary)',
               }}
             >
