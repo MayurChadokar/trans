@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBills } from '../../context/BillContext'
 import { useAuth } from '../../context/AuthContext'
-import { ArrowLeft, Printer, Trash2, Truck, Wrench, CreditCard, Download, FileText, Pencil } from 'lucide-react'
+import { ArrowLeft, Printer, Trash2, Download, FileText, Pencil } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useRef, useState, useEffect } from 'react'
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import { PDFInvoice } from '../../components/billing/PDFInvoice'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 import PaymentModal from '../../components/billing/PaymentModal'
 
 // ── Transport Consolidated Invoice Layout ────────────────────────────────────
@@ -268,10 +268,10 @@ function GarageInvoice({ bill, business, onPayOnline }) {
                 <td style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 700, fontSize: '0.7rem' }}>₹{bill.partsTotal?.toLocaleString()}</td>
               </tr>
               {/* Labour Charge - only show if > 0 */}
-              {parseFloat(bill.labor || 0) > 0 && (
+              {parseFloat(bill.laborCharge || bill.labor || 0) > 0 && (
                 <tr>
                   <td colSpan="3" style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'left', fontWeight: 700, color: '#555', fontSize: '0.7rem' }}>Labour Charge</td>
-                  <td style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 700, fontSize: '0.7rem' }}>₹{parseFloat(bill.labor).toLocaleString()}</td>
+                  <td style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 700, fontSize: '0.7rem' }}>₹{parseFloat(bill.laborCharge || bill.labor).toLocaleString()}</td>
                 </tr>
               )}
               {/* GST - only show if > 0 */}
@@ -357,7 +357,9 @@ export default function BillDetail() {
   const { user: sessionUser } = useAuth()
   const navigate = useNavigate()
   const printRef = useRef()
+  const invoiceRef = useRef()
   const [isPayModalOpen, setIsPayModalOpen] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   
   const [bill, setBill] = useState(() => getBill(id))
   const [loading, setLoading] = useState(!bill)
@@ -409,6 +411,37 @@ export default function BillDetail() {
     setTimeout(() => { win.focus(); win.print() }, 300)
   }
 
+  const handleDownloadPDF = async () => {
+    if (!invoiceRef.current || isDownloading) return
+    setIsDownloading(true)
+    try {
+      const element = invoiceRef.current
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      })
+      const imgData = canvas.toDataURL('image/png')
+      // Create PDF with page size = exact content size (no blank pages ever)
+      const a4Width = 210 // mm
+      const pxToMm = a4Width / canvas.width
+      const contentHeightMm = canvas.height * pxToMm
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [a4Width, contentHeightMm], // custom height = exact content
+      })
+      pdf.addImage(imgData, 'PNG', 0, 0, a4Width, contentHeightMm)
+      pdf.save(`Invoice_${bill.billNumber || bill._id}.pdf`)
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
   const handleDelete = () => {
     if (window.confirm('Delete this bill?')) {
       deleteBill(id)
@@ -444,26 +477,25 @@ export default function BillDetail() {
           <button id="btn-print-bill" onClick={handlePrint} className="btn-icon" style={{ background: 'white', borderRadius: 12, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EEE' }}>
             <Printer size={18} />
           </button>
-          <PDFDownloadLink
-            document={<PDFInvoice bill={bill} business={business} />}
-            fileName={`Invoice_${bill.billNumber || bill._id}.pdf`}
+          <button
+            id="btn-download-pdf"
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
             className="btn btn-primary"
-            style={{ padding: window.innerWidth < 640 ? '0 10px' : '0 12px', borderRadius: 12, height: 40, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}
+            style={{ padding: window.innerWidth < 640 ? '0 10px' : '0 12px', borderRadius: 12, height: 40, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', opacity: isDownloading ? 0.7 : 1, cursor: isDownloading ? 'wait' : 'pointer' }}
           >
-            {({ loading }) => (
-              <>
-                <Download size={16} />
-                {loading ? '...' : (window.innerWidth < 640 ? 'PDF' : 'Download PDF')}
-              </>
-            )}
-          </PDFDownloadLink>
+            <Download size={16} />
+            {isDownloading ? 'Generating...' : (window.innerWidth < 640 ? 'PDF' : 'Download PDF')}
+          </button>
         </div>
       </div>
 
       <div ref={printRef} className="invoice-container" style={{ background: 'white', borderRadius: 24, padding: '24px 16px', boxShadow: '0 10px 40px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.03)', overflowX: 'auto' }}>
-        {(bill.billType === 'transport' || bill.type === 'transport')
-          ? <TransportInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />
-          : <GarageInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />}
+        <div ref={invoiceRef}>
+          {(bill.billType === 'transport' || bill.type === 'transport')
+            ? <TransportInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />
+            : <GarageInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />}
+        </div>
       </div>
 
       <PaymentModal 
