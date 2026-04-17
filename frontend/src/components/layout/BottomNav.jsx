@@ -4,24 +4,26 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useAdmin } from '../../context/AdminContext'
+import { useTranslation } from 'react-i18next'
 
 export default function BottomNav() {
   const { user, isAdmin } = useAuth()
   const { mode } = useAdmin()
   const navigate = useNavigate()
 
+  const { t } = useTranslation()
   const isTransport = isAdmin ? (mode === 'transport') : (user?.role === 'transport')
   const modulePrefix = isTransport ? '/transport' : '/garage'
   
   // Define nav items for different roles/modes
   const leftItems = [
-    { to: `${modulePrefix}/dashboard`, icon: LayoutDashboard, label: 'Home' },
-    { to: `${modulePrefix}/bills`,     icon: FileText,        label: 'Bills' },
+    { to: `${modulePrefix}/dashboard`, icon: LayoutDashboard, label: t('dashboard') },
+    { to: `${modulePrefix}/bills`,     icon: FileText,        label: t('bills') },
   ]
 
   const rightItems = [
-    { to: `${modulePrefix}/parties`,   icon: Users,           label: 'Parties' },
-    { to: '/profile',                  icon: UserCircle,      label: 'Profile' },
+    { to: `${modulePrefix}/parties`,   icon: Users,           label: t('parties') },
+    { to: '/profile',                  icon: UserCircle,      label: t('profile') },
   ]
 
   const handleNewClick = () => {
@@ -57,7 +59,7 @@ export default function BottomNav() {
           <div className="fab-btn" style={{ width: 46, height: 46, marginTop: -24 }}>
             <Plus size={24} color="white" />
           </div>
-          <span style={{ fontSize: '0.6rem' }}>New</span>
+          <span style={{ fontSize: '0.6rem' }}>{t('new_bill')}</span>
         </button>
 
         {/* Right Side */}

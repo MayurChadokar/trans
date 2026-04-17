@@ -81,8 +81,7 @@ async function verifyOtp(req, res, next) {
       return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
 
-    const isTestOtp = otp === '123456' && process.env.NODE_ENV !== 'production';
-    const ok = isTestOtp || otpService.verify(phone, otp);
+    const ok = otpService.verify(phone, otp);
 
     if (!ok) {
       return res.status(401).json({ success: false, message: "Invalid OTP" });

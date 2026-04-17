@@ -55,10 +55,12 @@ function PlanManagerModal({ plans, onAdd, onUpdate, onDelete, onClose, isTranspo
                            value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
                         />
                      </div>
-                     <input 
-                        type="number" className="form-input" placeholder="Allowed Vehicles (e.g. 10)" min="0"
-                        value={form.allowedVehicles} onChange={e => setForm(p => ({ ...p, allowedVehicles: e.target.value }))}
-                     />
+                     {isTransport && (
+                        <input 
+                           type="number" className="form-input" placeholder="Allowed Vehicles (e.g. 10)" min="0"
+                           value={form.allowedVehicles} onChange={e => setForm(p => ({ ...p, allowedVehicles: e.target.value }))}
+                        />
+                     )}
                      <textarea 
                         className="form-input" placeholder="Features (comma separated)" style={{ height: 80, fontSize: '0.8rem' }}
                         value={form.features} onChange={e => setForm(p => ({ ...p, features: e.target.value }))}
@@ -75,7 +77,10 @@ function PlanManagerModal({ plans, onAdd, onUpdate, onDelete, onClose, isTranspo
                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'white', borderRadius: 12, border: '1px solid var(--border)', marginBottom: 10 }}>
                         <div>
                            <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{p.name} <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: '#F3F4F6', borderRadius: 4, marginLeft: 6 }}>{p.interval}</span></div>
-                           <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7C3AED' }}>₹{Number(p.price).toLocaleString()} · <span style={{ color: 'var(--text-muted)' }}>{p.allowedVehicles || 0} Vehicles</span></div>
+                           <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7C3AED' }}>
+                              ₹{Number(p.price).toLocaleString()} 
+                              {isTransport && <span style={{ color: 'var(--text-muted)' }}> · {p.allowedVehicles || 0} Vehicles</span>}
+                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
                            <button className="btn-icon btn-sm" onClick={() => { setEditPlan(p); setForm(p) }}><History size={14} /></button>
@@ -300,15 +305,13 @@ export default function SoftwareSales() {
   const [historyModal, setHistoryModal] = useState(null)
   const [showPlanMgr, setShowPlanMgr] = useState(false)
 
-  const stats = useMemo(() => {
-     const total = softwareSales?.reduce((s, x) => s + (x.totalAmount || 0), 0) || 0
-     const paid = softwareSales?.reduce((s, x) => s + (x.amountPaid || 0), 0) || 0
-     const pending = total - paid
-     return { total, paid, pending }
-  }, [softwareSales])
-
   const filtered = useMemo(() => {
     return (softwareSales || []).filter(s => {
+      // 1. Filter by mode (Sales made to users with matching role)
+      const saleRole = s.role || (typeof s.transporter === 'object' ? s.transporter.role : null) || 'transport'
+      if (saleRole !== (isTransport ? 'transport' : 'garage')) return false
+
+      // 2. Filter by search & status
       const q = search.toLowerCase()
       const tName = s.transporterName || ''
       const bName = s.businessName || ''
@@ -317,7 +320,17 @@ export default function SoftwareSales() {
       const matchFilter = filter === 'All' || s.status === filter
       return matchSearch && matchFilter
     })
-  }, [softwareSales, search, filter])
+  }, [softwareSales, search, filter, isTransport])
+
+  const stats = useMemo(() => {
+     // Stats should reflect the current mode's data (without search interference usually, but filtered includes it)
+     // If we want mode-only stats, we'd filter by isTransport only. 
+     // But using 'filtered' is more consistent with the view.
+     const total = filtered?.reduce((s, x) => s + (x.totalAmount || 0), 0) || 0
+     const paid = filtered?.reduce((s, x) => s + (x.amountPaid || 0), 0) || 0
+     const pending = total - paid
+     return { total, paid, pending }
+  }, [filtered])
 
   const ITEMS_PER_PAGE = 8
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
@@ -397,24 +410,26 @@ export default function SoftwareSales() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: 'var(--bg-alt)', borderBottom: '1px solid var(--border)' }}>
               <tr>
-                {[isTransport ? 'Transporter / Business' : 'Garage / Business', 'Total Deal', 'Paid', 'Pending', 'Status', 'Actions'].map(h => (
+                {[isTransport ? 'Transporter / Business' : 'Garage / Business', 'Total Deal', 'Paid', 'Pending', 'Subscription', 'Status', 'Actions'].map(h => (
                    <th key={h} style={{ padding: '14px 24px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {paginated.map(sale => (
-                <tr key={sale.id} className="table-row-hover" style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr key={sale.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
                   <td style={{ padding: '16px 24px' }}>
-                    <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>{sale.transporterName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                       <Building2 size={12} /> {sale.businessName || 'N/A'}
-                    </div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{sale.transporterName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{sale.businessName} · {sale.phone}</div>
                   </td>
-                  <td style={{ padding: '16px 24px', fontWeight: 800, fontSize: '0.95rem' }}>₹{sale.totalAmount?.toLocaleString()}</td>
-                  <td style={{ padding: '16px 24px', fontWeight: 800, fontSize: '0.95rem', color: '#10B981' }}>₹{sale.amountPaid?.toLocaleString()}</td>
-                  <td style={{ padding: '16px 24px', fontWeight: 900, fontSize: '0.95rem', color: sale.pendingAmount > 0 ? '#EF4444' : '#111' }}>
+                  <td style={{ padding: '16px 24px', fontSize: '0.9rem', fontWeight: 800 }}>₹{sale.totalAmount?.toLocaleString()}</td>
+                  <td style={{ padding: '16px 24px', fontSize: '0.9rem', fontWeight: 800, color: '#10B981' }}>₹{sale.amountPaid?.toLocaleString()}</td>
+                  <td style={{ padding: '16px 24px', fontSize: '0.9rem', fontWeight: 800, color: '#EF4444' }}>
                      ₹{sale.pendingAmount?.toLocaleString()}
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                     <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>{sale.purchaseDate}</div>
+                     <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#EF4444', marginTop: 2 }}>Ends: {sale.expiryDate}</div>
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                      <span style={{
@@ -433,7 +448,7 @@ export default function SoftwareSales() {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                   <td colSpan="6" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>No sales records found.</td>
+                   <td colSpan="7" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>No sales records found.</td>
                 </tr>
               )}
             </tbody>

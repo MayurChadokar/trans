@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Suspense, lazy } from 'react'
 import { Loader2 } from 'lucide-react'
@@ -17,7 +17,12 @@ import TransportRegistration from '../pages/auth/TransportRegistration'
 import GarageRegistration    from '../pages/auth/GarageRegistration'
 import TransportVehicleSetup from '../pages/auth/TransportVehicleSetup'
 import SubscriptionPlans     from '../pages/auth/SubscriptionPlans'
+import LanguageSelect       from '../pages/auth/LanguageSelect'
 
+
+import TransportDashboard from '../pages/transport/TransportDashboard'
+import GarageDashboard    from '../pages/garage/GarageDashboard'
+import AdminDashboard     from '../pages/admin/AdminDashboard'
 
 // App pages (lazy)
 const Dashboard        = lazy(() => import('../pages/dashboard/Dashboard'))
@@ -51,7 +56,6 @@ const InsuranceHome = lazy(() => import('../pages/insurance/InsuranceHome'))
 const InsuranceForm = lazy(() => import('../pages/insurance/InsuranceForm'))
 
 // Admin pages
-const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'))
 const AdminUsers     = lazy(() => import('../pages/admin/UserManagement'))
 const AdminBilling   = lazy(() => import('../pages/admin/BillingMonitor'))
 const AdminSettings  = lazy(() => import('../pages/admin/SystemSettings'))
@@ -72,34 +76,38 @@ const PageLoader = () => (
 )
 
 export default function AppRouter() {
-  const { isAuthenticated, hasRole } = useAuth()
+  const { isAuthenticated, hasRole, user } = useAuth()
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Root redirect */}
-        <Route path="/" element={
-          isAuthenticated
-            ? (hasRole ? <Navigate to="/dashboard" replace /> : <Navigate to="/role-select" replace />)
-            : <Navigate to="/login" replace />
-        } />
+    <Routes>
+      {/* Root redirect */}
+      <Route path="/" element={
+        isAuthenticated 
+          ? <Navigate to="/dashboard" replace /> 
+          : <Navigate to="/login" replace />
+      } />
 
-        {/* ── Auth (public) ── */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login"         element={<Login />} />
-          <Route path="/admin"         element={<AdminLogin />} />
-          <Route path="/admin-login"   element={<Navigate to="/admin" replace />} />
-          <Route path="/otp"           element={<OTPVerify />} />
-          <Route path="/role-select"   element={<RoleSelect />} />
-          <Route path="/register/transport" element={<TransportRegistration />} />
-          <Route path="/register/garage"    element={<GarageRegistration />} />
-          <Route path="/setup/vehicles"     element={<TransportVehicleSetup />} />
-          <Route path="/subscription"       element={<SubscriptionPlans />} />
-        </Route>
+      {/* ── Auth (public) ── */}
+      <Route element={<Suspense fallback={<PageLoader />}><AuthLayout /></Suspense>}>
+        <Route path="/login"         element={<Login />} />
+        <Route path="/admin"         element={<AdminLogin />} />
+        <Route path="/admin-login"   element={<Navigate to="/admin" replace />} />
+        <Route path="/otp"           element={<OTPVerify />} />
+        <Route path="/role-select"   element={<RoleSelect />} />
+        <Route path="/register/transport" element={<TransportRegistration />} />
+        <Route path="/register/garage"    element={<GarageRegistration />} />
+        <Route path="/setup/vehicles"     element={<TransportVehicleSetup />} />
+        <Route path="/subscription"       element={<SubscriptionPlans />} />
+        <Route path="/language-select"   element={<LanguageSelect />} />
+      </Route>
 
-        {/* ── App (protected) ── */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
+      {/* ── App (protected) ── */}
+      <Route element={<ProtectedRoute />}>
+        {/* MainLayout should NOT be inside Suspense so it never unmounts during lazy loading */}
+        <Route element={<MainLayout />}>
+          <Route element={<Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>}>
 
             {/* Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
@@ -117,7 +125,7 @@ export default function AppRouter() {
 
             {/* ── Transport Module ── */}
             <Route element={<ProtectedRoute requireRole="transport" />}>
-              <Route path="/transport/dashboard"         element={<Dashboard />} />
+              <Route path="/transport/dashboard"         element={<TransportDashboard />} />
               <Route path="/transport/bills"             element={<BillList type="transport" />} />
               <Route path="/transport/bills/new"         element={<CreateBill />} />
               <Route path="/transport/bills/edit/:id"    element={<CreateBill />} />
@@ -132,7 +140,7 @@ export default function AppRouter() {
 
             {/* ── Garage Module ── */}
             <Route element={<ProtectedRoute requireRole="garage" />}>
-              <Route path="/garage/dashboard"         element={<Dashboard />} />
+              <Route path="/garage/dashboard"         element={<GarageDashboard />} />
               <Route path="/garage/bills"             element={<BillList type="garage" />} />
               <Route path="/garage/bills/new"         element={<CreateBill />} />
               <Route path="/garage/bills/edit/:id"    element={<CreateBill />} />
@@ -166,15 +174,15 @@ export default function AppRouter() {
               <Route path="/admin/trips/history" element={<TripHistoryLogs />} />
             </Route>
 
-            {/* Shared Bills View (Moved here to prevent greedy matching) */}
+            {/* Shared Bills View */}
             <Route path="/bills/:id" element={<BillDetail />} />
 
           </Route>
         </Route>
+      </Route>
 
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }

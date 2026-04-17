@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Bell, Search, Menu } from 'lucide-react'
 import { useApp } from '../../context/AppContext'
 
@@ -13,6 +13,7 @@ export default function MobileHeader({
   showNotif = true,
 }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { toggleMobileMenu } = useApp()
   const handleBack = () => { if (onBack) onBack(); else navigate(-1) }
 
@@ -30,7 +31,6 @@ export default function MobileHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottom: '1px solid rgba(0,0,0,0.05)',
-        zIndex: 150,
         width: '100%',
         boxSizing: 'border-box',
       }}
@@ -102,7 +102,7 @@ export default function MobileHeader({
               className="btn-icon"
               aria-label="Search"
               id="btn-mobile-search"
-              onClick={() => navigate('/bills')}
+              onClick={() => navigate(location.pathname.startsWith('/transport') ? '/transport/bills' : '/garage/bills')}
               style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(0,0,0,0.05)', cursor: 'pointer' }}
             >
               <Search size={17} />

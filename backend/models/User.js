@@ -34,6 +34,12 @@ const UserSchema = new mongoose.Schema(
       gstCertificateUrl: { type: String, default: null },
     },
     
+    // Subscription information
+    subscriptionActive: { type: Boolean, default: false },
+    subscriptionExpiry: { type: Date, default: null },
+    allowedVehicles: { type: Number, default: 0 }, // 0 means not restricted or free trial limit
+    planId: { type: mongoose.Schema.Types.ObjectId, ref: "SoftwarePlan", default: null },
+    
     // Password-based authentication (optional)
     passwordHash: { type: String, default: null },
     passwordSalt: { type: String, default: null },

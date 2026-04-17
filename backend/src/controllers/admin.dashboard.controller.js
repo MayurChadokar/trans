@@ -6,44 +6,55 @@ async function getStats(req, res, next) {
   try {
     const { mode } = req.query; // 'transport' or 'garage' or global if missing
 
+    const userFilter = mode ? { role: mode } : { role: { $in: ["transport", "garage"] } };
+    
+    // Create query objects for bills based on mode
+    let transportBillQuery = { mode: 'transport' }; // assuming mode field exists or handle dual models
+    let garageBillQuery = { mode: 'garage' };
+
+    // Wait, the models are separate: Bill (Transport) and GarageBill (Garage)
     const [
-      allUsers,
-      allBills,
-      allGarageBills
+      totalUsers,
+      activeUsers,
+      totalBusinesses,
+      transportStats,
+      garageStats
     ] = await Promise.all([
-      User.find({ role: { $in: ["transport", "garage"] } }, { role: 1, setupComplete: 1, businessName: 1, name: 1 }),
-      Bill.find({}, { grandTotal: 1, status: 1 }),
-      GarageBill.find({}, { grandTotal: 1, status: 1 })
+      User.countDocuments(userFilter),
+      User.countDocuments({ ...userFilter, setupComplete: true }),
+      User.countDocuments({ ...userFilter, businessName: { $ne: null } }),
+      
+      // Aggregate Transport Bills
+      (!mode || mode === 'transport') ? Bill.aggregate([
+        { $group: { 
+          _id: null, 
+          count: { $sum: 1 }, 
+          paidCount: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } },
+          totalRevenue: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$grandTotal", 0] } },
+          pendingRevenue: { $sum: { $cond: [{ $ne: ["$status", "paid"] }, "$grandTotal", 0] } }
+        } }
+      ]) : Promise.resolve([{ count: 0, paidCount: 0, totalRevenue: 0, pendingRevenue: 0 }]),
+
+      // Aggregate Garage Bills
+      (!mode || mode === 'garage') ? GarageBill.aggregate([
+        { $group: { 
+          _id: null, 
+          count: { $sum: 1 }, 
+          paidCount: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, 1, 0] } },
+          totalRevenue: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$grandTotal", 0] } },
+          pendingRevenue: { $sum: { $cond: [{ $ne: ["$status", "paid"] }, "$grandTotal", 0] } }
+        } }
+      ]) : Promise.resolve([{ count: 0, paidCount: 0, totalRevenue: 0, pendingRevenue: 0 }])
     ]);
 
-    // Filter logic helper
-    const filterByMode = (arr, roleField = 'role') => {
-      if (!mode) return arr;
-      return arr.filter(x => x[roleField] === mode);
-    }
+    const t = transportStats[0] || { count: 0, paidCount: 0, totalRevenue: 0, pendingRevenue: 0 };
+    const g = garageStats[0] || { count: 0, paidCount: 0, totalRevenue: 0, pendingRevenue: 0 };
 
-    // Process Users
-    const targetUsers = mode ? allUsers.filter(u => u.role === mode) : allUsers;
-    const totalUsers = targetUsers.length;
-    const activeUsers = targetUsers.filter(u => u.setupComplete).length;
-    const totalBusinesses = targetUsers.filter(u => u.businessName).length;
-
-    // Process Bills
-    let targetBills = [];
-    if (!mode || mode === 'transport') targetBills = [...targetBills, ...allBills];
-    if (!mode || mode === 'garage') targetBills = [...targetBills, ...allGarageBills];
-
-    const totalInvoices = targetBills.length;
-    const paidInvoices = targetBills.filter(b => b.status === "paid").length;
+    const totalInvoices = t.count + g.count;
+    const paidInvoices = t.paidCount + g.paidCount;
     const pendingInvoices = totalInvoices - paidInvoices;
-
-    const totalRevenue = targetBills
-      .filter(b => b.status === "paid")
-      .reduce((sum, b) => sum + (Number(b.grandTotal) || 0), 0);
-
-    const pendingRevenue = targetBills
-      .filter(b => b.status !== "paid")
-      .reduce((sum, b) => sum + (Number(b.grandTotal) || 0), 0);
+    const totalRevenue = t.totalRevenue + g.totalRevenue;
+    const pendingRevenue = t.pendingRevenue + g.pendingRevenue;
 
     return res.json({
       success: true,

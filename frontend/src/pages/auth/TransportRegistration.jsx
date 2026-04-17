@@ -188,6 +188,16 @@ export default function TransportRegistration() {
            {step === 2 && 'KYC & Bank details'}
            {step === 3 && 'Upload required documents'}
         </p>
+        <button 
+          type="button"
+          onClick={() => logout()}
+          style={{ 
+            background: 'none', border: 'none', color: '#7C3AED', fontSize: '0.7rem', 
+            fontWeight: 700, marginTop: 4, cursor: 'pointer', textDecoration: 'underline' 
+          }}
+        >
+          Logout & Start Over
+        </button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} style={{ background: 'white', padding: '12px 16px', borderRadius: 24, border: '1px solid #F1F5F9', boxShadow: '0 15px 40px rgba(0,0,0,0.03)', margin: '0 10px' }}>

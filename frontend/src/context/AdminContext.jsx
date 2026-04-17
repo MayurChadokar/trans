@@ -16,205 +16,39 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const today = () => new Date().toISOString().split('T')[0]
 
 /* ─── initial seed (only if empty or khali array) ─── */
-const seedIfEmpty = (key, rows) => {
-  const existing = localStorage.getItem(key)
-  if (!existing || existing === '[]' || (rows.length > 0 && JSON.parse(existing).length === 0)) {
-     save(key, rows)
-  }
-}
+// Admin logic is now purely API-driven. Legacy localStorage seeding removed.
 
-// Seed transport data
-seedIfEmpty(lsKey('transport', 'users'), [
-  { 
-    id: 'u1', name: 'Vivek Sharma', email: 'vivek@radhe.com', role: 'transport', status: 'Active', joinedAt: today(),
-    documents: [
-      { label: 'Aadhaar Card', type: 'id', url: '#' },
-      { label: 'PAN Card', type: 'pan', url: '#' },
-      { label: 'Driving License', type: 'dl', url: '#' }
-    ]
-  },
-  { id: 'u2', name: 'Rajesh Gupta', email: 'rajesh@maruti.com', role: 'transport', status: 'Active', joinedAt: today() }
-])
-seedIfEmpty(lsKey('transport', 'businesses'), [
-  { id: 'biz-1', name: 'Radhe Tempo Service', ownerName: 'Vivek Sharma', phone: '9812345678', city: 'Jaipur', status: 'Active', joinedAt: today(), kycStatus: 'Verified' },
-  { id: 'biz-2', name: 'Maruti Logistics', ownerName: 'Rajesh Gupta', phone: '9876501234', city: 'Gurgaon', status: 'Active', joinedAt: today(), kycStatus: 'Pending' },
-  { id: 'biz-3', name: 'Swift Cargo Pvt Ltd', ownerName: 'Ankit Verma', phone: '9988776655', city: 'Ahmedabad', status: 'Active', joinedAt: today(), kycStatus: 'Rejected' }
-])
-seedIfEmpty(lsKey('transport', 'invoices'), [
-  { id: 'TRN-1001', businessName: 'Radhe Tempo', userName: 'Client A', total: 12500, status: 'Paid', date: today() },
-  { id: 'TRN-1002', businessName: 'Maruti Logistics', userName: 'Client B', total: 8400, status: 'Pending', date: today() },
-  { id: 'TRN-1003', businessName: 'Swift Cargo', userName: 'Client C', total: 15600, status: 'Paid', date: today() }
-])
-seedIfEmpty(lsKey('transport', 'drivers'), [])
-seedIfEmpty(lsKey('transport', 'staff'), [])
-seedIfEmpty(lsKey('transport', 'vehicles'), [
-  { id: 'v1', ownerId: 'u1', ownerName: 'Vivek Sharma', plateNo: 'RJ14 GB 1234', type: 'Tempo', status: 'Active', model: 'Tata Ace' },
-  { id: 'v2', ownerId: 'u2', ownerName: 'Rajesh Gupta', plateNo: 'HR55 XY 9876', type: 'Truck', status: 'Active', model: 'Eicher 10.90' },
-  { id: 'v3', ownerId: 'u3', ownerName: 'Demo Transporter', plateNo: 'MH12 AB 0001', type: 'Tempo', status: 'Active', model: 'Force Traveller' },
-  { id: 'v4', ownerId: 'u1', ownerName: 'Vivek Sharma', plateNo: 'RJ14 CC 4567', type: 'Container', status: 'In Service', model: 'Mahindra Blazo' }
-])
-
-// Seed garage data
-seedIfEmpty(lsKey('garage', 'users'), [
-  { 
-    id: 'u3', name: 'Suresh Kumar', phone: '9876543210', email: 'suresh@reliable.com', role: 'garage', status: 'Active', joinedAt: today(),
-    documents: [
-       { label: 'Workshop License', type: 'license', url: '#' },
-       { label: 'GST Certificate', type: 'gst', url: '#' }
-    ]
-  },
-  { id: 'u4', name: 'Amit Singh', phone: '9922334455', email: 'amit@cityauto.com', role: 'garage', status: 'Active', joinedAt: today() },
-  { id: 'u5', name: 'Vinay Shah', phone: '8877665544', email: 'vinay@modern.com', role: 'garage', status: 'Active', joinedAt: today() }
-])
-seedIfEmpty(lsKey('garage', 'businesses'), [
-  { id: 'gb-1', name: 'City Auto Workshop', ownerName: 'Rajesh Kumar', phone: '9876543210', location: 'Main Road', city: 'Delhi', status: 'Active', joinedAt: today(), kycStatus: 'Verified' },
-  { id: 'gb-2', name: 'Reliable Repairs', ownerName: 'Suresh Kumar', phone: '9911223344', location: 'Okhla Phase 3', city: 'Delhi', status: 'Active', joinedAt: today(), kycStatus: 'Pending' },
-  { id: 'gb-3', name: 'Modern Garage Inc', ownerName: 'Deepak Pal', phone: '8877665544', location: 'Andheri West', city: 'Mumbai', status: 'Active', joinedAt: today(), kycStatus: 'Pending' }
-])
-seedIfEmpty(lsKey('garage', 'invoices'), [
-  { 
-    id: 'GRG-452101', businessId: 'gb-1', businessName: 'City Auto Workshop', userName: 'Amit Singh', 
-    total: 4500, status: 'Paid', date: today(), 
-    items: [
-      { description: 'Full Oil Service', qty: 1, rate: 2500, amount: 2500 },
-      { description: 'Brake Pad Set', qty: 1, rate: 1500, amount: 1500 },
-      { description: 'Labour Charge', qty: 1, rate: 500, amount: 500 }
-    ]
-  },
-  { id: 'GRG-452102', userName: 'Suresh Kumar', businessName: 'Reliable Repairs', total: 3200, status: 'Paid', date: today() },
-  { id: 'GRG-452103', userName: 'Vinay Shah', businessName: 'Modern Garage', total: 9800, status: 'Pending', date: today() }
-])
-seedIfEmpty(lsKey('garage', 'mechanics'), [])
-seedIfEmpty(lsKey('garage', 'staff'), [])
-
-// Seed Software Sales data
-seedIfEmpty('admin_global_software_sales', [
-  { 
-    id: 'SALE-001', 
-    transporterName: 'Vivek Sharma', 
-    businessName: 'Radhe Tempo Service', 
-    phone: '9812345678', 
-    totalAmount: 25000, 
-    amountPaid: 15000, 
-    pendingAmount: 10000, 
-    saleDate: today(),
-    status: 'Partial',
-    paymentHistory: [
-      { date: today(), amount: 15000, mode: 'UPI' }
-    ]
-  },
-  { 
-    id: 'SALE-002', 
-    transporterName: 'Rajesh Gupta', 
-    businessName: 'Maruti Logistics', 
-    phone: '9876501234', 
-    totalAmount: 30000, 
-    amountPaid: 30000, 
-    pendingAmount: 0, 
-    saleDate: today(),
-    status: 'Paid',
-    paymentHistory: [
-      { date: today(), amount: 30000, mode: 'Bank Transfer' }
-    ]
-  }
-])
-
-// Seed Subscription Plans
-seedIfEmpty('admin_global_subscription_plans', [
-  { id: 'p1', name: 'Basic Monthly', interval: 'Monthly', price: 1500, features: 'Core Billing, 1 Business' },
-  { id: 'p2', name: 'Pro Yearly', interval: 'Yearly', price: 15000, features: 'Core Billing, Multi-Business, Priority Support' }
-])
 
 export function AdminProvider({ children }) {
   const [mode, setMode] = useState(() => localStorage.getItem('view_mode') || 'transport')
 
-  /* ─── users ─── */
-  const [users, setUsersRaw] = useState(() => load(lsKey(mode, 'users')))
-  /* ─── businesses ─── */
-  const [businesses, setBusinessesRaw] = useState(() => load(lsKey(mode, 'businesses')))
-  /* ─── invoices ─── */
-  const [invoices, setInvoicesRaw] = useState(() => load(lsKey(mode, 'invoices')))
-  /* ─── drivers / mechanics ─── */
-  const [drivers, setDriversRaw] = useState(() => load(lsKey(mode, 'drivers')))
-  /* ─── staff ─── */
-  const [staff, setStaffRaw] = useState(() => load(lsKey(mode, 'staff')))
-  /* ─── vehicles (transport only) ─── */
-  const [vehicles, setVehiclesRaw] = useState(() => load(lsKey('transport', 'vehicles')))
-  /* ─── software sales ─── */
-  const [softwareSales, setSoftwareSalesRaw] = useState(() => load('admin_global_software_sales'))
-  /* ─── subscription plans ─── */
-  const [plans, setPlansRaw] = useState(() => load('admin_global_subscription_plans'))
+  /* ─── API Driven States ─── */
+  const [users, setUsersRaw] = useState([])
+  const [businesses, setBusinessesRaw] = useState([])
+  const [invoices, setInvoicesRaw] = useState([])
+  const [drivers, setDriversRaw] = useState([])
+  const [staff, setStaffRaw] = useState([])
+  const [vehicles, setVehiclesRaw] = useState([])
+  const [softwareSales, setSoftwareSalesRaw] = useState([])
+  const [plans, setPlansRaw] = useState([])
   const [loading, setLoading] = useState(false)
   const [dbStats, setDbStats] = useState(null)
 
-  // Force re-seed if empty to ensure UI has data
-  useEffect(() => {
-    const kUsers = lsKey(mode, 'users')
-    const currentU = load(kUsers)
-    if (currentU.length === 0 && mode === 'garage') {
-       const dummies = [
-         { id: 'u3', name: 'Suresh Kumar', phone: '9876543210', email: 'suresh@reliable.com', role: 'garage', status: 'Active', joinedAt: today() },
-         { id: 'u4', name: 'Amit Singh', phone: '9922334455', email: 'amit@cityauto.com', role: 'garage', status: 'Active', joinedAt: today() },
-         { id: 'u5', name: 'Vinay Shah', phone: '8877665544', email: 'vinay@modern.com', role: 'garage', status: 'Active', joinedAt: today() }
-       ]
-       setUsersRaw(dummies)
-       save(kUsers, dummies)
-    }
+    // Dummy seeder effect removed.
 
-    const kVehicles = lsKey('transport', 'vehicles')
-    const currentV = load(kVehicles)
-    const hasDemo = currentV.some(v => v.ownerName === 'Demo Transporter')
-    if (currentV.length === 0 || !hasDemo) {
-       const dummiesV = [
-         { id: 'v1', ownerId: 'u1', ownerName: 'Vivek Sharma', plateNo: 'RJ14 GB 1234', type: 'Tempo', status: 'Active', model: 'Tata Ace' },
-         { id: 'v2', ownerId: 'u2', ownerName: 'Rajesh Gupta', plateNo: 'HR55 XY 9876', type: 'Truck', status: 'Active', model: 'Eicher 10.90' },
-         { id: 'v3', ownerId: 'u3', ownerName: 'Demo Transporter', plateNo: 'MH12 AB 0001', type: 'Tempo', status: 'Active', model: 'Force Traveller' },
-         ...currentV.filter(v => v.ownerName !== 'Demo Transporter' && v.id !== 'v3')
-       ]
-       setVehiclesRaw(dummiesV)
-       save(kVehicles, dummiesV)
-    }
-  }, [mode])
-
-  /* ─── helpers to gather real bills ─── */
-  const gatherRealBills = useCallback((m) => {
-    const all = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && key.startsWith('bills_')) {
-        try {
-          const userBills = JSON.parse(localStorage.getItem(key)) || []
-          // Map to billing monitor format if needed
-          const formatted = userBills
-            .filter(b => b.type === m)
-            .map(b => ({
-              id: b.id.replace('bill_', 'INV-'),
-              invoiceNo: b.invoiceNo,
-              businessName: b.billedToName || 'Unknown Business',
-              userName: b.billedToName || 'Guest User',
-              total: b.grandTotal,
-              status: b.status === 'paid' ? 'Paid' : 'Pending',
-              date: b.billDate || b.createdAt?.split('T')[0],
-              items: b.items || [],
-              tax: b.gstAmount || 0,
-              isReal: true
-            }))
-          all.push(...formatted)
-        } catch (e) {}
-      }
-    }
-    return all
-  }, [])
 
   /* Reload all state whenever mode changes */
   const refreshAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [sRes, uRes, bRes, fRes] = await Promise.all([
+      const [sRes, uRes, bRes, fRes, sSalesRes, plansRes, specRes] = await Promise.all([
         adminApi.getAdminDashboardStats(mode),
         adminApi.adminListUsers({ role: mode }),
         adminApi.getAdminTransportBills(mode),
-        mode === 'transport' ? adminApi.getAdminTransportFleet() : Promise.resolve({ success: true, vehicles: [] })
+        mode === 'transport' ? adminApi.getAdminTransportFleet() : Promise.resolve({ success: true, vehicles: [] }),
+        adminApi.getAdminSales(),
+        adminApi.getAdminPlans(mode),
+        adminApi.getAdminSpecialUsers({ target: mode })
       ])
       
       if (sRes.success) setDbStats(sRes.stats)
@@ -222,21 +56,12 @@ export function AdminProvider({ children }) {
         setUsersRaw(uRes.users)
         // Derive businesses from users who have businessName set
         const realBiz = uRes.users
-          .filter(u => u.setupComplete || u.name) 
           .map(u => ({
+            ...u, // Includes businessName, ownerName, location, gstNo, etc. from backend userRow
             id: u.id,
-            name: u.businessName || u.name || 'Unnamed Business',
-            businessName: u.businessName,
-            ownerName: u.name,
-            phone: u.phone,
-            email: u.email,
-            role: u.role,
-            city: u.city || 'Unknown',
-            address: u.address || '',
-            documents: u.documents || {},
-            kycStatus: u.kycStatus || 'Pending',
+            name: u.businessName || u.name || 'Unnamed Business', // Modal expects 'name' to be business name
+            ownerName: u.name || u.ownerName, 
             status: u.setupComplete ? 'Active' : 'Pending',
-            onboardedAt: u.createdAt
           }))
         setBusinessesRaw(realBiz)
       }
@@ -268,7 +93,6 @@ export function AdminProvider({ children }) {
       }
 
       // Load Real Software Sales
-      const sSalesRes = await adminApi.getAdminSales()
       if (sSalesRes.success) {
         setSoftwareSalesRaw(sSalesRes.sales.map(s => ({
           ...s,
@@ -277,6 +101,8 @@ export function AdminProvider({ children }) {
           businessName: s.transporter?.businessName || 'N/A',
           phone: s.transporter?.phone || 'N/A',
           pendingAmount: s.totalAmount - s.amountPaid,
+          purchaseDate: s.purchaseDate ? new Date(s.purchaseDate).toLocaleDateString() : 'N/A',
+          expiryDate: s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : 'N/A',
           status: s.status.charAt(0).toUpperCase() + s.status.slice(1),
           paymentHistory: s.paymentHistory.map(ph => ({
             ...ph,
@@ -286,13 +112,11 @@ export function AdminProvider({ children }) {
       }
       
       // Load Plans
-      const plansRes = await adminApi.getAdminPlans(mode) // Fetch plans for current mode
       if (plansRes.success) {
         setPlansRaw(plansRes.plans.map(p => ({ ...p, id: p._id })))
       }
       
       // Load Specialized Users
-      const specRes = await adminApi.getAdminSpecialUsers({ target: mode })
       if (specRes.success) {
         setDriversRaw(specRes.users.filter(u => u.role === (mode === 'transport' ? 'driver' : 'mechanic')).map(u => ({ ...u, id: u._id })))
         setStaffRaw(specRes.users.filter(u => u.role === 'staff').map(u => ({ ...u, id: u._id })))
@@ -300,9 +124,11 @@ export function AdminProvider({ children }) {
       
     } catch (e) {
       console.error('Admin sync failed:', e)
-      const isLoginPage = window.location.pathname === '/admin' || window.location.pathname === '/admin-login'
+      const currentPath = window.location.pathname
+      const isUIAdminPath = currentPath.startsWith('/admin')
+      const isLoginPage = currentPath === '/admin' || currentPath === '/admin-login'
+      
       if (e?.response?.status === 403 && isUIAdminPath && !isLoginPage) {
-        // Only redirect if they're actually TRYING to access a protected admin page
         window.location.href = '/admin'
       }
     } finally {
@@ -395,7 +221,10 @@ export function AdminProvider({ children }) {
     try {
       const res = await adminApi.adminUpdateUser(id, patch)
       if (res.success) refreshAll()
-    } catch (e) { console.error(e) }
+    } catch (e) { 
+      console.error('Update failed:', e.response?.data || e.message)
+      alert(`Update Failed: ${e.response?.data?.message || 'Unauthorized'}`)
+    }
   }, [refreshAll])
 
   const deleteUser = useCallback(async (id) => {
@@ -405,7 +234,10 @@ export function AdminProvider({ children }) {
         setUsersRaw(p => p.filter(u => u.id !== id))
         refreshAll()
       }
-    } catch (e) { console.error(e) }
+    } catch (e) { 
+       console.error('Delete failed:', e.response?.data || e.message)
+       alert(`Delete Failed: ${e.response?.data?.message || 'Unauthorized'}`)
+    }
   }, [refreshAll])
 
   /* ─── CRUD: Businesses (Linked to User creation) ─── */

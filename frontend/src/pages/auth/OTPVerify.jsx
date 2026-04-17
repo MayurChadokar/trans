@@ -88,19 +88,7 @@ export default function OTPVerify() {
     }
     const res = await verifyOTP(phone, code)
     if (res.success) {
-      const u = res.user
-      // Logic:
-      // 1. If no role: go to Role Selection
-      // 2. If has role but setup not complete: go to corresponding registration
-      // 3. Otherwise: go to Dashboard
-      if (!u.role) {
-        navigate('/role-select', { replace: true })
-      } else if (!u.setupComplete) {
-        navigate(`/register/${u.role}`, { replace: true })
-      } else {
-        const dashboardPath = u.role === 'admin' ? '/admin/dashboard' : '/dashboard'
-        navigate(dashboardPath, { replace: true })
-      }
+      navigate('/language-select', { replace: true })
     }
   }, [otp, phone, verifyOTP, navigate])
 

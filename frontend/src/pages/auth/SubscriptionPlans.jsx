@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, Loader2, CreditCard, ShieldCheck, Zap, Star, LayoutDashboard, ChevronRight } from 'lucide-react'
-import { getAvailablePlans, subscribeToPlan } from '../../api/planApi'
+import { getAvailablePlans, subscribeToPlan, createRazorpayOrder, verifyRazorpayPayment } from '../../api/planApi'
 import { useAuth } from '../../context/AuthContext'
 import { useVehicles } from '../../context/VehicleContext'
 import logo from '../../assets/trans-logo.png'
 
 export default function SubscriptionPlans() {
-  const { user, login } = useAuth()
+  const { user, login, logout } = useAuth()
   const { vehicles } = useVehicles()
   const navigate = useNavigate()
   const [plans, setPlans] = useState([])
@@ -17,39 +17,96 @@ export default function SubscriptionPlans() {
 
   useEffect(() => {
     const fetchPlans = async () => {
+      if (!user?.role) return
       setLoading(true)
-      const res = await getAvailablePlans({ target: 'transport' })
+      const res = await getAvailablePlans({ target: user.role })
       if (res.success) {
         setPlans(res.plans)
       }
       setLoading(false)
     }
     fetchPlans()
-  }, [])
+  }, [user?.role])
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   const handleSubscribe = async (plan) => {
-    setSubmitting(plan._id)
+    setSubmitting(plan._id);
+
     try {
-      const res = await subscribeToPlan({
-        planId: plan._id,
-        paymentMode: 'upi',
-        transactionId: 'MOCK_' + Math.random().toString(36).substr(2, 9).toUpperCase()
-      })
-      
-      if (res.success) {
-        await login(res.user, res.accessToken)
-        setTimeout(() => {
-          navigate('/dashboard', { replace: true })
-        }, 1500)
-      } else {
-        alert(res.message || 'Subscription failed')
-        setSubmitting(null)
+      // 1. Create Order in Backend
+      const orderRes = await createRazorpayOrder({ planId: plan._id });
+      if (!orderRes.success) {
+        alert(orderRes.message || "Failed to create order");
+        setSubmitting(null);
+        return;
       }
+
+      // 2. Load Razorpay Script
+      const isLoaded = await loadRazorpay();
+      if (!isLoaded) {
+        alert("Razorpay SDK failed to load. Are you online?");
+        setSubmitting(null);
+        return;
+      }
+
+      // 3. Open Razorpay Checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_YOUR_KEY_HERE",
+        amount: orderRes.amount,
+        currency: orderRes.currency,
+        name: "TRANS Hub",
+        description: `Subscription: ${orderRes.planName}`,
+        image: logo,
+        order_id: orderRes.orderId,
+        handler: async (response) => {
+          setSubmitting(plan._id); // keep loading
+          
+          // 4. Verify Payment in Backend
+          const verifyRes = await verifyRazorpayPayment({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            planId: plan._id
+          });
+
+          if (verifyRes.success) {
+            await login(verifyRes.user, verifyRes.accessToken);
+            navigate('/dashboard', { replace: true });
+          } else {
+            alert(verifyRes.message || "Payment verification failed");
+            setSubmitting(null);
+          }
+        },
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+          contact: user?.phone || ""
+        },
+        theme: {
+          color: "#7C3AED",
+        },
+        modal: {
+          ondismiss: () => setSubmitting(null)
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (e) {
-      alert('Something went wrong')
-      setSubmitting(null)
+      console.error("Subscription Flow Error:", e);
+      alert("Something went wrong with the payment process");
+      setSubmitting(null);
     }
-  }
+  };
 
   const filteredPlans = plans.filter(p => p.interval === activeTab)
 
@@ -74,11 +131,14 @@ export default function SubscriptionPlans() {
           <img src={logo} alt="Logo" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
         </div>
         <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', marginBottom: 8, letterSpacing: '-0.03em' }}>
-          Step 5: Choose a Plan
+          Step {user?.role === 'transport' ? '6' : '5'}: Choose a Plan
         </h2>
         <p style={{ fontSize: '1rem', color: '#64748B', fontWeight: 500, maxWidth: 480, margin: '0 auto' }}>
-          You have <strong style={{color: '#7C3AED'}}>{vehicles.length} vehicles</strong>. 
-          Pick a plan to get started.
+          {user?.role === 'transport' ? (
+            <>You have <strong style={{color: '#7C3AED'}}>{vehicles.length} vehicles</strong>. Pick a plan to get started.</>
+          ) : (
+            <>Pick a professional subscription to power your garage workflow.</>
+          )}
         </p>
 
         <div style={{ 
@@ -87,6 +147,19 @@ export default function SubscriptionPlans() {
         }}>
           <button onClick={() => setActiveTab('Monthly')} style={{ padding: '8px 20px', borderRadius: 9, border: 'none', fontSize: '0.8125rem', fontWeight: 700, background: activeTab === 'Monthly' ? 'white' : 'transparent', color: activeTab === 'Monthly' ? '#1E293B' : '#64748B', boxShadow: activeTab === 'Monthly' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}>Monthly</button>
           <button onClick={() => setActiveTab('Yearly')} style={{ padding: '8px 20px', borderRadius: 9, border: 'none', fontSize: '0.8125rem', fontWeight: 700, background: activeTab === 'Yearly' ? 'white' : 'transparent', color: activeTab === 'Yearly' ? '#1E293B' : '#64748B', boxShadow: activeTab === 'Yearly' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}>Yearly <span style={{ color: '#16A34A', fontSize: '0.65rem', marginLeft: 4 }}>Save 20%</span></button>
+        </div>
+        
+        <div style={{ marginTop: 16 }}>
+          <button 
+            type="button"
+            onClick={() => logout()}
+            style={{ 
+              background: 'none', border: 'none', color: '#7C3AED', fontSize: '0.8rem', 
+              fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' 
+            }}
+          >
+            Logout & Start Over
+          </button>
         </div>
       </div>
 
@@ -112,12 +185,24 @@ export default function SubscriptionPlans() {
                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0F172A' }}>₹{plan.price}</span>
                    <span style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 600 }}>/{plan.interval === 'Monthly' ? 'mo' : 'yr'}</span>
                  </div>
-                 <div style={{ fontSize: '0.75rem', color: isAllowed ? '#16A34A' : '#EF4444', fontWeight: 700, marginTop: 4 }}>
-                    {plan.allowedVehicles === 0 ? 'Unlimited Vehicles' : `Up to ${plan.allowedVehicles} Vehicles Allowed`}
-                 </div>
+                 {plan.allowedVehicles > 0 && (
+                    <div style={{ fontSize: '0.75rem', color: isAllowed ? '#16A34A' : '#EF4444', fontWeight: 700, marginTop: 4 }}>
+                       Up to {plan.allowedVehicles} Vehicles Allowed
+                    </div>
+                 )}
               </div>
-              <button onClick={() => handleSubscribe(plan)} disabled={!!submitting || !isAllowed} style={{ width: '100%', height: 50, borderRadius: 14, border: 'none', background: isPro ? '#7C3AED' : '#F8FAFC', color: isPro ? 'white' : '#1E293B', fontSize: '0.875rem', fontWeight: 800, cursor: (submitting || !isAllowed) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: !isAllowed ? 0.6 : 1, transition: 'all 0.2s' }}>
-                {submitting === plan._id ? <Loader2 size={18} className="spin" /> : (!isAllowed ? 'Fleet too large' : 'Subscribe Now')}
+              <button 
+                onClick={() => handleSubscribe(plan)} 
+                disabled={!!submitting || !isAllowed} 
+                style={{ 
+                  width: '100%', height: 50, borderRadius: 14, border: 'none', 
+                  background: isPro ? '#7C3AED' : '#F8FAFC', color: isPro ? 'white' : '#1E293B', 
+                  fontSize: '0.875rem', fontWeight: 800, cursor: (submitting || !isAllowed) ? 'not-allowed' : 'pointer', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, 
+                  opacity: !isAllowed ? 0.6 : 1, transition: 'all 0.2s' 
+                }}
+              >
+                {submitting === plan._id ? <Loader2 size={18} className="spin" /> : (!isAllowed ? (user?.role === 'transport' ? 'Fleet too large' : 'Limit reached') : 'Subscribe Now')}
               </button>
             </div>
           )
