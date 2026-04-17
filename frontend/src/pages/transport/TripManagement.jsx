@@ -534,37 +534,37 @@ export default function TripManagement() {
                       </div>
                     ) : (
                       <button className="upload-chalan-btn" onClick={() => handlePhotoCapture(trip.id)}>
-                        <Camera size={16} />
+                        <Camera size={14} />
                         <span>CHALAN</span>
                       </button>
                     )}
                     {trip.amount && <div className="trip-amount-badge">₹{parseFloat(trip.amount).toLocaleString()}</div>}
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <button
                       onClick={(e) => { e.stopPropagation(); setSelectedJourney(trip); setIsDetailOpen(true); }}
                       title="View journey breakdown"
-                      style={{ height: 34, width: 34, borderRadius: 9, border: '1.5px solid #F1F5F9', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      style={{ height: 32, width: 32, borderRadius: 8, border: '1.5px solid #F1F5F9', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                     >
-                      <Eye size={16} />
+                      <Eye size={14} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleAddLeg(trip); }}
                       title="Add another leg/destination to this trip"
-                      style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      style={{ height: 32, borderRadius: 8, padding: '0 6px', border: '1.5px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 800, fontSize: '0.6rem', display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >
                       <Plus size={12} /> ADD LEG
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank'); }}
                       title="Pay checkpost tax for this trip on the official government portal"
-                      style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #FDE68A', background: '#FFFBEB', color: '#B45309', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      style={{ height: 32, borderRadius: 8, padding: '0 6px', border: '1.5px solid #FDE68A', background: '#FFFBEB', color: '#B45309', fontWeight: 800, fontSize: '0.6rem', display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >
                       <ExternalLink size={12} /> PAY TAX
                     </button>
-                    <button className="delete-trip-btn" onClick={() => handleDelete(trip.id)} aria-label="Delete trip">
-                      <Trash2 size={18} />
+                    <button className="delete-trip-btn" onClick={() => handleDelete(trip.id)} aria-label="Delete trip" style={{ marginLeft: 2 }}>
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -609,7 +609,7 @@ export default function TripManagement() {
             ) : (
               <button 
                 className="btn btn-primary" 
-                style={{ height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px', fontWeight: 800 }}
+                style={{ height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', fontWeight: 800, fontSize: '0.85rem' }}
                 onClick={() => setShowDraftSelect(true)}
                 disabled={isBilling}
               >
@@ -652,7 +652,7 @@ export default function TripManagement() {
       <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" capture="environment" onChange={onFileChange} />
 
       <style>{`
-        .trip-mgmt-container { padding-bottom: 24px; }
+        .trip-mgmt-container { padding-bottom: 160px; }
         .trip-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
         .trip-title { fontSize: 1.25rem; font-weight: 900; color: #0F0D2E; margin: 0; }
         .trip-subtitle { color: #6B7280; font-size: 0.8125rem; margin-top: 2px; }
@@ -675,7 +675,7 @@ export default function TripManagement() {
         .trip-route-sequence { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
         .location { font-size: 0.9375rem; font-weight: 800; color: #0F0D2E; }
         .route-arrow { color: #94A3B8; }
-        .trip-amount-badge { background: #F1F5F9; color: #0F0D2E; padding: 6px 12px; border-radius: 10px; font-weight: 950; font-size: 1rem; border: 1px solid rgba(0,0,0,0.05); }
+        .trip-amount-badge { background: #F1F5F9; color: #0F0D2E; padding: 4px 10px; border-radius: 8px; font-weight: 950; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.05); }
         
         .trip-meta-grid { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
         .meta-item { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: #64748B; font-weight: 600; }
@@ -687,8 +687,8 @@ export default function TripManagement() {
         .chalan-thumb img { width: 100%; height: 100%; object-fit: cover; }
         .remove-photo-btn { position: absolute; top: 0; right: 0; background: #EF4444; border: none; color: white; border-radius: 0 0 0 4px; padding: 1px 2px; }
         
-        .upload-chalan-btn { height: 42px; border-radius: 10px; padding: 0 10px; border: 1.5px dashed #CBD5E1; background: #F8FAFC; color: #64748B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
-        .upload-chalan-btn span { font-size: 0.5rem; font-weight: 800; }
+        .upload-chalan-btn { height: 36px; border-radius: 8px; padding: 0 8px; border: 1.5px dashed #CBD5E1; background: #F8FAFC; color: #64748B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+        .upload-chalan-btn span { font-size: 0.45rem; font-weight: 800; }
         
         .delete-trip-btn:active { color: #EF4444; transform: scale(0.9); }
         
@@ -728,16 +728,19 @@ export default function TripManagement() {
         
         .trip-form-card { background: white; border-radius: 24px; padding: 20px; border: 1px solid #F1F5F9; }
 
-        .billing-action-bar { position: fixed; bottom: 80px; left: 16px; right: 16px; background: rgba(15, 13, 46, 0.95); backdrop-filter: blur(12px); border-radius: 24px; padding: 16px; display: flex; align-items: center; justify-content: space-between; z-index: 900; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+        .billing-action-bar { position: fixed; bottom: 80px; left: 16px; right: 16px; background: rgba(15, 13, 46, 0.95); backdrop-filter: blur(12px); border-radius: 24px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 900; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
         .selection-count { color: white; font-weight: 800; font-size: 0.9rem; }
         .btn-clear-selection { background: transparent; border: none; color: #94A3B8; font-size: 0.75rem; font-weight: 700; margin-left: 10px; cursor: pointer; }
         
-        .draft-selector { position: absolute; bottom: 100%; right: 0; width: 280px; background: white; border-radius: 20px; margin-bottom: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
-        .draft-selector-header { padding: 12px 16px; background: #F8FAFC; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 800; color: #64748B; border-bottom: 1px solid #F1F5F9; }
-        .draft-items-list { max-height: 200px; overflow-y: auto; padding: 8px; display: flex; flexDirection: column; gap: 4px; }
-        .draft-item { padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; color: #0F0D2E; }
-        .draft-item:hover { background: #EEF2FF; color: var(--primary); }
-        .btn-new-draft { width: 100%; border: none; background: #4F46E5; color: white; padding: 12px; font-weight: 800; font-size: 0.75rem; cursor: pointer; }
+        .draft-selector { position: absolute; bottom: 100%; right: 0; width: 280px; background: white; border-radius: 20px; margin-bottom: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #F1F5F9; }
+        .draft-selector-header { padding: 14px 18px; background: #F8FAFC; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 900; color: #475569; border-bottom: 1.5px solid #F1F5F9; }
+        .draft-items-list { max-height: 220px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .draft-item { padding: 12px; border-radius: 14px; cursor: pointer; transition: 0.2s; color: #0F0D2E; border: 1px solid transparent; }
+        .draft-item:hover { background: #F5F3FF; color: #7C3AED; border-color: #DDD6FE; }
+        .draft-empty { padding: 30px 20px; text-align: center; color: #94A3B8; font-size: 0.8rem; font-weight: 600; }
+        .btn-new-draft { width: 100%; border: none; background: #0F0D2E; color: white; padding: 14px; font-weight: 800; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-new-draft:hover { background: #1E293B; }
+        .btn-new-draft:active { transform: scale(0.98); }
         
         .billing-status-chip { font-size: 0.6rem; font-weight: 950; padding: 3px 10px; border-radius: 8px; letter-spacing: 0.05em; }
         .trip-card-mobile.selected { border: 2px solid var(--primary); background: #f5f3ff; }

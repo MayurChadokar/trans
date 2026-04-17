@@ -15,32 +15,32 @@ export default function InsuranceHome() {
   ]
 
   return (
-    <div className="page-wrapper animate-fadeIn" style={{ background: '#F9FAFB', minHeight: '100vh', padding: '20px 16px' }}>
+    <div className="page-wrapper animate-fadeIn" style={{ background: '#F9FAFB', minHeight: '100vh', padding: '0px', margin: window.innerWidth < 640 ? '-16px' : '0' }}>
       {/* Header Banner (PhonePe Style) */}
       <div style={{ 
         background: 'linear-gradient(135deg, #4C1D95, #7C3AED)', 
-        borderRadius: 28, 
-        padding: '32px 24px', 
+        borderRadius: window.innerWidth < 640 ? 0 : 24, 
+        padding: '24px 20px', 
         color: 'white', 
-        marginBottom: 24, 
+        marginBottom: window.innerWidth < 640 ? 0 : 20, 
         position: 'relative', 
         overflow: 'hidden',
-        boxShadow: '0 12px 30px rgba(124, 58, 237, 0.25)'
+        boxShadow: '0 8px 25px rgba(124, 58, 237, 0.2)'
       }}>
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <span style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 100, marginBottom: 12, display: 'inline-block' }}>Insurance Service</span>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 900, margin: 0, lineHeight: 1.2 }}>Choose from <br/> 30+ plans</h1>
-          <p style={{ fontSize: '0.85rem', opacity: 0.9, marginTop: 8, maxWidth: '60%' }}>Secure your vehicle and family with verified insurers.</p>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: 'rgba(255,255,255,0.2)', padding: '3px 8px', borderRadius: 100, marginBottom: 8, display: 'inline-block' }}>Insurance Service</span>
+          <h1 style={{ fontSize: '1.3rem', fontWeight: 900, margin: 0, lineHeight: 1.2, color: 'white' }}>Choose from <br/> 30+ plans</h1>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', marginTop: 6, maxWidth: '65%' }}>Secure your vehicle and family with verified insurers.</p>
           
           <button 
             style={{ 
-              marginTop: 18, 
+              marginTop: 14, 
               background: 'white', 
               color: '#7C3AED', 
               border: 'none', 
-              padding: '10px 18px', 
-              borderRadius: 14, 
-              fontSize: '0.8rem', 
+              padding: '8px 16px', 
+              borderRadius: 12, 
+              fontSize: '0.75rem', 
               fontWeight: 800, 
               display: 'flex', 
               alignItems: 'center', 
@@ -53,19 +53,20 @@ export default function InsuranceHome() {
         </div>
         
         {/* Decorative elements */}
-        <Shield size={120} color="rgba(255,255,255,0.08)" style={{ position: 'absolute', bottom: -20, right: -10 }} />
-        <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <Shield size={90} color="rgba(255,255,255,0.08)" style={{ position: 'absolute', bottom: -15, right: -10 }} />
+        <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#111827', margin: 0 }}>Insurance</h2>
-          <p style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: 2 }}>Secure what you love</p>
+      <div style={{ padding: '20px 16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#111827', margin: 0 }}>Insurance</h2>
+            <p style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: 2 }}>Secure what you love</p>
+          </div>
+          <button style={{ border: '1.5px solid #E5E7EB', background: 'white', borderRadius: 14, padding: '8px 14px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FileText size={14} /> My Policies
+          </button>
         </div>
-        <button style={{ border: '1.5px solid #E5E7EB', background: 'white', borderRadius: 14, padding: '8px 14px', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <FileText size={14} /> My Policies
-        </button>
-      </div>
 
       {/* Categories Grid */}
       <div className="grid grid-cols-2 gap-4">
@@ -109,7 +110,7 @@ export default function InsuranceHome() {
           </div>
         ))}
       </div>
-
+      </div>
       <div style={{ height: 30 }} />
     </div>
   )

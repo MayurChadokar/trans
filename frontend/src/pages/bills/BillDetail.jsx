@@ -414,30 +414,40 @@ export default function BillDetail() {
   const handleDownloadPDF = async () => {
     if (!invoiceRef.current || isDownloading) return
     setIsDownloading(true)
+    
+    const element = invoiceRef.current
+    const originalWidth = element.style.width
+    
+    // Force a fixed width for the capture to avoid cutting off on mobile
+    element.style.width = '760px'
+    
     try {
-      const element = invoiceRef.current
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        width: 760,
+        windowWidth: 760
       })
+      
       const imgData = canvas.toDataURL('image/png')
-      // Create PDF with page size = exact content size (no blank pages ever)
       const a4Width = 210 // mm
-      const pxToMm = a4Width / canvas.width
-      const contentHeightMm = canvas.height * pxToMm
+      const pxToMm = a4Width / 760
+      const contentHeightMm = canvas.height * (a4Width / (760 * 2)) // canvas is scaled by 2
 
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: [a4Width, contentHeightMm], // custom height = exact content
+        format: [a4Width, contentHeightMm],
       })
+      
       pdf.addImage(imgData, 'PNG', 0, 0, a4Width, contentHeightMm)
       pdf.save(`Invoice_${bill.billNumber || bill._id}.pdf`)
     } catch (err) {
       console.error('PDF generation failed:', err)
     } finally {
+      element.style.width = originalWidth
       setIsDownloading(false)
     }
   }

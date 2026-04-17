@@ -141,7 +141,7 @@ export default function BillList({ type }) {
     { val: 'all',       label: 'All' },
     { val: 'unpaid',    label: 'Pending' },
     { val: 'paid',      label: 'Paid' },
-    { val: 'draft',     label: 'Draft' },
+    ...(moduleType !== 'garage' ? [{ val: 'draft',     label: 'Draft' }] : []),
     ...(isAdmin && !type ? [
       { val: 'transport', label: '🚛 Transport' },
       { val: 'garage',    label: '🔧 Garage' }

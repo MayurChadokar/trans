@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Loader2, CreditCard, ShieldCheck, Zap, Star, LayoutDashboard, ChevronRight } from 'lucide-react'
+import { Check, Loader2, CreditCard, ShieldCheck, Zap, Star, LayoutDashboard, ChevronRight, ArrowLeft } from 'lucide-react'
 import { getAvailablePlans, subscribeToPlan, createRazorpayOrder, verifyRazorpayPayment } from '../../api/planApi'
 import { useAuth } from '../../context/AuthContext'
 import { useVehicles } from '../../context/VehicleContext'
@@ -120,7 +120,23 @@ export default function SubscriptionPlans() {
   }
 
   return (
-    <div className="animate-fadeIn" style={{ maxWidth: 940, margin: '0 auto', paddingBottom: 60 }}>
+    <div className="animate-fadeIn" style={{ maxWidth: 940, margin: '0 auto', paddingBottom: 60, position: 'relative' }}>
+      {/* Back Button */}
+      <button 
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'absolute', left: 16, top: 0, width: 40, height: 40,
+          borderRadius: 12, background: 'white', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          zIndex: 10, color: '#64748B'
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = '#7C3AED'}
+        onMouseLeave={e => e.currentTarget.style.color = '#64748B'}
+      >
+        <ArrowLeft size={20} strokeWidth={2.5} />
+      </button>
+
       {/* Header */}
       <div className="text-center mb-6 sm:mb-10">
         <div style={{ 
@@ -131,7 +147,7 @@ export default function SubscriptionPlans() {
           <img src={logo} alt="Logo" style={{ width: '70%', height: '70%', objectFit: 'contain' }} />
         </div>
         <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', marginBottom: 8, letterSpacing: '-0.03em' }}>
-          Step {user?.role === 'transport' ? '6' : '5'}: Choose a Plan
+          Choose a Plan
         </h2>
         <p className="text-sm sm:text-base" style={{ color: '#64748B', fontWeight: 500, maxWidth: 480, margin: '0 auto' }}>
           {user?.role === 'transport' ? (
