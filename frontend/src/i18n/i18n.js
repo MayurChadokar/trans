@@ -56,6 +56,7 @@ const resources = {
       "new_badge": "New",
       "paid": "Paid",
       "unpaid": "Unpaid",
+      "total_parties": "Total Parties",
     }
   },
   hi: {
@@ -110,6 +111,7 @@ const resources = {
       "new_badge": "नया",
       "paid": "भुगतान किया गया",
       "unpaid": "अवैतनिक",
+      "total_parties": "कुल पार्टियां",
     }
   }
 };

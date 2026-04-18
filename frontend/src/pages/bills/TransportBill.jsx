@@ -83,10 +83,7 @@ export default function TransportBill({ initialData }) {
       })) || [
         { date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '', tempoNo: '', extraAmount: '' }
       ],
-      loadingCharge: initialData?.loadingCharge?.toString() || '0', 
-      unloadingCharge: initialData?.unloadingCharge?.toString() || '0',
-      detentionCharge: initialData?.detentionCharge?.toString() || '0', 
-      otherCharge: initialData?.otherCharge?.toString() || '0',
+      extraCharges: initialData?.extraCharges?.toString() || '0',
       gstPercent: initialData?.gstPercent?.toString() || '0',
       gstType: initialData?.gstType || 'CGST+SGST',
       notes: initialData?.notes || 'Grateful for Moving What Matters to You!',
@@ -115,10 +112,7 @@ export default function TransportBill({ initialData }) {
           tempoNo: it.tempoNo || '',
           extraAmount: it.extraAmount?.toString() || ''
         })) || [{ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '', tempoNo: '', extraAmount: '' }],
-        loadingCharge: initialData.loadingCharge?.toString() || '0',
-        unloadingCharge: initialData.unloadingCharge?.toString() || '0',
-        detentionCharge: initialData.detentionCharge?.toString() || '0',
-        otherCharge: initialData.otherCharge?.toString() || '0',
+        extraCharges: initialData.extraCharges?.toString() || '0',
         gstPercent: initialData.gstPercent?.toString() || '0',
         gstType: initialData.gstType || 'CGST+SGST',
         paymentMode: initialData.paymentMode || 'topay',
@@ -133,10 +127,7 @@ export default function TransportBill({ initialData }) {
   })
 
   const watchedItems = watch('items')
-  const loadingCharge   = watch('loadingCharge')
-  const unloadingCharge = watch('unloadingCharge')
-  const detentionCharge = watch('detentionCharge')
-  const otherCharge     = watch('otherCharge')
+  const extraCharges    = watch('extraCharges')
   const gstPercent      = watch('gstPercent')
 
   // Auto-fill party details
@@ -162,8 +153,7 @@ export default function TransportBill({ initialData }) {
   const itemsTotal = (watchedItems || []).reduce((sum, item) => {
     return sum + (parseFloat(item.amount) || 0) + (parseFloat(item.extraAmount) || 0)
   }, 0)
-  const otherChargesTotal = [loadingCharge, unloadingCharge, detentionCharge, otherCharge]
-    .reduce((s, v) => s + (parseFloat(v) || 0), 0)
+  const otherChargesTotal = parseFloat(extraCharges) || 0
   
   const subtotal = itemsTotal + otherChargesTotal
   const gstAmount = subtotal * (parseFloat(gstPercent) || 0) / 100
@@ -297,10 +287,7 @@ export default function TransportBill({ initialData }) {
         })),
 
         // Extra charges
-        loadingCharge:   parseFloat(data.loadingCharge)   || 0,
-        unloadingCharge: parseFloat(data.unloadingCharge) || 0,
-        detentionCharge: parseFloat(data.detentionCharge) || 0,
-        otherCharge:     parseFloat(data.otherCharge)     || 0,
+        extraCharges:    parseFloat(data.extraCharges)    || 0,
 
         // Tax & totals
         gstPercent: parseFloat(data.gstPercent) || 0,
@@ -585,22 +572,13 @@ export default function TransportBill({ initialData }) {
 
         {/* ── Other Charges & GST ── */}
         <div className="grid md-grid-cols-2 gap-4">
-          <SectionCard icon={FileText} iconBg="#FEE2E2" iconColor="#DC2626" title="Extra Charges">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { name: 'loadingCharge',   label: 'Loading' },
-                { name: 'unloadingCharge', label: 'Unloading' },
-                { name: 'detentionCharge', label: 'Detention' },
-                { name: 'otherCharge',     label: 'Other' },
-              ].map(c => (
-                <Field key={c.name} label={`${c.label} (₹)`}>
-                  <div className="input-group">
-                    <span className="input-prefix">₹</span>
-                    <input {...register(c.name)} type="number" placeholder="0" className="form-input" />
-                  </div>
-                </Field>
-              ))}
-            </div>
+          <SectionCard icon={FileText} iconBg="#FEE2E2" iconColor="#DC2626" title="Additional Charges">
+            <Field label="Extra Charges (₹)">
+              <div className="input-group">
+                <span className="input-prefix" style={{ color: '#D97706' }}>₹</span>
+                <input {...register('extraCharges')} type="number" placeholder="Loading, Halt, etc." className="form-input" style={{ color: '#D97706', fontWeight: 700 }} />
+              </div>
+            </Field>
           </SectionCard>
 
           <SectionCard icon={FileText} iconBg="#DCFCE7" iconColor="#16A34A" title="Taxes & Totals">

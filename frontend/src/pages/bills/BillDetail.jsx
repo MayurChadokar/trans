@@ -93,32 +93,17 @@ function TransportInvoice({ bill, business, onPayOnline }) {
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem' }}>{item.companyTo || '—'}</td>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem' }}>{item.chalanNo || '—'}</td>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'right', fontSize: '0.85rem', color: '#B45309' }}>{item.extraAmount > 0 ? `+${parseFloat(item.extraAmount).toLocaleString()}` : '—'}</td>
-              <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700 }}>{parseFloat(item.amount || 0).toLocaleString()}</td>
+               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700 }}>{parseFloat(item.amount || 0) > 0 ? parseFloat(item.amount).toLocaleString() : '—'}</td>
             </tr>
           ))}
           {/* Extra Charges Rows */}
-          {parseFloat(bill.loadingCharge || 0) > 0 && (
+          {/* Extra Charges Row */}
+          {(parseFloat(bill.extraCharges || 0) > 0 || (parseFloat(bill.loadingCharge || 0) + parseFloat(bill.unloadingCharge || 0) + parseFloat(bill.detentionCharge || 0) + parseFloat(bill.otherCharge || 0)) > 0) && (
             <tr>
-              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Loading Charges :</td>
-              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.loadingCharge).toLocaleString()}</td>
-            </tr>
-          )}
-          {parseFloat(bill.unloadingCharge || 0) > 0 && (
-            <tr>
-              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Unloading Charges :</td>
-              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.unloadingCharge).toLocaleString()}</td>
-            </tr>
-          )}
-          {parseFloat(bill.detentionCharge || 0) > 0 && (
-            <tr>
-              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Detention Charges :</td>
-              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.detentionCharge).toLocaleString()}</td>
-            </tr>
-          )}
-          {parseFloat(bill.otherCharge || 0) > 0 && (
-            <tr>
-              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Other Charges :</td>
-              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.otherCharge).toLocaleString()}</td>
+              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Extra Charges :</td>
+              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>
+                ₹{parseFloat(bill.extraCharges || (parseFloat(bill.loadingCharge || 0) + parseFloat(bill.unloadingCharge || 0) + parseFloat(bill.detentionCharge || 0) + parseFloat(bill.otherCharge || 0))).toLocaleString()}
+              </td>
             </tr>
           )}
 

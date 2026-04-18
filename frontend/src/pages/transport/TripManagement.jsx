@@ -225,7 +225,7 @@ export default function TripManagement() {
     }
   }, [filteredByParty])
 
-  const handleBulkAddToDraft = async (draftId = null) => {
+  const handleBulkAddToDraft = async (draftId = null, forceStatus = 'draft') => {
     if (selectedIds.length === 0) return
     setIsBilling(true)
     try {
@@ -274,7 +274,7 @@ export default function TripManagement() {
               chalanNo,
               tempoNo: vNum,
               extraAmount: idx === 0 ? tExtras.toString() : '0',
-              amount: (parseFloat(trip.amount)).toString(),
+              amount: idx === 0 ? (parseFloat(trip.amount)).toString() : '0',
               tripIds: [trip._id || trip.id]
             })
           })
@@ -303,13 +303,13 @@ export default function TripManagement() {
         finalBill = await createBill({
           party: partyId,
           billType: 'transport',
-          status: 'draft',
+          status: forceStatus,
           trips: selectedIds,
           items: billItems
         })
       }
       
-      alert("Trips added to bill successfully!")
+      // alert("Trips added to bill successfully!")
       const billUrlId = finalBill?.bill?._id || finalBill?.bill?.id || finalBill?._id || finalBill?.id
       if (billUrlId) navigate(`/bills/${billUrlId}`)
       
@@ -815,13 +815,7 @@ export default function TripManagement() {
                             >
                               <Eye size={16} />
                             </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleAddLeg(trip); }}
-                              title="Add another leg/destination to this trip"
-                              style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                            >
-                              <Plus size={12} /> ADD LEG
-                            </button>
+
                             <button
                               onClick={(e) => { e.stopPropagation(); window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank'); }}
                               title="Pay checkpost tax for this trip on the official government portal"
@@ -857,23 +851,23 @@ export default function TripManagement() {
             <span className="selection-count">{selectedIds.length} Trips Selected</span>
             <button className="btn-clear-selection" style={{ background: 'transparent', border: 'none', color: '#64748B', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => setSelectedIds([])}>Clear</button>
           </div>
-          <div className="action-bar-btns" style={{ display: 'flex', gap: 8 }}>
+          <div className="action-bar-btns" style={{ display: 'flex', gap: 10 }}>
             <button 
               className="btn" 
-              style={{ height: 44, borderRadius: 12, border: '1.5px solid #F1F5F9', background: 'white', color: '#0F0D2E', padding: '0 16px', fontWeight: 800, fontSize: '0.75rem' }}
-              onClick={() => setShowDraftSelect(!showDraftSelect)}
+              style={{ height: 44, borderRadius: 12, border: '1.5px solid #CBD5E1', background: 'white', color: '#475569', padding: '0 20px', fontWeight: 850, fontSize: '0.75rem' }}
+              onClick={() => handleBulkAddToDraft(null, 'draft')}
               disabled={isBilling}
             >
-              Add to Draft
+              DRAFT
             </button>
             <button 
               className="btn btn-primary" 
-              style={{ height: 44, borderRadius: 12, padding: '0 16px', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 6 }}
-              onClick={() => handleBulkAddToDraft(null)}
+              style={{ height: 44, borderRadius: 12, padding: '0 24px', fontWeight: 950, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 10px 25px -5px rgba(124, 58, 237, 0.4)' }}
+              onClick={() => handleBulkAddToDraft(null, 'unpaid')}
               disabled={isBilling}
             >
-              {isBilling ? <Loader2 size={16} className="spin" /> : <Plus size={16} />}
-              Generate Bill
+              {isBilling ? <Loader2 size={18} className="spin" /> : <Plus size={18} />}
+              GENERATE BILL
             </button>
             
             {showDraftSelect && (

@@ -20,7 +20,7 @@ const avatarColor = (name = '') => COLORS[name.charCodeAt(0) % COLORS.length] ||
 const initials    = (name = '') => name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'
 
 // ── Single party card ────────────────────────────────
-function PartyCard({ party, onEdit, onDelete, onClick }) {
+function PartyCard({ party, onEdit, onDelete, onClick, showBalance = true }) {
   const [showActions, setShowActions] = useState(false)
   const col = avatarColor(party.name)
 
@@ -79,17 +79,19 @@ function PartyCard({ party, onEdit, onDelete, onClick }) {
       </div>
 
       {/* Balance chip */}
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{
-          fontSize: '0.875rem', fontWeight: 700,
-          color: party.balance > 0 ? '#DC2626' : party.balance < 0 ? '#16A34A' : '#6B7280'
-        }}>
-          {party.balance !== 0 ? `₹${Math.abs(party.balance)}` : '₹0'}
+      {showBalance && (
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{
+            fontSize: '0.875rem', fontWeight: 700,
+            color: party.balance > 0 ? '#DC2626' : party.balance < 0 ? '#16A34A' : '#6B7280'
+          }}>
+            {party.balance !== 0 ? `₹${Math.abs(party.balance)}` : '₹0'}
+          </div>
+          <div style={{ fontSize: '0.625rem', color: '#9CA3AF', marginTop: 2 }}>
+            {party.balance > 0 ? 'to receive' : party.balance < 0 ? 'to pay' : 'settled'}
+          </div>
         </div>
-        <div style={{ fontSize: '0.625rem', color: '#9CA3AF', marginTop: 2 }}>
-          {party.balance > 0 ? 'to receive' : party.balance < 0 ? 'to pay' : 'settled'}
-        </div>
-      </div>
+      )}
 
       {/* Actions trigger */}
       <button
@@ -347,13 +349,14 @@ export default function PartyList({ type }) {
               onEdit={p => navigate(`/${moduleType}/parties/edit/${p._id || p.id}`)}
               onDelete={handleDelete}
               onClick={p => navigate(`/${moduleType}/parties/${p._id || p.id}`)}
+              showBalance={moduleType !== 'transport'}
             />
           ))}
         </div>
       )}
 
       {/* Summary strip */}
-      {parties.length > 0 && !search && (
+      {parties.length > 0 && !search && moduleType !== 'transport' && (
         <div style={{
           marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr',
           gap: 10, 

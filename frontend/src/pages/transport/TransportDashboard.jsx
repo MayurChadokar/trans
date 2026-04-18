@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { Truck, MapPin, Receipt, TrendingUp, TrendingDown, Clock, ArrowRight, Plus, Users, Shield, Loader2 } from 'lucide-react'
 import { useBills } from '../../context/BillContext'
 import { useVehicles } from '../../context/VehicleContext'
+import { useParties } from '../../context/PartyContext'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -12,6 +13,7 @@ export default function TransportDashboard() {
   const { t } = useTranslation()
   const { bills } = useBills()
   const { vehicles } = useVehicles()
+  const { parties } = useParties()
   const navigate = useNavigate()
   const [dbStats, setDbStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -33,7 +35,7 @@ export default function TransportDashboard() {
 
     return [
       { label: t('total_revenue'), value: `₹${totalFreight.toLocaleString()}`, sub: 'All bills', icon: TrendingUp, color: '#16A34A', bg: '#DCFCE7' },
-      { label: t('outstanding'), value: `₹${pendingAmount.toLocaleString()}`, sub: 'Pending payment', icon: Clock, color: '#DC2626', bg: '#FEE2E2' },
+      { label: t('total_parties'), value: parties.length.toString(), sub: 'Active accounts', icon: Users, color: '#7C3AED', bg: '#F5F3FF' },
       { label: t('pending_trips'), value: totalTrips.toString(), sub: 'Unbilled missions', icon: Truck, color: '#F3811E', bg: '#FFF7ED' },
       { label: t('total_fleet'), value: fleetSize.toString(), sub: 'Live vehicles', icon: Users, color: '#2563EB', bg: '#DBEAFE' },
     ]

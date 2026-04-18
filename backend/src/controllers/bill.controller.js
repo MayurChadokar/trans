@@ -116,7 +116,7 @@ async function createBill(req, res, next) {
         billedToAddress, billedToCity, billedToState, billedToPincode,
         billedToGstin, billedToPan,
         items,
-        loadingCharge, unloadingCharge, detentionCharge, otherCharge,
+        loadingCharge, unloadingCharge, detentionCharge, otherCharge, extraCharges,
         gstPercent, gstType,
         notes, billingDate, billDate, paymentMode,
       } = req.body;
@@ -126,7 +126,7 @@ async function createBill(req, res, next) {
 
       // Calculate totals
       const itemsTotal = (items || []).reduce((s, it) => s + (parseFloat(it.amount) || 0) + (parseFloat(it.extraAmount) || 0), 0);
-      const extras = [loadingCharge, unloadingCharge, detentionCharge, otherCharge]
+      const extras = [loadingCharge, unloadingCharge, detentionCharge, otherCharge, extraCharges]
         .reduce((s, v) => s + (parseFloat(v) || 0), 0);
       const subTotal  = itemsTotal + extras;
       const gstAmt    = subTotal * ((parseFloat(gstPercent) || 0) / 100);
@@ -156,6 +156,7 @@ async function createBill(req, res, next) {
         unloadingCharge: parseFloat(unloadingCharge) || 0,
         detentionCharge: parseFloat(detentionCharge) || 0,
         otherCharge:     parseFloat(otherCharge)     || 0,
+        extraCharges:    parseFloat(extraCharges)    || 0,
         gstPercent: parseFloat(gstPercent) || 0,
         gstType: gstType || "CGST+SGST",
         gstAmount: gstAmt,

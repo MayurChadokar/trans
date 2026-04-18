@@ -40,6 +40,7 @@ const TransportBillSchema = new mongoose.Schema(
     unloadingCharge: { type: Number, default: 0 },
     detentionCharge: { type: Number, default: 0 },
     otherCharge:     { type: Number, default: 0 },
+    extraCharges:    { type: Number, default: 0 },
 
     // Tax
     gstPercent: { type: Number, default: 0 },
