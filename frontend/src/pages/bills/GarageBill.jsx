@@ -369,7 +369,6 @@ export default function GarageBill({ initialData }) {
                               if (item.isHeader) return
                               e.preventDefault()
                               setValue(`items.${index}.description`, item.label, { shouldValidate: true })
-                              append({ description: '', qty: '1', rate: '', amount: '' })
                               setActiveIdx(null)
                             }} style={{
                               padding: '10px 14px', fontSize: '0.8125rem',

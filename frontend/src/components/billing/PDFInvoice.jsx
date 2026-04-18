@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
   addrCol: { width: '50%', padding: 12 },
   addrColGarage: { width: '50%' },
   addrLabel: { fontWeight: 'bold', fontSize: 10, marginBottom: 6 },
-  addrLabelGarage: { backgroundColor: '#FFB800', paddingVertical: 3, paddingHorizontal: 8, borderRadius: 2, marginBottom: 8, fontSize: 9, fontWeight: 'bold' },
+  addrLabelGarage: { backgroundColor: '#FFB800', paddingVertical: 3, paddingHorizontal: 10, borderRadius: 2, marginBottom: 10, fontSize: 9, fontWeight: 'bold', alignSelf: 'flex-start' },
   addrText: { fontSize: 8.5, color: '#333', lineHeight: 1.4 },
 
   // Summary Banner
@@ -60,11 +60,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     borderBottomWidth: 1, 
     borderBottomColor: '#ccc', 
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    textAlign: 'center',
+    alignItems: 'stretch',
     fontSize: 9
+  },
+  tableCellGarage: {
+    padding: 8,
+    borderRightWidth: 1,
+    borderRightColor: '#ccc',
+    justifyContent: 'center'
   },
   
   colNo: { width: '4%' },
@@ -83,9 +86,9 @@ const styles = StyleSheet.create({
   totalLabelBox: { width: '15%', backgroundColor: '#f9f9f9', padding: 12, textAlign: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#ccc', fontWeight: 'bold' },
   totalValBox: { width: '15%', padding: 12, textAlign: 'right', fontWeight: 'bold', fontSize: 12 },
   
-  totalRowGarage: { flexDirection: 'row', borderWidth: 1, borderColor: '#ccc', marginTop: -1 },
-  totalLabelGarage: { width: '80%', padding: 10, fontWeight: 'bold', textAlign: 'left' },
-  totalValueGarage: { width: '20%', padding: 10, textAlign: 'right', fontWeight: 'bold', fontSize: 11, backgroundColor: '#f9f9f9' },
+  totalRowGarage: { flexDirection: 'row', borderLeftWidth: 1, borderBottomWidth: 1, borderColor: '#ccc', marginTop: -1 },
+  totalLabelGarage: { width: '80%', padding: 8, fontWeight: 'bold', textAlign: 'left', borderRightWidth: 1, borderColor: '#ccc' },
+  totalValueGarage: { width: '20%', padding: 8, textAlign: 'right', fontWeight: 'bold', fontSize: 10, backgroundColor: '#f9f9f9', borderRightWidth: 1, borderColor: '#ccc' },
 
   // Bank Section
   bankSection: { marginTop: 15, borderWidth: 1, borderColor: '#ccc' },
@@ -108,7 +111,7 @@ const styles = StyleSheet.create({
 });
 
 export const PDFInvoice = ({ bill, business }) => {
-  const isTransport = bill.billType === 'transport';   // ← was bill.type (wrong)
+  const isTransport = bill.billType === 'transport' || bill.type === 'transport'; 
   const items = bill.items || [];
   const themeColor = isTransport ? '#F3811E' : '#FFB800';
 
@@ -145,23 +148,24 @@ export const PDFInvoice = ({ bill, business }) => {
           </View>
         ) : (
           <View style={styles.headerGarage}>
-            <View style={{ width: '15%', marginRight: 15 }}>
-               <View style={{ width: 64, height: 64, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 1, borderStyle: 'solid', borderColor: '#eee' }}>
-                 {business.logoUrl ? (
-                   <Image src={business.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                 ) : (
-                   <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{(business.businessName || 'B')[0]}</Text>
-                 )}
-               </View>
-            </View>
-            <View style={{ width: '55%' }}>
+            <View style={{ width: '60%' }}>
               <Text style={{ fontSize: 22, fontWeight: 'heavy', marginBottom: 2 }}>Repair Estimate</Text>
               <Text style={{ fontSize: 8.5, opacity: 0.9 }}>{business.slogan || 'Restoring Vehicles, Reviving Peace of Mind'}</Text>
             </View>
-            <View style={{ width: '30%', textAlign: 'right' }}>
-              <Text style={{ fontSize: 13, fontWeight: 'bold' }}>{business.businessName?.toUpperCase()}</Text>
-              <Text style={{ fontSize: 8, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</Text>
-              <Text style={{ fontSize: 8, marginTop: 2 }}>Date: {dayjs(bill.billingDate || bill.createdAt).format('DD/MM/YYYY')}</Text>
+            <View style={{ width: '40%', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+               {/* Logo */}
+               <View style={{ width: 44, height: 44, backgroundColor: '#fff', borderRadius: 8, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                 {business.logoUrl ? (
+                   <Image src={business.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                 ) : (
+                   <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{(business.businessName || 'B')[0]}</Text>
+                 )}
+               </View>
+               <View style={{ textAlign: 'right' }}>
+                 <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{business.businessName?.toUpperCase()}</Text>
+                 <Text style={{ fontSize: 7, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</Text>
+                 <Text style={{ fontSize: 7, marginTop: 2 }}>Date: {dayjs(bill.billingDate || bill.createdAt).format('DD/MM/YYYY')}</Text>
+               </View>
             </View>
           </View>
         )}
@@ -170,14 +174,25 @@ export const PDFInvoice = ({ bill, business }) => {
         <View style={isTransport ? styles.addressArea : styles.addressAreaGarage}>
           <View style={isTransport ? [styles.addrCol, { borderRightWidth: 1, borderColor: '#ccc' }] : styles.addrColGarage}>
             <Text style={isTransport ? styles.addrLabel : styles.addrLabelGarage}>{isTransport ? 'From (Transporter)' : 'Customer Information'}</Text>
-            <Text style={[styles.addrText, { fontWeight: 'bold', fontSize: 10 }]}>{isTransport ? business.businessName : (bill.party?.name || bill.customerName)}</Text>
-            <Text style={styles.addrText}>{isTransport ? business.address : (bill.party?.address || `${bill.customerAddress || ''} ${bill.customerCity || ''} ${bill.customerState || ''} ${bill.customerPincode || ''}`)}</Text>
-            <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Mob :</Text> {isTransport ? business.phone : (bill.party?.phone || bill.customerPhone || '-')}</Text>
-            {isTransport && business.email && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {business.email}</Text>}
-            {isTransport && business.gstin && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {business.gstin}</Text>}
-            {isTransport && business.panNo && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>PAN :</Text> {business.panNo}</Text>}
-            {!isTransport && (bill.party?.email || bill.customerEmail) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {bill.party?.email || bill.customerEmail}</Text>}
-            {!isTransport && (bill.party?.gstin || bill.customerGstin) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {bill.party?.gstin || bill.customerGstin}</Text>}
+            {isTransport ? (
+              <>
+                <Text style={[styles.addrText, { fontWeight: 'bold', fontSize: 10 }]}>{business.businessName}</Text>
+                <Text style={styles.addrText}>{business.address}</Text>
+                <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Mob :</Text> {business.phone}</Text>
+                {business.email && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Email :</Text> {business.email}</Text>}
+                {business.gstin && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>GSTIN :</Text> {business.gstin}</Text>}
+                {business.panNo && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>PAN :</Text> {business.panNo}</Text>}
+              </>
+            ) : (
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>Name:</Text><Text style={styles.addrText}>{bill.customerName}</Text></View>
+                <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>Address:</Text><Text style={[styles.addrText, { flex: 1 }]}>{bill.customerAddress} {bill.customerCity} {bill.customerState} {bill.customerPincode}</Text></View>
+                <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>Phone:</Text><Text style={styles.addrText}>{bill.customerPhone}</Text></View>
+                {(bill.party?.email || bill.customerEmail) && <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>Email:</Text><Text style={styles.addrText}>{bill.party?.email || bill.customerEmail}</Text></View>}
+                {(bill.party?.gstin || bill.customerGstin) && <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>GSTIN:</Text><Text style={styles.addrText}>{bill.party?.gstin || bill.customerGstin}</Text></View>}
+                {(bill.party?.pan || bill.customerPan) && <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>PAN:</Text><Text style={styles.addrText}>{bill.party?.pan || bill.customerPan}</Text></View>}
+              </View>
+            )}
           </View>
           <View style={isTransport ? styles.addrCol : styles.addrColGarage}>
             <Text style={isTransport ? styles.addrLabel : styles.addrLabelGarage}>{isTransport ? 'Billed To (Customer)' : 'Vehicle Information'}</Text>
@@ -192,12 +207,12 @@ export const PDFInvoice = ({ bill, business }) => {
                 {(bill.party?.panNo || bill.billedToPan) && <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>PAN :</Text> {bill.party?.panNo || bill.billedToPan}</Text>}
               </>
             ) : (
-              <>
-                <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Make:</Text> {bill.vehicleCompany || '-'}</Text>
-                <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Model:</Text> {bill.vehicleModel || '-'}</Text>
-                <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>Reg No:</Text> {bill.vehicleNo?.toUpperCase() || '-'}</Text>
-                <Text style={styles.addrText}><Text style={{ fontWeight: 'bold' }}>KM Reading:</Text> {bill.kmReading || '-'}</Text>
-              </>
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>Make:</Text><Text style={styles.addrText}>{bill.vehicleCompany || '-'}</Text></View>
+                <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>Model:</Text><Text style={styles.addrText}>{bill.vehicleModel || '-'}</Text></View>
+                <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>Reg No:</Text><Text style={[styles.addrText, { fontWeight: 'bold' }]}>{bill.vehicleNo?.toUpperCase() || '-'}</Text></View>
+                <View style={{ flexDirection: 'row' }}><Text style={[styles.addrText, { width: 80, fontWeight: 'bold' }]}>KM Reading:</Text><Text style={styles.addrText}>{bill.kmReading || '-'}</Text></View>
+              </View>
             )}
           </View>
         </View>
@@ -206,7 +221,7 @@ export const PDFInvoice = ({ bill, business }) => {
         {isTransport && <View style={styles.summaryBanner}><Text>Billing Summary</Text></View>}
 
         {/* Table Content */}
-        <View style={{ borderWidth: 1, borderColor: '#ccc', borderTopWidth: isTransport ? 0 : 1 }}>
+        <View style={{ borderLeftWidth: 1, borderTopWidth: 1, borderColor: '#ccc' }}>
           <View style={isTransport ? styles.tableHeader : styles.tableHeaderGarage}>
             {isTransport ? (
               <>
@@ -221,10 +236,10 @@ export const PDFInvoice = ({ bill, business }) => {
               </>
             ) : (
               <>
-                <Text style={styles.colDesc}>Description</Text>
-                <Text style={styles.colQty}>Quantity</Text>
-                <Text style={styles.colRate}>Unit Price (₹)</Text>
-                <Text style={styles.colAmountGarage}>Total Price (₹)</Text>
+                <Text style={[styles.tableCellGarage, styles.colDesc, { fontWeight: 'bold' }]}>Description</Text>
+                <Text style={[styles.tableCellGarage, styles.colQty, { textAlign: 'center', fontWeight: 'bold' }]}>Quantity</Text>
+                <Text style={[styles.tableCellGarage, styles.colRate, { textAlign: 'right', fontWeight: 'bold' }]}>Unit Price (₹)</Text>
+                <Text style={[styles.tableCellGarage, styles.colAmountGarage, { textAlign: 'right', fontWeight: 'bold' }]}>Total Price (₹)</Text>
               </>
             )}
           </View>
@@ -244,18 +259,36 @@ export const PDFInvoice = ({ bill, business }) => {
                 </>
               ) : (
                 <>
-                  <Text style={styles.colDesc}>{item.description}</Text>
-                  <Text style={styles.colQty}>{item.qty || 1}</Text>
-                  <Text style={styles.colRate}>{parseFloat(item.rate || item.amount).toLocaleString()}</Text>
-                  <Text style={styles.colAmountGarage}>{parseFloat(item.amount).toLocaleString()}</Text>
+                  <Text style={[styles.tableCellGarage, styles.colDesc]}>{item.description}</Text>
+                  <Text style={[styles.tableCellGarage, styles.colQty, { textAlign: 'center' }]}>{item.qty || 1}</Text>
+                  <Text style={[styles.tableCellGarage, styles.colRate, { textAlign: 'right' }]}>{parseFloat(item.rate || item.amount).toLocaleString()}</Text>
+                  <Text style={[styles.tableCellGarage, styles.colAmountGarage, { textAlign: 'right' }]}>{parseFloat(item.amount).toLocaleString()}</Text>
                 </>
               )}
             </View>
           ))}
           {!isTransport && (
-            <View style={styles.totalRowGarage}>
-              <Text style={styles.totalLabelGarage}>Total</Text>
-              <Text style={styles.totalValueGarage}>₹{(bill.grandTotal || 0).toLocaleString()}</Text>
+            <View style={{ marginTop: -1 }}>
+               <View style={styles.totalRowGarage}>
+                 <Text style={[styles.totalLabelGarage, { fontSize: 8, color: '#444' }]}>Parts Subtotal</Text>
+                 <Text style={[styles.totalValueGarage, { fontSize: 8 }]}>₹{(bill.partsTotal || 0).toLocaleString()}</Text>
+               </View>
+               {parseFloat(bill.laborCharge || bill.labor || 0) > 0 && (
+                 <View style={styles.totalRowGarage}>
+                   <Text style={[styles.totalLabelGarage, { fontSize: 8, color: '#444' }]}>Labour Charge</Text>
+                   <Text style={[styles.totalValueGarage, { fontSize: 8 }]}>₹{parseFloat(bill.laborCharge || bill.labor).toLocaleString()}</Text>
+                 </View>
+               )}
+               {parseFloat(bill.gstAmount || 0) > 0 && (
+                 <View style={styles.totalRowGarage}>
+                   <Text style={[styles.totalLabelGarage, { fontSize: 8, color: '#444' }]}>GST ({bill.gstPercent}%)</Text>
+                   <Text style={[styles.totalValueGarage, { fontSize: 8 }]}>₹{parseFloat(bill.gstAmount).toLocaleString()}</Text>
+                 </View>
+               )}
+               <View style={styles.totalRowGarage}>
+                 <Text style={[styles.totalLabelGarage, { fontWeight: 'bold', fontSize: 10 }]}>Grand Total</Text>
+                 <Text style={[styles.totalValueGarage, { fontWeight: 'bold', fontSize: 11, backgroundColor: '#f2f2f2' }]}>₹{(bill.grandTotal || 0).toLocaleString()}</Text>
+               </View>
             </View>
           )}
 

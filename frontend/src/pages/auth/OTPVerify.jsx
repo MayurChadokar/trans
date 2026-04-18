@@ -16,7 +16,7 @@ export default function OTPVerify() {
   const location = useLocation()
   const { verifyOTP, sendOTP, verifying, error } = useAuth()
 
-  const phone = location.state?.phone || ''
+  const phone = location.state?.phone || localStorage.getItem('temp_login_phone') || ''
 
   // If no phone, redirect to login
   useEffect(() => {
@@ -194,7 +194,10 @@ export default function OTPVerify() {
         }}>
           <button
             id="btn-change-number"
-            onClick={() => navigate('/login')}
+            onClick={() => {
+              localStorage.removeItem('temp_login_phone');
+              navigate('/login');
+            }}
             className="btn btn-ghost"
             style={{ 
               display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px',

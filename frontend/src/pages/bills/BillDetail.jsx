@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBills } from '../../context/BillContext'
 import { useAuth } from '../../context/AuthContext'
-import { ArrowLeft, Printer, Trash2, Truck, Wrench, CreditCard, Download, FileText, Pencil } from 'lucide-react'
+import { ArrowLeft, Printer, Trash2, Download, FileText, Pencil, CheckCircle2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useRef, useState, useEffect } from 'react'
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import { PDFInvoice } from '../../components/billing/PDFInvoice'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 import PaymentModal from '../../components/billing/PaymentModal'
 
 // ── Transport Consolidated Invoice Layout ────────────────────────────────────
@@ -20,31 +20,31 @@ function TransportInvoice({ bill, business, onPayOnline }) {
       {/* Top Header Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', border: '1px solid #ccc', borderRadius: '4px 4px 0 0' }}>
         <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Logo / Placeholder Box */}
-            <div style={{ width: 52, height: 52, background: 'white', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', border: '1.5px solid #F1F5F9' }}>
-               {business?.logoUrl 
-                 ? <img src={business.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                 : <span style={{ fontSize: '1.4rem', fontWeight: 950, color: '#000' }}>{(business?.businessName || 'B')[0]}</span>
-               }
+          {/* Logo / Placeholder Box */}
+          <div style={{ width: 52, height: 52, background: 'white', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', border: '1.5px solid #F1F5F9' }}>
+            {business?.logoUrl
+              ? <img src={business.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: '1.4rem', fontWeight: 950, color: '#000' }}>{(business?.businessName || 'B')[0]}</span>
+            }
+          </div>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 950, margin: 0, letterSpacing: '-0.04em', lineHeight: 0.9 }}>{business?.businessName?.toUpperCase() || 'KHAN TRANSPORT'}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <div style={{ flex: 1, height: '1px', background: '#ddd' }} />
+              <p style={{ fontSize: '0.62rem', fontWeight: 400, color: '#555', textTransform: 'capitalize', margin: 0 }}>{business?.slogan || 'Move What Matters'}</p>
+              <div style={{ flex: 1, height: '1px', background: '#ddd' }} />
             </div>
-           <div style={{ flex: 1, textAlign: 'center' }}>
-             <h1 style={{ fontSize: '1.4rem', fontWeight: 950, margin: 0, letterSpacing: '-0.04em', lineHeight: 0.9 }}>{business?.businessName?.toUpperCase() || 'KHAN TRANSPORT'}</h1>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-               <div style={{ flex: 1, height: '1px', background: '#ddd' }} />
-               <p style={{ fontSize: '0.62rem', fontWeight: 400, color: '#555', textTransform: 'capitalize', margin: 0 }}>{business?.slogan || 'Move What Matters'}</p>
-               <div style={{ flex: 1, height: '1px', background: '#ddd' }} />
-             </div>
-           </div>
+          </div>
         </div>
         <div style={{ borderLeft: '1px solid #ccc' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', borderBottom: '1px solid #ccc' }}>
-              <div style={{ padding: '8px 4px', background: '#fff', fontWeight: 600, fontSize: '0.65rem', textAlign: 'right' }}>Bill No.:</div>
-              <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{bill.billNumber || 'Draft'}</div>
-            </div>
-           <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr' }}>
-             <div style={{ padding: '8px 4px', background: '#fff', fontWeight: 600, fontSize: '0.65rem', textAlign: 'right' }}>Date :</div>
-             <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{dayjs(displayDate).format('DD/MM/YYYY')}</div>
-           </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', borderBottom: '1px solid #ccc' }}>
+            <div style={{ padding: '8px 4px', background: '#fff', fontWeight: 600, fontSize: '0.65rem', textAlign: 'right' }}>Bill No.:</div>
+            <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{bill.billNumber || 'Draft'}</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr' }}>
+            <div style={{ padding: '8px 4px', background: '#fff', fontWeight: 600, fontSize: '0.65rem', textAlign: 'right' }}>Date :</div>
+            <div style={{ padding: '8px 6px', fontWeight: 800, fontSize: '0.75rem', borderLeft: '1px solid #eee', textAlign: 'left' }}>{dayjs(displayDate).format('DD/MM/YYYY')}</div>
+          </div>
         </div>
       </div>
 
@@ -53,17 +53,17 @@ function TransportInvoice({ bill, business, onPayOnline }) {
         <div style={{ padding: '8px 10px', background: '#fdf3f0', borderRight: '1px solid #ccc' }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: 2 }}>From : <span style={{ fontWeight: 900 }}>{business?.businessName}</span></div>
           <div style={{ fontSize: '0.6rem', color: '#333', lineHeight: 1.3 }}>
-            {business?.address}<br/>
-            Mob : {business?.phone} {business?.email && `| Email: ${business?.email}`}<br/>
+            {business?.address}<br />
+            Mob : {business?.phone} {business?.email && `| Email: ${business?.email}`}<br />
             {business?.gstin && `GSTIN: ${business?.gstin} `} {business?.panNo && `| PAN: ${business?.panNo}`}
           </div>
         </div>
         <div style={{ padding: '8px 10px', background: '#fdf3f0' }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: 2 }}>Billed To : <span style={{ fontWeight: 900 }}>{bill.billedToName}</span></div>
           <div style={{ fontSize: '0.6rem', color: '#333', lineHeight: 1.3 }}>
-            {bill.billedToAddress}<br/>
-            {bill.billedToCity && `${bill.billedToCity}, `}{bill.billedToState} {bill.billedToPincode}<br/>
-            {bill.billedToPhone && `Mob: ${bill.billedToPhone}`} {bill.billedToEmail && `| Email: ${bill.billedToEmail}`}<br/>
+            {bill.billedToAddress}<br />
+            {bill.billedToCity && `${bill.billedToCity}, `}{bill.billedToState} {bill.billedToPincode}<br />
+            {bill.billedToPhone && `Mob: ${bill.billedToPhone}`} {bill.billedToEmail && `| Email: ${bill.billedToEmail}`}<br />
             {bill.billedToGstin && `GSTIN: ${bill.billedToGstin} `} {bill.billedToPan && `| PAN: ${bill.billedToPan}`}
           </div>
         </div>
@@ -137,37 +137,37 @@ function TransportInvoice({ bill, business, onPayOnline }) {
       <div style={{ display: 'grid', gridTemplateColumns: '60% 40%', marginTop: 8, alignItems: 'start' }}>
         {/* Bank Details Box */}
         <div style={{ border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>
-           <div style={{ background: '#fdf3f0', padding: '6px 12px', fontSize: '0.7rem', fontWeight: 800, borderBottom: '1px solid #ccc' }}>BANK DETAILS :</div>
-           <div style={{ padding: '8px 12px', backgroundColor: '#fff' }}>
-              {/* Mapping for both bankDetails object and legacy top-level fields */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                 <div style={{ fontSize: '0.65rem' }}>
-                    <span style={{ fontWeight: 600, color: '#555' }}>A/c No : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.accountNumber || business?.bankAccNo || ''}</span>
-                 </div>
-                 <div style={{ fontSize: '0.65rem' }}>
-                    <span style={{ fontWeight: 600, color: '#555' }}>IFSC : </span><span style={{ fontWeight: 900 }}>{(business?.bankDetails?.ifsc || business?.bankIfsc || '').toUpperCase()}</span>
-                 </div>
-                 <div style={{ fontSize: '0.65rem', marginTop: 3 }}>
-                    <span style={{ fontWeight: 600, color: '#555' }}>Name : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.accountName || business?.name || ''}</span>
-                 </div>
-                 <div style={{ fontSize: '0.65rem', marginTop: 3 }}>
-                    <span style={{ fontWeight: 600, color: '#555' }}>Bank : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.bankName || business?.bankName || ''}</span>
-                 </div>
+          <div style={{ background: '#fdf3f0', padding: '6px 12px', fontSize: '0.7rem', fontWeight: 800, borderBottom: '1px solid #ccc' }}>BANK DETAILS :</div>
+          <div style={{ padding: '8px 12px', backgroundColor: '#fff' }}>
+            {/* Mapping for both bankDetails object and legacy top-level fields */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <div style={{ fontSize: '0.65rem' }}>
+                <span style={{ fontWeight: 600, color: '#555' }}>A/c No : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.accountNumber || business?.bankAccNo || ''}</span>
               </div>
-           </div>
+              <div style={{ fontSize: '0.65rem' }}>
+                <span style={{ fontWeight: 600, color: '#555' }}>IFSC : </span><span style={{ fontWeight: 900 }}>{(business?.bankDetails?.ifsc || business?.bankIfsc || '').toUpperCase()}</span>
+              </div>
+              <div style={{ fontSize: '0.65rem', marginTop: 3 }}>
+                <span style={{ fontWeight: 600, color: '#555' }}>Name : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.accountName || business?.name || ''}</span>
+              </div>
+              <div style={{ fontSize: '0.65rem', marginTop: 3 }}>
+                <span style={{ fontWeight: 600, color: '#555' }}>Bank : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.bankName || business?.bankName || ''}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Signatory Section on Right */}
         <div style={{ textAlign: 'center', paddingBottom: 6 }}>
-           <div style={{ fontSize: '0.85rem', fontWeight: 900 }}>For {business?.businessName || ''},</div>
-           <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-              {business?.signatureUrl ? (
-                <img src={business.signatureUrl} style={{ maxHeight: '100%', maxWidth: 140, objectFit: 'contain' }} />
-              ) : (
-                <div style={{ width: 170, borderBottom: '1px solid #000', marginTop: 35 }} />
-              )}
-           </div>
-           <div style={{ fontSize: '0.7rem', color: '#666' }}>(Authorized Signatory)</div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 900 }}>For {business?.businessName || ''},</div>
+          <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+            {business?.signatureUrl ? (
+              <img src={business.signatureUrl} style={{ maxHeight: '100%', maxWidth: 140, objectFit: 'contain' }} />
+            ) : (
+              <div style={{ width: 170, borderBottom: '1px solid #000', marginTop: 35 }} />
+            )}
+          </div>
+          <div style={{ fontSize: '0.7rem', color: '#666' }}>(Authorized Signatory)</div>
         </div>
       </div>
 
@@ -210,7 +210,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
       </div>
 
       <div style={{ padding: window.innerWidth < 640 ? '12px' : '30px', border: '1px solid #eee', borderTop: 'none', borderRadius: '0 0 8px 8px', background: 'white' }}>
-        
+
         {/* Info Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 30, marginBottom: 30 }}>
           {/* Customer Info */}
@@ -266,10 +266,10 @@ function GarageInvoice({ bill, business, onPayOnline }) {
                 <td style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 700, fontSize: '0.7rem' }}>₹{bill.partsTotal?.toLocaleString()}</td>
               </tr>
               {/* Labour Charge - only show if > 0 */}
-              {parseFloat(bill.labor || 0) > 0 && (
+              {parseFloat(bill.laborCharge || bill.labor || 0) > 0 && (
                 <tr>
                   <td colSpan="3" style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'left', fontWeight: 700, color: '#555', fontSize: '0.7rem' }}>Labour Charge</td>
-                  <td style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 700, fontSize: '0.7rem' }}>₹{parseFloat(bill.labor).toLocaleString()}</td>
+                  <td style={{ padding: '4px 10px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 700, fontSize: '0.7rem' }}>₹{parseFloat(bill.laborCharge || bill.labor).toLocaleString()}</td>
                 </tr>
               )}
               {/* GST - only show if > 0 */}
@@ -302,12 +302,12 @@ function GarageInvoice({ bill, business, onPayOnline }) {
         <div style={{ borderTop: '1px solid #ddd', margin: '20px 0' }} />
 
         {/* Footer info splits */}
-        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 640 ? '1fr' : '1.4fr 1fr', gap: window.innerWidth < 640 ? 20 : 40, borderTop: '1px solid #ddd', paddingTop: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 30, borderTop: '1px solid #ddd', paddingTop: 20 }}>
           <div style={{ border: '1px solid #ddd', padding: 12, borderRadius: 6, background: '#fafafa' }}>
-             <h4 style={{ margin: '0 0 10px 0', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Terms and Conditions</h4>
-             <p style={{ margin: 0, fontSize: '0.65rem', color: '#555', lineHeight: 1.6 }}>
-                By signing, customer authorizes {business?.businessName || 'garage'} to proceed with repairs. Estimate valid for 30 days.
-             </p>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Terms and Conditions</h4>
+            <p style={{ margin: 0, fontSize: '0.65rem', color: '#555', lineHeight: 1.6 }}>
+              By signing, customer authorizes {business?.businessName || 'garage'} to proceed with repairs. Estimate valid for 30 days.
+            </p>
           </div>
           <div style={{ paddingTop: 4 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 4 }}>
@@ -332,7 +332,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
 
 
       </div>
-      
+
       {/* Footer stripe */}
       <div style={{ height: 16, background: themeColor, borderRadius: '0 0 8px 8px' }} />
     </div>
@@ -346,8 +346,10 @@ export default function BillDetail() {
   const { user: sessionUser } = useAuth()
   const navigate = useNavigate()
   const printRef = useRef()
+  const invoiceRef = useRef()
   const [isPayModalOpen, setIsPayModalOpen] = useState(false)
-  
+  const [isDownloading, setIsDownloading] = useState(false)
+
   const [bill, setBill] = useState(() => getBill(id))
   const [loading, setLoading] = useState(!bill)
 
@@ -398,6 +400,47 @@ export default function BillDetail() {
     setTimeout(() => { win.focus(); win.print() }, 300)
   }
 
+  const handleDownloadPDF = async () => {
+    if (!invoiceRef.current || isDownloading) return
+    setIsDownloading(true)
+
+    const element = invoiceRef.current
+    const originalWidth = element.style.width
+
+    // Force a fixed width for the capture to avoid cutting off on mobile
+    element.style.width = '760px'
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 760,
+        windowWidth: 760
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const a4Width = 210 // mm
+      const pxToMm = a4Width / 760
+      const contentHeightMm = canvas.height * (a4Width / (760 * 2)) // canvas is scaled by 2
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [a4Width, contentHeightMm],
+      })
+
+      pdf.addImage(imgData, 'PNG', 0, 0, a4Width, contentHeightMm)
+      pdf.save(`Invoice_${bill.billNumber || bill._id}.pdf`)
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+    } finally {
+      element.style.width = originalWidth
+      setIsDownloading(false)
+    }
+  }
+
   const handleDelete = () => {
     if (window.confirm('Delete this bill?')) {
       deleteBill(id)
@@ -418,10 +461,25 @@ export default function BillDetail() {
           <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{dayjs(bill.billingDate || bill.createdAt).format('DD MMM YYYY')}</p>
         </div>
         <div style={{ display: 'flex', gap: 6, marginLeft: window.innerWidth < 640 ? 0 : 'auto', order: window.innerWidth < 640 ? 2 : 3 }}>
+          {bill.status !== 'paid' && (
+            <button
+              id="btn-mark-paid"
+              onClick={() => {
+                if (window.confirm('Mark this bill as fully paid?')) {
+                  recordPayment(bill._id, bill.grandTotal || 0).then(() => {
+                    setBill(prev => ({ ...prev, status: 'paid' }))
+                  })
+                }
+              }}
+              style={{ padding: '0 12px', borderRadius: 12, height: 40, border: 'none', background: '#DCFCE7', color: '#16A34A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 800 }}
+            >
+              <CheckCircle2 size={16} /> Mark Paid
+            </button>
+          )}
           {bill.status === 'draft' && (
-            <button 
-              id="btn-edit-bill" 
-              onClick={() => navigate(`/${bill.billType}/bills/edit/${bill._id}`)} 
+            <button
+              id="btn-edit-bill"
+              onClick={() => navigate(`/${bill.billType}/bills/edit/${bill._id}`)}
               style={{ padding: '0 12px', borderRadius: 12, height: 40, border: '1.5px solid #E2E8F0', background: 'white', color: '#4F46E5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 700 }}
             >
               <Pencil size={16} /> Edit Draft
@@ -433,40 +491,39 @@ export default function BillDetail() {
           <button id="btn-print-bill" onClick={handlePrint} className="btn-icon" style={{ background: 'white', borderRadius: 12, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EEE' }}>
             <Printer size={18} />
           </button>
-          <PDFDownloadLink
-            document={<PDFInvoice bill={bill} business={business} />}
-            fileName={`Invoice_${bill.billNumber || bill._id}.pdf`}
+          <button
+            id="btn-download-pdf"
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
             className="btn btn-primary"
-            style={{ padding: window.innerWidth < 640 ? '0 10px' : '0 12px', borderRadius: 12, height: 40, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem' }}
+            style={{ padding: window.innerWidth < 640 ? '0 10px' : '0 12px', borderRadius: 12, height: 40, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', opacity: isDownloading ? 0.7 : 1, cursor: isDownloading ? 'wait' : 'pointer' }}
           >
-            {({ loading }) => (
-              <>
-                <Download size={16} />
-                {loading ? '...' : (window.innerWidth < 640 ? 'PDF' : 'Download PDF')}
-              </>
-            )}
-          </PDFDownloadLink>
+            <Download size={16} />
+            {isDownloading ? 'Generating...' : (window.innerWidth < 640 ? 'PDF' : 'Download PDF')}
+          </button>
         </div>
       </div>
 
       <div ref={printRef} className="invoice-container" style={{ background: 'white', borderRadius: 24, padding: '24px 16px', boxShadow: '0 10px 40px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.03)', overflowX: 'auto' }}>
-        {(bill.billType === 'transport' || bill.type === 'transport')
-          ? <TransportInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />
-          : <GarageInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />}
+        <div ref={invoiceRef}>
+          {(bill.billType === 'transport' || bill.type === 'transport')
+            ? <TransportInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />
+            : <GarageInvoice bill={bill} business={business} onPayOnline={() => setIsPayModalOpen(true)} />}
+        </div>
       </div>
 
-      <PaymentModal 
-        isOpen={isPayModalOpen} 
-        onClose={() => setIsPayModalOpen(false)} 
-        bill={bill} 
-        business={business} 
+      <PaymentModal
+        isOpen={isPayModalOpen}
+        onClose={() => setIsPayModalOpen(false)}
+        bill={bill}
+        business={business}
         onSuccess={(amount) => recordPayment(bill._id, amount)}
       />
 
       <div style={{ marginTop: 20, textAlign: 'center' }}>
-         <button className="btn btn-ghost" onClick={() => navigate('/bills')} style={{ fontSize: '0.85rem' }}>
-           <FileText size={16} /> Back to all bills
-         </button>
+        <button className="btn btn-ghost" onClick={() => navigate('/bills')} style={{ fontSize: '0.85rem' }}>
+          <FileText size={16} /> Back to all bills
+        </button>
       </div>
     </div>
   )

@@ -23,9 +23,11 @@ export default function Login() {
 
   const handleSend = async () => {
     if (!validate()) return
-    const res = await sendOTP(phone.replace(/\D/g, ''))
+    const sanitizedPhone = phone.replace(/\D/g, '')
+    const res = await sendOTP(sanitizedPhone)
     if (res.success) {
-      navigate('/otp', { state: { phone: phone.replace(/\D/g, '') } })
+      localStorage.setItem('temp_login_phone', sanitizedPhone)
+      navigate('/otp', { state: { phone: sanitizedPhone } })
     } else {
       setError('Could not send OTP. Please try again.')
     }

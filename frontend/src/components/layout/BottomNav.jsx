@@ -32,20 +32,21 @@ export default function BottomNav() {
 
   return (
     <nav className="bottom-nav" role="navigation" aria-label="Bottom navigation">
-      <div className="bottom-nav-inner" style={{ gap: 0, overflowX: 'auto', padding: '0 4px', scrollbarWidth: 'none' }}>
+      <div className="bottom-nav-inner">
         {/* Left Side */}
         {leftItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/dashboard'}
+            end={item.to.endsWith('dashboard')}
             className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
-            style={{ minWidth: 54 }}
           >
             <div className="bottom-nav-icon-wrap">
-              <item.icon size={20} />
+              <item.icon size={22} />
             </div>
-            <span className="bottom-nav-label" style={{ fontSize: '0.6rem' }}>{item.label}</span>
+            <span className="bottom-nav-label">
+              {item.label}
+            </span>
           </NavLink>
         ))}
 
@@ -54,12 +55,12 @@ export default function BottomNav() {
           className="bottom-nav-fab"
           id="btn-create-new"
           onClick={handleNewClick}
-          style={{ padding: '0 8px' }}
+          aria-label={t('new_bill')}
         >
-          <div className="fab-btn" style={{ width: 46, height: 46, marginTop: -24 }}>
-            <Plus size={24} color="white" />
+          <div className="fab-btn">
+            <Plus size={28} color="white" strokeWidth={3} />
           </div>
-          <span style={{ fontSize: '0.6rem' }}>{t('new_bill')}</span>
+          <span className="bottom-nav-label" style={{ marginTop: 6 }}>{t('new_bill')}</span>
         </button>
 
         {/* Right Side */}
@@ -68,12 +69,13 @@ export default function BottomNav() {
             key={item.to}
             to={item.to}
             className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
-            style={{ minWidth: 54 }}
           >
             <div className="bottom-nav-icon-wrap">
-              <item.icon size={20} />
+              <item.icon size={22} />
             </div>
-            <span className="bottom-nav-label" style={{ fontSize: '0.6rem' }}>{item.label}</span>
+            <span className="bottom-nav-label">
+              {item.label}
+            </span>
           </NavLink>
         ))}
       </div>

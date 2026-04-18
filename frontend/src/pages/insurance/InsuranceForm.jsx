@@ -28,7 +28,7 @@ export default function InsuranceForm() {
   }
 
   return (
-    <div className="page-wrapper animate-fadeIn" style={{ background: '#F9FAFB', minHeight: '100vh' }}>
+    <div className="page-wrapper animate-fadeIn" style={{ background: '#F9FAFB', minHeight: '100vh', margin: window.innerWidth < 640 ? '-16px' : '0' }}>
       {/* Header */}
       <div style={{ background: '#4C1D95', color: 'white', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'rgba(255,255,255,0.1)', padding: 10, borderRadius: 14, color: 'white', cursor: 'pointer' }}>
@@ -39,7 +39,7 @@ export default function InsuranceForm() {
       </div>
 
       {/* Main Content */}
-      <div style={{ padding: '24px 20px' }}>
+      <div style={{ padding: window.innerWidth < 640 ? '16px 16px' : '24px 20px' }}>
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#111827', margin: 0 }}>Compare & save <br/> up to 95%*</h1>
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -127,8 +127,8 @@ export default function InsuranceForm() {
         {/* Brand Section */}
         <div style={{ marginTop: 24, background: '#2D2A5A', borderRadius: 28, padding: '24px', color: 'white', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>Buying a brand new vehicle?</h4>
-            <p style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 4 }}>Save up to 95% on first year premium</p>
+            <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: 'white' }}>Buying a brand new vehicle?</h4>
+            <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>Save up to 95% on first year premium</p>
             <button style={{ background: 'none', border: 'none', color: '#C4B5FD', padding: 0, marginTop: 10, fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
               Insure Now <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
             </button>

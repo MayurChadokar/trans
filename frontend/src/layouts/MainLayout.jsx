@@ -31,20 +31,20 @@ export default function MainLayout() {
 
   const pageMeta = {
     '/transport/dashboard': { title: t('dashboard'), subtitle: 'Overview of logistics' },
-    '/transport/bills':     { title: t('bills'),     subtitle: 'Freight & consolidated invoices' },
-    '/transport/parties':   { title: t('parties'),             subtitle: 'Manage your transport clients' },
-    '/garage/dashboard':    { title: t('dashboard'),    subtitle: 'Overview of service workshop' },
-    '/garage/bills':        { title: t('bills'),        subtitle: 'Service & spare invoices' },
-    '/garage/parties':      { title: t('parties'),           subtitle: 'Manage your garage customers' },
-    '/finance':             { title: t('finance'),             subtitle: 'Reports & transactions' },
-    '/profile':             { title: t('profile'),             subtitle: 'Business & account info' },
-    '/transport/trips':     { title: t('trips'),          subtitle: 'Manage transport trips' },
-    '/transport/vehicles':  { title: t('vehicles'),       subtitle: 'Your fleet' },
-    '/garage/vehicles':     { title: t('vehicles'),       subtitle: 'Customer vehicles' },
-    '/garage/services':     { title: t('services'),       subtitle: 'Service records' },
-    '/admin/dashboard':     { title: t('admin'),    subtitle: 'System overview' },
-    '/admin/users':         { title: t('user_mgmt'),subtitle: 'Manage platform users' },
-    '/admin/billing':       { title: t('bills'),subtitle: 'All system bills' },
+    '/transport/bills': { title: t('bills'), subtitle: 'Freight & consolidated invoices' },
+    '/transport/parties': { title: t('parties'), subtitle: 'Manage your transport clients' },
+    '/garage/dashboard': { title: t('dashboard'), subtitle: 'Overview of service workshop' },
+    '/garage/bills': { title: t('bills'), subtitle: 'Service & spare invoices' },
+    '/garage/parties': { title: t('parties'), subtitle: 'Manage your garage customers' },
+    '/finance': { title: t('finance'), subtitle: 'Reports & transactions' },
+    '/profile': { title: t('profile'), subtitle: 'Business & account info' },
+    '/transport/trips': { title: t('trips'), subtitle: 'Manage transport trips' },
+    '/transport/vehicles': { title: t('vehicles'), subtitle: 'Your fleet' },
+    '/garage/vehicles': { title: t('vehicles'), subtitle: 'Customer vehicles' },
+    '/garage/services': { title: t('services'), subtitle: 'Service records' },
+    '/admin/dashboard': { title: t('admin'), subtitle: 'System overview' },
+    '/admin/users': { title: t('user_mgmt'), subtitle: 'Manage platform users' },
+    '/admin/billing': { title: t('bills'), subtitle: 'All system bills' },
     '/admin/software-sales': { title: null, subtitle: null },
   }
 
@@ -60,18 +60,18 @@ export default function MainLayout() {
   // Global Navigation: Level 1 pages (Dashboard, main lists) get Hamburger. 
   // Level 2+ pages (Details, Forms) get Back Button.
   const pathParts = location.pathname.split('/').filter(Boolean)
-  
+
   // Decide if this is a main top-level page
-  const isTopLevel = pathParts.length <= 1 || 
-                    (pathParts.length === 2 && (pathParts[1] === 'dashboard' || pathParts[1] === 'bills' || pathParts[1] === 'parties' || pathParts[1] === 'vehicles' || pathParts[1] === 'services'))
-  
+  const isTopLevel = pathParts.length <= 1 ||
+    (pathParts.length === 2 && (pathParts[1] === 'dashboard' || pathParts[1] === 'bills' || pathParts[1] === 'parties' || pathParts[1] === 'vehicles' || pathParts[1] === 'services'))
+
   const showBack = !isTopLevel && location.pathname !== '/dashboard' && !location.pathname.endsWith('/dashboard')
 
   return (
     <div className={`app-layout ${location.pathname.startsWith('/admin') ? 'admin-layout' : ''}`}>
       {/* Mobile Drawer Backdrop */}
-      <div 
-        className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`} 
+      <div
+        className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`}
         onClick={closeMobileMenu}
       />
 
@@ -82,7 +82,7 @@ export default function MainLayout() {
       <main className={`main-content${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
         {/* Desktop top header (Only for Non-Admin) */}
         {!location.pathname.startsWith('/admin') && <TopHeader title={meta.title} subtitle={meta.subtitle} />}
-        
+
         {/* Mobile sticky header (Only for Non-Admin) */}
         {!location.pathname.startsWith('/admin') && (
           <MobileHeader
