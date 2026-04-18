@@ -102,10 +102,7 @@ export default function TripManagement() {
     numberOfTrips: '1',
     amount: '',
     chalanNumber: '',
-    loadingCharge: '',
-    unloadingCharge: '',
-    detentionCharge: '',
-    otherCharge: '',
+    extraCharges: '',
     deliveries: [{ from: '', to: '' }]
   })
 
@@ -141,11 +138,7 @@ export default function TripManagement() {
       const totalCount = sorted.reduce((sum, t) => sum + (parseInt(t.numberOfTrips) || 1), 0)
       
       // Aggregate all charge types
-      const loadingTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.loadingCharge) || 0), 0)
-      const unloadingTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.unloadingCharge) || 0), 0)
-      const detentionTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.detentionCharge) || 0), 0)
-      const otherTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.otherCharge) || 0), 0)
-      const totalExtra = loadingTotal + unloadingTotal + detentionTotal + otherTotal
+      const totalExtra = sorted.reduce((sum, t) => sum + (parseFloat(t.extraCharges) || 0), 0)
 
       const chalanNums = [...new Set(sorted.map(t => t.chalanNumber).filter(Boolean))].join(', ')
       const allBilled = sorted.every(t => t.billed)
@@ -239,9 +232,11 @@ export default function TripManagement() {
         return;
       }
 
-      const partyId = selectedTripDocs[0].party?._id || selectedTripDocs[0].partyId
+      const firstTrip = selectedTripDocs[0]
+      const partyObj = firstTrip.party
+      const partyId = partyObj?._id || partyObj
       
-      const uniqueParties = [...new Set(selectedTripDocs.map(t => t.party?._id || t.partyId))]
+      const uniqueParties = [...new Set(selectedTripDocs.map(t => (t.party?._id || t.party)))]
       if (uniqueParties.length > 1) {
         alert("Please select trips for the same Party/Account to group them in one bill.")
         setIsBilling(false)
@@ -253,11 +248,7 @@ export default function TripManagement() {
       selectedTripDocs.forEach(trip => {
         const date = dayjs(trip.startDate).format('YYYY-MM-DD')
         const chalanNo = trip.chalanNumber || ''
-        const cLoader = parseFloat(trip.loadingCharge) || 0
-        const cUnloader = parseFloat(trip.unloadingCharge) || 0
-        const cDetention = parseFloat(trip.detentionCharge) || 0
-        const cOther = parseFloat(trip.otherCharge) || 0
-        const tExtras = cLoader + cUnloader + cDetention + cOther
+        const tExtras = parseFloat(trip.extraCharges) || 0
         
         // Robust vehicle number retrieval
         const tripVehicleId = trip.vehicle?._id || trip.vehicle;
@@ -302,9 +293,18 @@ export default function TripManagement() {
       } else {
         finalBill = await createBill({
           party: partyId,
+          billedToName: partyObj?.name,
+          billedToPhone: partyObj?.phone,
+          billedToEmail: partyObj?.email,
+          billedToAddress: partyObj?.address,
+          billedToCity: partyObj?.city,
+          billedToState: partyObj?.state,
+          billedToPincode: partyObj?.pincode,
+          billedToGstin: partyObj?.gstin,
+          billedToPan: partyObj?.pan,
           billType: 'transport',
           status: forceStatus,
-          trips: selectedIds,
+          trips: allIndividualIds,
           items: billItems
         })
       }
@@ -370,10 +370,7 @@ export default function TripManagement() {
       party: formData.partyId,
       numberOfTrips: parseInt(formData.numberOfTrips) || 1,
       amount: parseFloat(formData.amount),
-      loadingCharge: parseFloat(formData.loadingCharge) || 0,
-      unloadingCharge: parseFloat(formData.unloadingCharge) || 0,
-      detentionCharge: parseFloat(formData.detentionCharge) || 0,
-      otherCharge: parseFloat(formData.otherCharge) || 0,
+      extraCharges: parseFloat(formData.extraCharges) || 0,
       deliveries: formData.deliveries.slice(0, parseInt(formData.numberOfTrips) || 1)
     }
 
@@ -604,7 +601,6 @@ export default function TripManagement() {
                       onChange={e => {
                         const newD = [...formData.deliveries];
                         newD[idx] = { ...newD[idx], from: e.target.value };
-                        // Update legacy source if it's the first delivery
                         const update = { deliveries: newD };
                         if(idx === 0) update.source = e.target.value;
                         setFormData({...formData, ...update});
@@ -620,7 +616,6 @@ export default function TripManagement() {
                       onChange={e => {
                         const newD = [...formData.deliveries];
                         newD[idx] = { ...newD[idx], to: e.target.value };
-                        // Update legacy destination if it's the last delivery
                         const update = { deliveries: newD };
                         if(idx === (parseInt(formData.numberOfTrips) - 1)) update.destination = e.target.value;
                         setFormData({...formData, ...update});
@@ -640,23 +635,11 @@ export default function TripManagement() {
                 <input value={formData.chalanNumber} onChange={e => setFormData({...formData, chalanNumber: e.target.value})} placeholder="CH-123456" className="form-input" />
               </div>
               <div className="form-group">
-                <label className="form-label">Loading (₹)</label>
-                <input type="number" value={formData.loadingCharge} onChange={e => setFormData({...formData, loadingCharge: e.target.value})} placeholder="0" className="form-input" />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-              <div className="form-group">
-                <label className="form-label">Unloading</label>
-                <input type="number" value={formData.unloadingCharge} onChange={e => setFormData({...formData, unloadingCharge: e.target.value})} placeholder="0" className="form-input" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Detention</label>
-                <input type="number" value={formData.detentionCharge} onChange={e => setFormData({...formData, detentionCharge: e.target.value})} placeholder="0" className="form-input" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Other</label>
-                <input type="number" value={formData.otherCharge} onChange={e => setFormData({...formData, otherCharge: e.target.value})} placeholder="0" className="form-input" />
+                <label className="form-label" style={{ color: '#D97706' }}>Extra Charges (₹)</label>
+                <div className="input-group">
+                  <span className="input-prefix" style={{ color: '#D97706' }}>₹</span>
+                  <input type="number" value={formData.extraCharges} onChange={e => setFormData({...formData, extraCharges: e.target.value})} placeholder="0" className="form-input" style={{ color: '#D97706', fontWeight: 700 }} />
+                </div>
               </div>
             </div>
 
@@ -775,9 +758,9 @@ export default function TripManagement() {
                             <div className="meta-item"><Calendar size={12} /> {dayjs(trip.date).format('DD MMM')}</div>
                             {trip.chalanNumber && <div className="meta-item"><FileText size={12} /> {trip.chalanNumber}</div>}
                             <div className="trip-badge">{trip.numberOfTrips} DELIVERY(S)</div>
-                            {((parseFloat(trip.loadingCharge) || 0) + (parseFloat(trip.unloadingCharge) || 0) + (parseFloat(trip.detentionCharge) || 0) + (parseFloat(trip.otherCharge) || 0)) > 0 && 
+                            {(parseFloat(trip.extraCharges) || 0) > 0 && 
                               <div className="trip-badge extra" style={{ background: '#FEF3C7', color: '#D97706' }}>
-                                +₹{(parseFloat(trip.loadingCharge) || 0) + (parseFloat(trip.unloadingCharge) || 0) + (parseFloat(trip.detentionCharge) || 0) + (parseFloat(trip.otherCharge) || 0)} EXTRA
+                                +₹{(parseFloat(trip.extraCharges)).toLocaleString()} EXTRA
                               </div>
                             }
                             <div className="billing-status-chip" style={{ 

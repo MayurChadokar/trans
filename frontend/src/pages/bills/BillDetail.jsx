@@ -59,12 +59,12 @@ function TransportInvoice({ bill, business, onPayOnline }) {
           </div>
         </div>
         <div style={{ padding: '8px 10px', background: '#fdf3f0' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: 2 }}>Billed To : <span style={{ fontWeight: 900 }}>{bill.billedToName}</span></div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: 2 }}>Billed To : <span style={{ fontWeight: 900 }}>{bill.billedToName || bill.party?.name || '—'}</span></div>
           <div style={{ fontSize: '0.6rem', color: '#333', lineHeight: 1.3 }}>
-            {bill.billedToAddress}<br />
-            {bill.billedToCity && `${bill.billedToCity}, `}{bill.billedToState} {bill.billedToPincode}<br />
-            {bill.billedToPhone && `Mob: ${bill.billedToPhone}`} {bill.billedToEmail && `| Email: ${bill.billedToEmail}`}<br />
-            {bill.billedToGstin && `GSTIN: ${bill.billedToGstin} `} {bill.billedToPan && `| PAN: ${bill.billedToPan}`}
+            {bill.billedToAddress || bill.party?.address}<br />
+            {(bill.billedToCity || bill.party?.city) && `${bill.billedToCity || bill.party?.city}, `}{bill.billedToState || bill.party?.state} {bill.billedToPincode || bill.party?.pincode}<br />
+            {(bill.billedToPhone || bill.party?.phone) && `Mob: ${bill.billedToPhone || bill.party?.phone}`} {(bill.billedToEmail || bill.party?.email) && `| Email: ${bill.billedToEmail || bill.party?.email}`}<br />
+            {(bill.billedToGstin || bill.party?.gstin) && `GSTIN: ${bill.billedToGstin || bill.party?.gstin} `} {(bill.billedToPan || bill.party?.pan) && `| PAN: ${bill.billedToPan || bill.party?.pan}`}
           </div>
         </div>
       </div>
