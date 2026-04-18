@@ -42,11 +42,7 @@ function SectionCard({ icon: Icon, iconBg, iconColor, title, children }) {
   )
 }
 
-const PAYMENT_MODES = [
-  { val: 'topay',   label: 'To Pay',   color: '#DC2626', bg: '#FEE2E2' },
-  { val: 'paid',    label: 'Paid',     color: '#16A34A', bg: '#DCFCE7' },
-  { val: 'tbb',     label: 'TBB',      color: '#D97706', bg: '#FEF3C7' },
-]
+
 
 export default function TransportBill({ initialData }) {
   const { addBill, updateBill } = useBills()
@@ -81,17 +77,18 @@ export default function TransportBill({ initialData }) {
       items: initialData?.items?.map(it => ({
         ...it,
         date: dayjs(it.date).format('YYYY-MM-DD'),
-        amount: it.amount?.toString()
+        amount: it.amount?.toString(),
+        tempoNo: it.tempoNo || '',
+        extraAmount: it.extraAmount?.toString() || ''
       })) || [
-        { date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '' }
+        { date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '', tempoNo: '', extraAmount: '' }
       ],
       loadingCharge: initialData?.loadingCharge?.toString() || '0', 
       unloadingCharge: initialData?.unloadingCharge?.toString() || '0',
       detentionCharge: initialData?.detentionCharge?.toString() || '0', 
       otherCharge: initialData?.otherCharge?.toString() || '0',
-      gstPercent: initialData?.gstPercent?.toString() || '0', 
+      gstPercent: initialData?.gstPercent?.toString() || '0',
       gstType: initialData?.gstType || 'CGST+SGST',
-      paymentMode: initialData?.paymentMode || 'topay',
       notes: initialData?.notes || 'Grateful for Moving What Matters to You!',
     }
   })
@@ -114,8 +111,10 @@ export default function TransportBill({ initialData }) {
         items: initialData.items?.map(it => ({
           ...it,
           date: dayjs(it.date).format('YYYY-MM-DD'),
-          amount: it.amount?.toString()
-        })) || [{ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '' }],
+          amount: it.amount?.toString(),
+          tempoNo: it.tempoNo || '',
+          extraAmount: it.extraAmount?.toString() || ''
+        })) || [{ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '', tempoNo: '', extraAmount: '' }],
         loadingCharge: initialData.loadingCharge?.toString() || '0',
         unloadingCharge: initialData.unloadingCharge?.toString() || '0',
         detentionCharge: initialData.detentionCharge?.toString() || '0',
@@ -134,7 +133,6 @@ export default function TransportBill({ initialData }) {
   })
 
   const watchedItems = watch('items')
-  const paymentMode = watch('paymentMode')
   const loadingCharge   = watch('loadingCharge')
   const unloadingCharge = watch('unloadingCharge')
   const detentionCharge = watch('detentionCharge')
@@ -161,7 +159,9 @@ export default function TransportBill({ initialData }) {
   }, [partyId, parties, setValue])
 
   // Totals calculation
-  const itemsTotal = (watchedItems || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+  const itemsTotal = (watchedItems || []).reduce((sum, item) => {
+    return sum + (parseFloat(item.amount) || 0) + (parseFloat(item.extraAmount) || 0)
+  }, 0)
   const otherChargesTotal = [loadingCharge, unloadingCharge, detentionCharge, otherCharge]
     .reduce((s, v) => s + (parseFloat(v) || 0), 0)
   
@@ -201,41 +201,58 @@ export default function TransportBill({ initialData }) {
   const addSelectedTrips = () => {
     if (selectedTripIds.length === 0) return
 
-    const toAdd = pendingTrips
+    const selectedTrips = pendingTrips
       .filter(t => selectedTripIds.includes(t._id || t.id))
       .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
     
-    // CONSOLDATED LOGIC: Create ONE bill item from multiple trips
-    let displayFrom = toAdd[0].source
-    let displayTo = toAdd[0].destination
-    const totalAmount = toAdd.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0)
+    const newItems = []
+    
+    selectedTrips.forEach(trip => {
+      const date = dayjs(trip.startDate).format('YYYY-MM-DD')
+      const chalanNo = trip.chalanNumber || ''
+      const extras = parseFloat(trip.extraCharges) || 0
+      
+      // Ensure vehicle number is found correctly from context
+      const tripVehicleId = trip.vehicle?._id || trip.vehicle;
+      const vObj = vehicles.find(v => (v._id || v.id) === tripVehicleId);
+      const vNum = vObj?.vehicleNumber || trip.vehicleNumber || '';
+      
+      // If trip has multiple deliveries, add each one as a row
+      if (trip.deliveries && trip.deliveries.length > 0) {
+        trip.deliveries.forEach((del, idx) => {
+          newItems.push({
+            date,
+            companyFrom: del.from,
+            companyTo: del.to,
+            chalanNo,
+            tempoNo: vNum,
+            extraAmount: idx === 0 ? extras.toString() : '0',
+            amount: idx === 0 ? trip.amount.toString() : '0',
+            tripIds: [trip._id || trip.id]
+          })
+        })
+      } else {
+        newItems.push({
+          date,
+          companyFrom: trip.source || trip.fromLocation,
+          companyTo: trip.destination || trip.toLocation,
+          chalanNo,
+          tempoNo: trip.vehicle?.vehicleNumber || trip.vehicleNumber || '',
+          extraAmount: extras.toString(),
+          amount: trip.amount.toString(),
+          tripIds: [trip._id || trip.id]
+        })
+      }
+    })
 
-    // Build the "To" string by chaining destinations (deduplicate)
-    for (let i = 1; i < toAdd.length; i++) {
-       const curr = toAdd[i]
-       const prev = toAdd[i-1]
-       if (curr.source.toLowerCase().trim() === prev.destination.toLowerCase().trim()) {
-          displayTo += ` → ${curr.destination}`
-       } else {
-          displayTo += ` + ${curr.source} → ${curr.destination}`
-       }
-    }
-
-    const consolidatedItem = {
-      date: dayjs(toAdd[0].startDate).format('YYYY-MM-DD'),
-      companyFrom: displayFrom,
-      companyTo: displayTo,
-      chalanNo: '',
-      amount: totalAmount.toString(),
-      tripIds: toAdd.map(s => s._id || s.id)
-    }
-
-    // Add to current item list (if first item is empty, replace it)
+    // Add to current item list (remove initial empty row if it's the only one)
     const currentItems = watchedItems || []
-    if (currentItems.length === 1 && !currentItems[0].companyFrom && !currentItems[0].amount) {
-      setValue('items', [consolidatedItem])
+    const isFirstEmpty = currentItems.length === 1 && !currentItems[0].companyFrom && !currentItems[0].amount
+
+    if (isFirstEmpty) {
+      setValue('items', newItems)
     } else {
-      setValue('items', [...currentItems, consolidatedItem])
+      setValue('items', [...currentItems, ...newItems])
     }
 
     // Clear selection UI
@@ -246,9 +263,8 @@ export default function TransportBill({ initialData }) {
   const onSubmit = async (data, statusArg = 'unpaid') => {
     setSaving(true)
     try {
-      // Determine final status: if it was draft and we clicked 'Generate', it becomes unpaid/paid
-      // if we clicked 'Save as Draft', it stays draft.
-      const finalStatus = statusArg === 'draft' ? 'draft' : (data.paymentMode === 'paid' ? 'paid' : 'unpaid');
+      // Determine final status
+      const finalStatus = statusArg === 'draft' ? 'draft' : 'unpaid';
 
       const payload = {
         // Customer info
@@ -265,7 +281,6 @@ export default function TransportBill({ initialData }) {
         // Bill meta
         billType:    'transport',
         billingDate: data.billDate,
-        paymentMode: data.paymentMode || 'topay',
         notes:       data.notes,
         gstType:     data.gstType || 'CGST+SGST',
 
@@ -275,6 +290,8 @@ export default function TransportBill({ initialData }) {
           companyFrom: it.companyFrom,
           companyTo:   it.companyTo,
           chalanNo:    it.chalanNo,
+          tempoNo:     it.tempoNo,
+          extraAmount: parseFloat(it.extraAmount) || 0,
           amount:      parseFloat(it.amount) || 0,
           tripIds:     it.tripIds || [],
         })),
@@ -416,7 +433,7 @@ export default function TransportBill({ initialData }) {
           <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
              <button 
                 type="button" 
-                onClick={() => append({ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '' })}
+                onClick={() => append({ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '', tempoNo: '', extraAmount: '' })}
                 style={{ flex: 1, height: 46, borderRadius: 16, border: '1.5px solid #E2E8F0', background: 'white', color: '#444', fontWeight: 900, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', transition: '0.2s' }}
              >
                 <Plus size={16} color="#4F46E5" /> MANUAL ENTRY
@@ -525,17 +542,38 @@ export default function TransportBill({ initialData }) {
                     </div>
                   </Field>
 
-                  <Field label="Amount (₹)" style={{ gridColumn: 'span 1' }}>
-                    <div className="input-group">
-                      <span className="input-prefix" style={{ left: 14, fontWeight: 800, color: '#374151', fontSize: '0.9rem' }}>₹</span>
-                      <input type="number" {...register(`items.${index}.amount`)} placeholder="0.00" className="form-input" style={{ fontSize: '0.875rem', height: 42 }} />
-                    </div>
-                  </Field>
-                </div>
+                    {/* Vehicle Number Select */}
+                    <Field label="Vehicle No." style={{ gridColumn: 'span 1' }}>
+                      <div className="input-group">
+                        <span className="input-prefix" style={{ left: 12 }}><Truck size={14} /></span>
+                        <div style={{ position: 'relative', width: '100%', flex: 1 }}>
+                          <select {...register(`items.${index}.tempoNo`)} className="form-input" style={{ fontSize: '0.875rem', height: 42, paddingLeft: 30, appearance: 'none' }}>
+                            <option value="">— Select —</option>
+                            {vehicles.map(v => <option key={v._id || v.id} value={v.vehicleNumber}>{v.vehicleNumber}</option>)}
+                          </select>
+                          <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
+                        </div>
+                      </div>
+                    </Field>
+
+                    <Field label="Amount (₹)" style={{ gridColumn: 'span 1' }}>
+                      <div className="input-group">
+                        <span className="input-prefix" style={{ left: 14, fontWeight: 800, color: '#374151', fontSize: '0.9rem' }}>₹</span>
+                        <input type="number" {...register(`items.${index}.amount`)} placeholder="0.00" className="form-input" style={{ fontSize: '0.875rem', height: 42 }} />
+                      </div>
+                    </Field>
+
+                    <Field label="Extra Charge (₹)" style={{ gridColumn: 'span 2' }}>
+                      <div className="input-group">
+                        <span className="input-prefix" style={{ left: 14, color: '#D97706' }}>₹</span>
+                        <input type="number" {...register(`items.${index}.extraAmount`)} placeholder="Extra charges (e.g. Halt/Toll)" className="form-input" style={{ fontSize: '0.875rem', height: 42, color: '#D97706' }} />
+                      </div>
+                    </Field>
+                  </div>
               </div>
             ))}
           </div>
-          <button type="button" onClick={() => append({ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '' })} 
+          <button type="button" onClick={() => append({ date: dayjs().format('YYYY-MM-DD'), companyFrom: '', companyTo: '', chalanNo: '', amount: '', tempoNo: '', extraAmount: '' })} 
             style={{ 
               marginTop: 12, width: '100%', padding: '12px', borderRadius: 12, border: '2px dashed #E5E7EB', 
               background: '#F9FAFB', fontWeight: 700, fontSize: '0.875rem', color: '#4F46E5', 
@@ -598,23 +636,7 @@ export default function TransportBill({ initialData }) {
 
         {/* ── Payment & Notes ── */}
         <div className="grid md-grid-cols-2 gap-4 mb-6">
-          <SectionCard icon={Calendar} iconBg="#EDE9FE" iconColor="#7C3AED" title="Payment Mode">
-            <div className="grid grid-cols-3 gap-2">
-              {PAYMENT_MODES.map(pm => {
-                const isActive = paymentMode === pm.val
-                return (
-                  <button key={pm.val} type="button" onClick={() => setValue('paymentMode', pm.val)}
-                    style={{
-                      padding: '12px 4px', borderRadius: 12, border: isActive ? `2px solid ${pm.color}` : '2px solid transparent',
-                      background: isActive ? pm.bg : '#F3F4F6', color: isActive ? pm.color : '#6B7280',
-                      fontWeight: 700, fontSize: '0.8125rem', cursor: 'pointer', transition: '0.2s'
-                    }}
-                  >{pm.label}</button>
-                )
-              })}
-            </div>
-            <input type="hidden" {...register('paymentMode')} />
-          </SectionCard>
+
 
           <div style={{ background: 'white', borderRadius: 20, padding: '18px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9' }}>
             <Field label="Notes / Slogan">

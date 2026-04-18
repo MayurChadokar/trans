@@ -14,9 +14,11 @@ const TransportBillSchema = new mongoose.Schema(
     items: [
       {
         date:        { type: Date },
+        tempoNo:     { type: String },
         companyFrom: { type: String, trim: true },
         companyTo:   { type: String, trim: true },
         chalanNo:    { type: String, trim: true },
+        extraAmount: { type: Number, default: 0 },
         amount:      { type: Number, default: 0 },
         tripIds:     [{ type: mongoose.Schema.Types.ObjectId, ref: "Trip" }],
       },

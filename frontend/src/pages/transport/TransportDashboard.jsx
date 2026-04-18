@@ -108,27 +108,37 @@ export default function TransportDashboard() {
         ))}
       </div>
 
-      {/* Analytics Chart */}
+      {/* Quick Actions */}
       <div style={{ background: 'white', borderRadius: 28, padding: '24px', marginBottom: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.02)' }}>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-           <TrendingUp size={18} color="#16A34A" /> {t('revenue_trend')}
-        </h3>
-        <div style={{ width: '100%', height: 180 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorAmt" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9CA3AF'}} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9CA3AF'}} dx={-10} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              <Area type="monotone" dataKey="amount" stroke="#4F46E5" fillOpacity={1} fill="url(#colorAmt)" strokeWidth={3} />
-            </AreaChart>
-          </ResponsiveContainer>
+        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 20 }}>Quick Actions</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button onClick={() => navigate('/transport/trips')} style={{ background: '#F5F3FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.1)' }}>
+              <Truck size={22} />
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Log New Trip</span>
+          </button>
+          
+          <button onClick={() => navigate('/transport/bills/new')} style={{ background: '#FFF7ED', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#F3811E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(243, 129, 30, 0.1)' }}>
+              <Receipt size={22} />
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Create Invoice</span>
+          </button>
+
+          <button onClick={() => navigate('/transport/vehicles')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
+              <Plus size={22} />
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Add Vehicle</span>
+          </button>
+
+          <button onClick={() => navigate('/parties')} style={{ background: '#EFF6FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.1)' }}>
+              <Users size={22} />
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>View Parties</span>
+          </button>
         </div>
       </div>
 

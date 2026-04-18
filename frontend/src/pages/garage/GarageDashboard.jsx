@@ -170,18 +170,37 @@ export default function GarageDashboard() {
          </div>
       )}
 
-      {/* Analytics Chart */}
-      <div className="card" style={{ padding: '20px 16px', marginBottom: 20 }}>
-        <h3 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: 16 }}>Service Revenue Trend</h3>
-        <div style={{ width: '100%', height: 180 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-              <Tooltip />
-              <Area type="monotone" dataKey="amount" stroke="#10B981" fill="#10B98115" strokeWidth={2.5} />
-            </AreaChart>
-          </ResponsiveContainer>
+      {/* Quick Actions */}
+      <div className="card" style={{ padding: '24px 16px', marginBottom: 20 }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: 16 }}>Quick Actions</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button onClick={() => navigate('/garage/bills/new')} style={{ background: '#F5F3FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.1)' }}>
+              <Plus size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>New Job Card</span>
+          </button>
+          
+          <button onClick={() => setShowReminders(true)} style={{ background: '#FFF7ED', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#F3811E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(243, 129, 30, 0.1)' }}>
+              <Bell size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Service Alerts</span>
+          </button>
+
+          <button onClick={() => navigate('/parties')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
+              <Users size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Customers</span>
+          </button>
+
+          <button onClick={() => navigate('/garage/bills')} style={{ background: '#EFF6FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.1)' }}>
+              <Receipt size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Bill History</span>
+          </button>
         </div>
       </div>
 

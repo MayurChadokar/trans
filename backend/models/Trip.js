@@ -11,6 +11,13 @@ const TripSchema = new mongoose.Schema(
     source: { type: String, required: true },
     destination: { type: String, required: true },
     amount: { type: Number, default: 0 },
+    
+    // Detailed Trip Charges
+    loadingCharge: { type: Number, default: 0 },
+    unloadingCharge: { type: Number, default: 0 },
+    detentionCharge: { type: Number, default: 0 },
+    otherCharge: { type: Number, default: 0 },
+    
     numberOfTrips: { type: Number, default: 1 },
     
     startDate: { type: Date, default: Date.now },

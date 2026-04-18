@@ -78,8 +78,8 @@ function TransportInvoice({ bill, business, onPayOnline }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ccc', borderTop: 'none', marginBottom: 0 }}>
         <thead>
           <tr style={{ background: '#fdf7f2' }}>
-            {['No.', 'Date', 'Company (From)', 'Company (To)', 'Chalan No.', 'Amount'].map((h, i) => (
-              <th key={h} style={{ padding: '12px 6px', fontSize: '0.75rem', fontWeight: 800, border: '1px solid #ccc', textAlign: i === 5 ? 'right' : 'center', color: '#333' }}>{h}</th>
+            {['No.', 'Date', 'Vehicle No.', 'Company (From)', 'Company (To)', 'Chalan No.', 'Extra', 'Amount'].map((h, i) => (
+              <th key={h} style={{ padding: '12px 6px', fontSize: '0.75rem', fontWeight: 800, border: '1px solid #ccc', textAlign: i === 7 ? 'right' : i === 6 ? 'right' : 'center', color: '#333' }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -88,41 +88,43 @@ function TransportInvoice({ bill, business, onPayOnline }) {
             <tr key={i}>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem' }}>{i + 1}</td>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem' }}>{dayjs(item.date).format('DD/MM/YY')}</td>
+              <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, color: '#1E293B' }}>{item.tempoNo || '—'}</td>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem', fontWeight: 600 }}>{item.companyFrom || '—'}</td>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem' }}>{item.companyTo || '—'}</td>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'center', fontSize: '0.85rem' }}>{item.chalanNo || '—'}</td>
+              <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'right', fontSize: '0.85rem', color: '#B45309' }}>{item.extraAmount > 0 ? `+${parseFloat(item.extraAmount).toLocaleString()}` : '—'}</td>
               <td style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700 }}>{parseFloat(item.amount || 0).toLocaleString()}</td>
             </tr>
           ))}
           {/* Extra Charges Rows */}
           {parseFloat(bill.loadingCharge || 0) > 0 && (
             <tr>
-              <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Loading Charges :</td>
+              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Loading Charges :</td>
               <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.loadingCharge).toLocaleString()}</td>
             </tr>
           )}
           {parseFloat(bill.unloadingCharge || 0) > 0 && (
             <tr>
-              <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Unloading Charges :</td>
+              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Unloading Charges :</td>
               <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.unloadingCharge).toLocaleString()}</td>
             </tr>
           )}
           {parseFloat(bill.detentionCharge || 0) > 0 && (
             <tr>
-              <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Detention Charges :</td>
+              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Detention Charges :</td>
               <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.detentionCharge).toLocaleString()}</td>
             </tr>
           )}
           {parseFloat(bill.otherCharge || 0) > 0 && (
             <tr>
-              <td colSpan="4" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Other Charges :</td>
+              <td colSpan="6" style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, fontSize: '0.8rem', border: '1px solid #ccc' }}>Other Charges :</td>
               <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 800, fontSize: '0.85rem', border: '1px solid #ccc' }}>₹{parseFloat(bill.otherCharge).toLocaleString()}</td>
             </tr>
           )}
 
           {/* Total Row exactly like Radhe Tempo */}
           <tr>
-            <td colSpan="4" style={{ background: accent, color: 'white', padding: '6px 20px', fontWeight: 800, fontSize: '0.9rem', textAlign: 'center' }}>
+            <td colSpan="6" style={{ background: accent, color: 'white', padding: '6px 20px', fontWeight: 800, fontSize: '0.9rem', textAlign: 'center' }}>
               Grateful for Moving What Matters to You!
             </td>
             <td style={{ padding: '6px', textAlign: 'center', fontWeight: 900, fontSize: '1rem', border: '1px solid #ccc', background: '#f5f5f5' }}>TOTAL :</td>
@@ -139,10 +141,6 @@ function TransportInvoice({ bill, business, onPayOnline }) {
            <div style={{ padding: '8px 12px', backgroundColor: '#fff' }}>
               {/* Mapping for both bankDetails object and legacy top-level fields */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                 <div style={{ fontSize: '0.65rem', marginBottom: 4, gridColumn: 'span 2' }}>
-                    <span style={{ fontWeight: 600, color: '#555' }}>PAYMENT: </span>
-                    <span style={{ fontWeight: 900, color: bill.status === 'paid' ? '#16A34A' : '#D97706', textTransform: 'uppercase' }}>{bill.status} ({bill.paymentMode || 'N/A'})</span>
-                 </div>
                  <div style={{ fontSize: '0.65rem' }}>
                     <span style={{ fontWeight: 600, color: '#555' }}>A/c No : </span><span style={{ fontWeight: 900 }}>{business?.bankDetails?.accountNumber || business?.bankAccNo || ''}</span>
                  </div>
@@ -290,17 +288,8 @@ function GarageInvoice({ bill, business, onPayOnline }) {
           </table>
         </div>
 
-        {/* Payment & Notes Section */}
-        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 640 ? '1fr' : '1.1fr 0.9fr', gap: 30, marginBottom: 20 }}>
-          <div>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 800 }}>Payment Information</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Status:</span> <span style={{ fontWeight: 700, color: bill.status === 'paid' ? '#16A34A' : '#DC2626' }}>{bill.status?.toUpperCase()}</span></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Method:</span> <span style={{ fontWeight: 700 }}>{bill.paymentMethod || bill.paymentMode || 'N/A'}</span></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Payment Date:</span> <span style={{ fontWeight: 700 }}>{bill.paymentDate ? dayjs(bill.paymentDate).format('MMMM DD, YYYY') : dayjs(bill.billingDate || bill.billDate).format('MMMM DD, YYYY')}</span></div>
-              {bill.transactionId && <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr' }}><span style={{ color: '#666' }}>Transaction ID:</span> <span style={{ fontWeight: 700 }}>{bill.transactionId}</span></div>}
-            </div>
-          </div>
+        {/* Notes Section */}
+        <div style={{ marginBottom: 20 }}>
           <div>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 800 }}>Additional Notes</h4>
             <p style={{ margin: 0, fontSize: '0.75rem', color: '#444', lineHeight: 1.5 }}>

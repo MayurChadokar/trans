@@ -4,6 +4,7 @@ import { Truck, CheckCircle2, Loader2, ArrowLeft, ChevronDown } from 'lucide-rea
 import { useParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useVehicles } from '../../context/VehicleContext'
+import { useAuth } from '../../context/AuthContext'
 
 const VEHICLE_TYPES = ['Tempo', 'Truck', 'Mini Truck', 'Heavy Truck', 'Container', 'Tanker', 'Trailer', 'Other']
 
@@ -19,6 +20,7 @@ function Field({ label, error, children, required }) {
 
 export default function AddVehicle() {
   const { addVehicle, updateVehicle, vehicles } = useVehicles()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const { id } = useParams()
   const isEdit = !!id
@@ -39,10 +41,10 @@ export default function AddVehicle() {
       if (isEdit) {
         await updateVehicle(id, data)
       } else {
-        // Front-end safety check (server will also double check)
-        const userRole = localStorage.getItem('billing_user') ? JSON.parse(localStorage.getItem('billing_user')) : null
-        if (userRole?.allowedVehicles > 0 && vehicles.length >= userRole.allowedVehicles) {
-          alert(`Vehicle limit reached! Your current plan allows only ${userRole.allowedVehicles} vehicles. Please upgrade your plan to add more.`)
+        // Front-end safety check for vehicle limit
+        const limit = user?.allowedVehicles || 0
+        if (limit > 0 && vehicles.length >= limit) {
+          alert(`Package Limit Reached! Your current plan allows only ${limit} vehicles. Please upgrade your package to add more vehicles.`)
           return
         }
         await addVehicle({ ...data, vehicleNumber: data.vehicleNumber.toUpperCase() })

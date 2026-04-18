@@ -22,6 +22,7 @@ function userDto(user) {
   return {
     id: String(user._id),
     phone: user.phone,
+    alternatePhone: user.alternatePhone || null,
     name: user.name || null,
     role: user.role || null,
     email: user.email || null,
@@ -186,7 +187,8 @@ async function setRole(req, res, next) {
     ).populate('planId');
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    return res.json({ success: true, user: userDto(user) });
+    const accessToken = tokenService.signAccessToken(user);
+    return res.json({ success: true, user: userDto(user), accessToken });
   } catch (e) {
     return next(e);
   }
@@ -222,7 +224,8 @@ async function registerTransport(req, res, next) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    return res.json({ success: true, user: userDto(user) });
+    const accessToken = tokenService.signAccessToken(user);
+    return res.json({ success: true, user: userDto(user), accessToken });
   } catch (e) {
     return next(e);
   }
@@ -258,7 +261,8 @@ async function registerGarage(req, res, next) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    return res.json({ success: true, user: userDto(user) });
+    const accessToken = tokenService.signAccessToken(user);
+    return res.json({ success: true, user: userDto(user), accessToken });
   } catch (e) {
     return next(e);
   }
@@ -281,6 +285,7 @@ async function updateProfile(req, res, next) {
       "signatureUrl",
       "logoUrl",
       "documents",
+      "alternatePhone",
     ];
     
     const updates = {};

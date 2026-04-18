@@ -51,6 +51,7 @@ export default function BusinessProfile() {
       pincode: user?.pincode || '',
       gstin: user?.gstin || '',
       panNo: user?.panNo || '',
+      alternatePhone: user?.alternatePhone || '',
     }
   })
 
@@ -202,10 +203,13 @@ export default function BusinessProfile() {
               <Field label="Phone Number" error={errors.phone} required>
                 <input type="tel" {...register('phone', { required: 'Phone required' })} placeholder="98765 43210" className="form-input" inputMode="numeric" />
               </Field>
-              <Field label="Email Address">
-                <input type="email" {...register('email')} placeholder="hello@company.com" className="form-input" />
+              <Field label="Alternate Mobile" error={errors.alternatePhone}>
+                <input type="tel" {...register('alternatePhone')} placeholder="Alternate Mobile Number" className="form-input" inputMode="numeric" />
               </Field>
             </div>
+            <Field label="Email Address">
+              <input type="email" {...register('email')} placeholder="hello@company.com" className="form-input" />
+            </Field>
           </div>
         </div>
 

@@ -15,9 +15,19 @@ const BillSchema = new mongoose.Schema(
     // For Garage / General Items
     items: [
       {
+        // General / Garage
         description: String,
         quantity: { type: Number, default: 1 },
         rate: Number,
+        
+        // Transport Specific
+        date: Date,
+        tempoNo: String,
+        companyFrom: String,
+        companyTo: String,
+        chalanNo: String,
+        extraAmount: { type: Number, default: 0 },
+        
         amount: Number,
       },
     ],

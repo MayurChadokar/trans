@@ -22,6 +22,14 @@ const TripSchema = new mongoose.Schema(
     billId: { type: mongoose.Schema.Types.ObjectId, ref: "Bill", default: null, index: true },
     
     chalanImage: { type: String, default: null },
+    chalanNumber: { type: String, default: null },
+    extraCharges: { type: Number, default: 0 },
+    deliveries: [
+      {
+        from: { type: String },
+        to: { type: String }
+      }
+    ],
     notes: { type: String, default: null },
   },
   { timestamps: true }

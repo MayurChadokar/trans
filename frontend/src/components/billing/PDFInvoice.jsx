@@ -67,21 +67,20 @@ const styles = StyleSheet.create({
     fontSize: 9
   },
   
-  colNo: { width: '8%' },
-  colDate: { width: '15%' },
-  colFrom: { width: '22%' },
-  colDesc: { width: '45%', textAlign: 'left', paddingLeft: 10 },
-  colQty: { width: '15%' },
-  colRate: { width: '20%', textAlign: 'right' },
-  colTo: { width: '22%' },
-  colChalan: { width: '18%' },
+  colNo: { width: '4%' },
+  colDate: { width: '10%' },
+  colVehicle: { width: '12%' },
+  colFrom: { width: '15%' },
+  colTo: { width: '15%' },
+  colChalan: { width: '14%' },
+  colExtra: { width: '15%', textAlign: 'right', color: '#B45309' },
   colAmount: { width: '15%', textAlign: 'right', fontWeight: 'bold' },
   colAmountGarage: { width: '20%', textAlign: 'right', fontWeight: 'bold' },
 
   // Footer Total Row
   totalRowArea: { flexDirection: 'row', borderWidth: 1, borderTopWidth: 0, borderColor: '#ccc' },
-  gratitudeBanner: { width: '67%', backgroundColor: '#F3811E', color: 'white', padding: 12, textAlign: 'center', fontWeight: 'bold', fontSize: 10 },
-  totalLabelBox: { width: '18%', backgroundColor: '#f9f9f9', padding: 12, textAlign: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#ccc', fontWeight: 'bold' },
+  gratitudeBanner: { width: '70%', backgroundColor: '#F3811E', color: 'white', padding: 12, textAlign: 'center', fontWeight: 'bold', fontSize: 10 },
+  totalLabelBox: { width: '15%', backgroundColor: '#f9f9f9', padding: 12, textAlign: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#ccc', fontWeight: 'bold' },
   totalValBox: { width: '15%', padding: 12, textAlign: 'right', fontWeight: 'bold', fontSize: 12 },
   
   totalRowGarage: { flexDirection: 'row', borderWidth: 1, borderColor: '#ccc', marginTop: -1 },
@@ -213,9 +212,11 @@ export const PDFInvoice = ({ bill, business }) => {
               <>
                 <Text style={styles.colNo}>No.</Text>
                 <Text style={styles.colDate}>Date</Text>
+                <Text style={styles.colVehicle}>Vehicle No.</Text>
                 <Text style={styles.colFrom}>Company (From)</Text>
                 <Text style={styles.colTo}>Company (To)</Text>
                 <Text style={styles.colChalan}>Chalan No.</Text>
+                <Text style={styles.colExtra}>Extra</Text>
                 <Text style={styles.colAmount}>Amount</Text>
               </>
             ) : (
@@ -234,9 +235,11 @@ export const PDFInvoice = ({ bill, business }) => {
                 <>
                   <Text style={styles.colNo}>{idx + 1}</Text>
                   <Text style={styles.colDate}>{dayjs(item.date).format('DD/MM/YY')}</Text>
+                  <Text style={styles.colVehicle}>{item.tempoNo || '-'}</Text>
                   <Text style={styles.colFrom}>{item.companyFrom || '-'}</Text>
                   <Text style={styles.colTo}>{item.companyTo || '-'}</Text>
                   <Text style={styles.colChalan}>{item.chalanNo || '-'}</Text>
+                  <Text style={styles.colExtra}>{item.extraAmount > 0 ? `+${parseFloat(item.extraAmount).toLocaleString()}` : '-'}</Text>
                   <Text style={styles.colAmount}>{parseFloat(item.amount || 0).toLocaleString()}</Text>
                 </>
               ) : (
@@ -256,50 +259,36 @@ export const PDFInvoice = ({ bill, business }) => {
             </View>
           )}
 
-          {/* Payment Status Row for Garage */}
-          {!isTransport && (
-            <View style={{ flexDirection: 'row', borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#ccc', backgroundColor: '#fcfcfc' }}>
-              <View style={{ width: '50%', padding: 6, borderRightWidth: 1, borderColor: '#ccc' }}>
-                <Text style={{ fontSize: 7, color: '#666' }}>Payment Status</Text>
-                <Text style={{ fontSize: 9, fontWeight: 'bold', textTransform: 'uppercase', color: bill.status === 'paid' ? '#16A34A' : '#D97706' }}>
-                  {bill.status}
-                </Text>
-              </View>
-              <View style={{ width: '50%', padding: 6 }}>
-                <Text style={{ fontSize: 7, color: '#666' }}>Payment Method</Text>
-                <Text style={{ fontSize: 9, fontWeight: 'bold' }}>{bill.paymentMethod || bill.paymentMode || 'N/A'}</Text>
-              </View>
-            </View>
-          )}
+
         </View>
 
         {isTransport && (
           <View style={{ marginTop: -1 }}>
              {parseFloat(bill.loadingCharge || 0) > 0 && (
                <View style={styles.totalRowArea}>
-                 <View style={{ width: '67%', borderRightWidth: 1, borderColor: '#ccc' }} />
-                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '18%' }]}><Text>Loading :</Text></View>
+                 <View style={{ width: '70%', borderRightWidth: 1, borderColor: '#ccc' }} />
+                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '15%' }]}><Text>Loading :</Text></View>
                  <View style={[styles.totalValBox, { fontSize: 9, padding: 8, width: '15%' }]}><Text>₹{parseFloat(bill.loadingCharge).toLocaleString()}</Text></View>
                </View>
              )}
              {parseFloat(bill.unloadingCharge || 0) > 0 && (
                <View style={styles.totalRowArea}>
-                 <View style={{ width: '67%', borderRightWidth: 1, borderColor: '#ccc' }} />
-                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '18%' }]}><Text>Unloading :</Text></View>
+                 <View style={{ width: '70%', borderRightWidth: 1, borderColor: '#ccc' }} />
+                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '15%' }]}><Text>Unloading :</Text></View>
                  <View style={[styles.totalValBox, { fontSize: 9, padding: 8, width: '15%' }]}><Text>₹{parseFloat(bill.unloadingCharge).toLocaleString()}</Text></View>
                </View>
              )}
              {parseFloat(bill.detentionCharge || 0) > 0 && (
                <View style={styles.totalRowArea}>
-                 <View style={{ width: '67%', borderRightWidth: 1, borderColor: '#ccc' }} />
-                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '18%' }]}><Text>Detention :</Text></View>
+                 <View style={{ width: '70%', borderRightWidth: 1, borderColor: '#ccc' }} />
+                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '15%' }]}><Text>Detention :</Text></View>
                  <View style={[styles.totalValBox, { fontSize: 9, padding: 8, width: '15%' }]}><Text>₹{parseFloat(bill.detentionCharge).toLocaleString()}</Text></View>
                </View>
              )}
              {parseFloat(bill.otherCharge || 0) > 0 && (
                <View style={styles.totalRowArea}>
-                 <View style={{ width: '67%', borderRightWidth: 1, borderColor: '#ccc' }} />
-                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '18%' }]}><Text>Other :</Text></View>
+                 <View style={{ width: '70%', borderRightWidth: 1, borderColor: '#ccc' }} />
+                 <View style={[styles.totalLabelBox, { fontSize: 8, padding: 8, width: '15%' }]}><Text>Other :</Text></View>
                  <View style={[styles.totalValBox, { fontSize: 9, padding: 8, width: '15%' }]}><Text>₹{parseFloat(bill.otherCharge).toLocaleString()}</Text></View>
                </View>
              )}
@@ -316,21 +305,9 @@ export const PDFInvoice = ({ bill, business }) => {
         <View style={styles.bankSection}>
           <View style={[styles.bankHeader, { backgroundColor: isTransport ? '#f3f3f3' : '#fdf3f0', flexDirection: 'row', justifyContent: 'space-between' }]}>
             <Text>BANK DETAILS :</Text>
-            {isTransport && <Text style={{ fontSize: 7 }}>PAYMENT: {bill.status?.toUpperCase()} ({bill.paymentMode || 'N/A'})</Text>}
           </View>
           <View style={styles.bankContent}>
-            <View style={styles.bankGrid}>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Payment Status:</Text>
-                <Text style={[styles.metaVal, { color: bill.status === 'paid' ? '#16A34A' : '#DC2626', fontWeight: 'bold' }]}>
-                  {(bill.status || 'Pending').toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>{isTransport ? 'Payment Mode:' : 'Payment Method:'}</Text>
-                <Text style={styles.metaVal}>{(bill.paymentMethod || bill.paymentMode || (isTransport ? 'To Pay' : 'Cash')).toUpperCase()}</Text>
-              </View>
-            </View>
+
             <View style={styles.bankGrid}>
               <View style={styles.bankItem}>
                 <Text style={styles.bankKey}>Bank Name:</Text>

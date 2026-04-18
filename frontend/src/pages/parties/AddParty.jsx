@@ -45,13 +45,12 @@ export default function AddParty() {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       name: '', phone: '', email: '', address: '', city: '', state: '', pincode: '',
-      gstin: '', pan: '', openingBalance: '', balanceType: 'toReceive',
+      gstin: '', pan: '',
       partyType: derivedPartyType,
     }
   })
 
-  // Watch current balance type
-  const balanceType = watch('balanceType')
+  // Watch current party type
   const partyType   = watch('partyType')
 
   // Prefill when editing - depend on parties list to handle loading delay
@@ -69,8 +68,6 @@ export default function AddParty() {
           pincode: p.pincode || '',
           gstin: p.gstin || '',
           pan: p.pan || '',
-          openingBalance: p.openingBalance || '0',
-          balanceType: p.balanceType || 'toReceive',
           partyType: p.partyType || derivedPartyType,
         })
         if (p.signatureUrl) { setSignatureUrl(p.signatureUrl); setSigPreview(p.signatureUrl) }
@@ -94,7 +91,6 @@ export default function AddParty() {
 
   const onSubmit = async (data) => {
     await new Promise(r => setTimeout(r, 400)) // simulate delay
-    const balance = parseFloat(data.openingBalance || 0)
 
     let uploadedSigUrl = ''
     if (data.partyType === 'garage' && signatureUrl instanceof File) {
@@ -107,8 +103,6 @@ export default function AddParty() {
 
     const payload = {
       ...data,
-      openingBalance: balance,
-      balance: data.balanceType === 'toReceive' ? balance : -balance,
       signatureUrl: data.partyType === 'garage' ? uploadedSigUrl : '',
     }
     if (isEdit) await updateParty(id, payload)
@@ -333,69 +327,7 @@ export default function AddParty() {
           </div>
         </div>
 
-        {/* ─ Opening Balance card ─ */}
-        <div style={{
-          background: 'white', borderRadius: 20, padding: '20px 20px 24px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 24, border: '1px solid rgba(0,0,0,0.04)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CreditCard size={16} color="#16A34A" />
-            </div>
-            <h3 style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0F0D2E', margin: 0 }}>Opening Balance</h3>
-          </div>
 
-          {/* Balance type toggle — button-based so it always reflects the actual value */}
-          <div style={{ display: 'flex', background: '#F4F4F8', borderRadius: 14, padding: 4, marginBottom: 14, gap: 4 }}>
-            {[
-              { val: 'toReceive', label: '↑ To Receive', activeColor: '#DC2626', activeBg: '#FEE2E2' },
-              { val: 'toPay',     label: '↓ To Pay',     activeColor: '#16A34A', activeBg: '#DCFCE7' },
-            ].map(opt => {
-              const isActive = balanceType === opt.val
-              return (
-                <button
-                  key={opt.val}
-                  type="button"
-                  id={`bal-${opt.val}`}
-                  onClick={() => setValue('balanceType', opt.val, { shouldValidate: true })}
-                  style={{
-                    flex: 1,
-                    padding: '10px 8px',
-                    borderRadius: 10,
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: 700,
-                    transition: 'all 0.18s ease',
-                    background: isActive ? opt.activeBg : 'transparent',
-                    color: isActive ? opt.activeColor : '#6B7280',
-                    boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                    transform: isActive ? 'scale(1.02)' : 'scale(1)',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
-          {/* Hidden input keeps the value in the form */}
-          <input type="hidden" {...register('balanceType')} />
-
-          <Field label="Amount (₹)" error={errors.openingBalance}>
-            <div className="input-group">
-              <span className="input-prefix" style={{ fontWeight: 700, fontSize: '1rem', color: '#6B7280' }}>₹</span>
-              <input
-                id="field-opening-balance"
-                type="number"
-                min="0"
-                {...register('openingBalance', { min: { value: 0, message: 'Must be positive' } })}
-                placeholder="0"
-                className={`form-input ${errors.openingBalance ? 'error' : ''}`}
-                inputMode="numeric"
-              />
-            </div>
-          </Field>
-        </div>
 
         {/* ─ Signature card — only for garage party ─ */}
         {partyType === 'garage' && (

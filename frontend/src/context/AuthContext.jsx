@@ -9,7 +9,7 @@ function stripLargeFields(u) {
     // keep known-small, app-critical fields
     id, phone, name, role, businessName, setupComplete,
     email, address, city, pincode, panNo, gstin, aadharNo,
-    bankDetails, logoUrl, signatureUrl, documents,
+    bankDetails, logoUrl, signatureUrl, documents, alternatePhone,
     subscriptionActive, subscriptionExpiry, planName, allowedVehicles,
     // drop anything else potentially large
     ...rest
@@ -18,7 +18,7 @@ function stripLargeFields(u) {
   const safe = {
     id, phone, name, role, businessName, setupComplete,
     email, address, city, pincode, panNo, gstin, aadharNo,
-    bankDetails,
+    bankDetails, alternatePhone,
     subscriptionActive, subscriptionExpiry, planName, allowedVehicles,
     logoUrl: typeof logoUrl === 'string' && logoUrl.startsWith('data:') ? null : (logoUrl || null),
     signatureUrl: typeof signatureUrl === 'string' && signatureUrl.startsWith('data:') ? null : (signatureUrl || null),
@@ -123,20 +123,21 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const setRole = useCallback((role) => {
-    setUser(prev => {
-      if (!prev) return prev
-      const updated = { ...prev, role, isNewUser: false }
-      safeSetBillingUser(updated)
-      return updated
-    })
-    // fire-and-forget: persist role on backend as well
+  const setRole = useCallback(async (role) => {
     try {
       const saved = localStorage.getItem('billing_user')
       const phone = saved ? JSON.parse(saved)?.phone : user?.phone
-      if (phone) setUserRole(phone, role)
-    } catch (_) {
-      // ignore
+      if (phone) {
+        const res = await setUserRole(phone, role)
+        if (res.success) {
+          if (res.accessToken) localStorage.setItem('access_token', res.accessToken)
+          setUser(res.user)
+          safeSetBillingUser(res.user)
+          return res
+        }
+      }
+    } catch (e) {
+      console.error('Set role failed:', e)
     }
   }, [user])
 
@@ -161,6 +162,7 @@ export function AuthProvider({ children }) {
     try {
       const res = await transportRegister(profileData)
       if (res.success) {
+        if (res.accessToken) localStorage.setItem('access_token', res.accessToken)
         setUser(res.user)
         safeSetBillingUser(res.user)
       }
@@ -174,6 +176,7 @@ export function AuthProvider({ children }) {
     try {
       const res = await garageRegister(profileData)
       if (res.success) {
+        if (res.accessToken) localStorage.setItem('access_token', res.accessToken)
         setUser(res.user)
         safeSetBillingUser(res.user)
       }

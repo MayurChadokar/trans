@@ -3,7 +3,7 @@ import {
   Truck, MapPin, Plus, Calendar, Trash2, 
   Search, ArrowLeft, Loader2, CheckCircle2,
   Navigation, Hash, ArrowRight, Camera, Image as ImageIcon, X, Eye, Upload,
-  FileText, User, ExternalLink
+  FileText, User, ExternalLink, CreditCard
 } from 'lucide-react'
 import { useVehicles } from '../../context/VehicleContext'
 import { useParties } from '../../context/PartyContext'
@@ -42,8 +42,9 @@ const JourneyDetailModal = ({ isOpen, onClose, trip, onDeleteLeg }) => {
                 </div>
                 <div className="leg-meta">
                   <span>₹{parseFloat(leg.amount).toLocaleString()}</span>
+                  {leg.extraCharges > 0 && <span style={{ color: '#D97706' }}>+₹{leg.extraCharges}</span>}
                   <span>•</span>
-                  <span>{dayjs(leg.startDate).format('DD MMM')}</span>
+                  <span>{leg.chalanNumber || dayjs(leg.startDate).format('DD MMM')}</span>
                 </div>
               </div>
               <button className="leg-delete-btn" onClick={() => onDeleteLeg(leg._id || leg.id)}><Trash2 size={16} /></button>
@@ -86,6 +87,9 @@ export default function TripManagement() {
   const [drafts, setDrafts] = useState([])
   const [showDraftSelect, setShowDraftSelect] = useState(false)
   const [isBilling, setIsBilling] = useState(false)
+  const [billingMode, setBillingMode] = useState(false)
+  const [expandedParties, setExpandedParties] = useState([])
+  const [search, setSearch] = useState('')
   
   // Form state
   const [formData, setFormData] = useState({
@@ -95,11 +99,101 @@ export default function TripManagement() {
     groupId: null, // Link to existing journey
     source: '',
     destination: '',
-    numberOfTrips: '',
-    amount: ''
+    numberOfTrips: '1',
+    amount: '',
+    chalanNumber: '',
+    loadingCharge: '',
+    unloadingCharge: '',
+    detentionCharge: '',
+    otherCharge: '',
+    deliveries: [{ from: '', to: '' }]
   })
 
   // Load trips from API
+  // Filter & Search Logic
+  const filteredTrips = useMemo(() => {
+    const groups = {}
+    trips.forEach(t => {
+      const from = t.source || t.fromLocation || ''
+      const to = t.destination || t.toLocation || ''
+      const d = t.startDate || t.date || ''
+      const vId = typeof t.vehicle === 'object' ? t.vehicle?._id : t.vehicle
+      const pId = typeof t.party === 'object' ? t.party?._id : t.party
+
+      const key = t.groupId || `${d}_${vId}_${pId}`
+      if (!groups[key]) groups[key] = []
+      groups[key].push({ ...t, fromLocation: from, toLocation: to, date: d, vehicleId: vId, partyId: pId })
+    })
+
+    const grouped = Object.values(groups).map(group => {
+      const sorted = [...group].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+      let displayFrom = sorted[0].fromLocation
+      let displayTo = sorted[0].toLocation
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i-1]; const curr = sorted[i];
+        if (curr.fromLocation.toLowerCase().trim() === prev.toLocation.toLowerCase().trim()) {
+           displayTo += ` + ${curr.toLocation}`
+        } else {
+           displayTo += ` + ${curr.fromLocation} to ${curr.toLocation}`
+        }
+      }
+      const totalAmount = sorted.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0)
+      const totalCount = sorted.reduce((sum, t) => sum + (parseInt(t.numberOfTrips) || 1), 0)
+      
+      // Aggregate all charge types
+      const loadingTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.loadingCharge) || 0), 0)
+      const unloadingTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.unloadingCharge) || 0), 0)
+      const detentionTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.detentionCharge) || 0), 0)
+      const otherTotal = sorted.reduce((sum, t) => sum + (parseFloat(t.otherCharge) || 0), 0)
+      const totalExtra = loadingTotal + unloadingTotal + detentionTotal + otherTotal
+
+      const chalanNums = [...new Set(sorted.map(t => t.chalanNumber).filter(Boolean))].join(', ')
+      const allBilled = sorted.every(t => t.billed)
+      const photo = sorted.find(t => t.chalanImage)?.chalanImage || null
+      let sequence = []
+      if (sorted.length > 0) {
+        sequence.push(sorted[0].fromLocation)
+        sorted.forEach((t, i) => {
+          if (i > 0 && t.fromLocation !== sorted[i-1].toLocation) sequence.push(t.fromLocation)
+          sequence.push(t.toLocation)
+        })
+      }
+      return {
+        ...sorted[0], id: sorted.map(t => t._id || t.id).join(','), 
+        amount: totalAmount, numberOfTrips: totalCount, extraCharges: totalExtra,
+        chalanNumber: chalanNums, routePoints: sequence, rawLegs: sorted,
+        fromLocation: displayFrom, toLocation: displayTo, billed: allBilled,
+        chalanImage: photo, memberIds: sorted.map(s => s._id || s.id), groupId: sorted[0].groupId
+      }
+    })
+
+    if (!search) return grouped
+    const s = search.toLowerCase()
+    return grouped.filter(t => 
+      t.fromLocation.toLowerCase().includes(s) || t.toLocation.toLowerCase().includes(s) ||
+      (t.vehicle?.vehicleNumber || t.vehicleNumber || '').toLowerCase().includes(s) ||
+      (t.party?.name || t.partyName || '').toLowerCase().includes(s)
+    )
+  }, [trips, search])
+  
+  const filteredByParty = useMemo(() => {
+    let list = filteredTrips
+    if (billingMode) list = list.filter(t => !t.billed && !t.billId)
+    const groups = {}
+    list.forEach(t => {
+      const pId = t.party?._id || t.partyId || 'none'
+      const pName = t.party?.name || 'Uncategorized'
+      if (!groups[pId]) groups[pId] = { id: pId, name: pName, trips: [], totalPending: 0 }
+      groups[pId].trips.push(t)
+      if (!t.billed && !t.billId) {
+        const tExtras = (parseFloat(t.loadingCharge) || 0) + (parseFloat(t.unloadingCharge) || 0) + 
+                        (parseFloat(t.detentionCharge) || 0) + (parseFloat(t.otherCharge) || 0)
+        groups[pId].totalPending += (parseFloat(t.amount) || 0) + tExtras
+      }
+    })
+    return Object.values(groups).sort((a,b) => b.totalPending - a.totalPending)
+  }, [filteredTrips, billingMode])
+
   const loadTrips = async () => {
     try {
       const res = await getTrips()
@@ -125,40 +219,106 @@ export default function TripManagement() {
     loadDrafts()
   }, [])
 
+  useEffect(() => {
+    if (filteredByParty.length > 0 && expandedParties.length === 0) {
+      setExpandedParties([filteredByParty[0].id])
+    }
+  }, [filteredByParty])
+
   const handleBulkAddToDraft = async (draftId = null) => {
     if (selectedIds.length === 0) return
     setIsBilling(true)
     try {
-      const selectedTripDocs = trips.filter(t => selectedIds.includes(t._id || t.id))
+      // Flatten joined IDs (from grouped trips) into a list of individual IDs
+      const allIndividualIds = selectedIds.flatMap(id => id.split(','));
+      const selectedTripDocs = trips.filter(t => allIndividualIds.includes(t._id || t.id))
+      
+      if (selectedTripDocs.length === 0) {
+        alert("No trips found for selection.");
+        setIsBilling(false);
+        return;
+      }
+
       const partyId = selectedTripDocs[0].party?._id || selectedTripDocs[0].partyId
       
-      // If multiple parties selected, warn
       const uniqueParties = [...new Set(selectedTripDocs.map(t => t.party?._id || t.partyId))]
       if (uniqueParties.length > 1) {
         alert("Please select trips for the same Party/Account to group them in one bill.")
+        setIsBilling(false)
         return
       }
 
+      // Build List-Wise Items
+      const billItems = []
+      selectedTripDocs.forEach(trip => {
+        const date = dayjs(trip.startDate).format('YYYY-MM-DD')
+        const chalanNo = trip.chalanNumber || ''
+        const cLoader = parseFloat(trip.loadingCharge) || 0
+        const cUnloader = parseFloat(trip.unloadingCharge) || 0
+        const cDetention = parseFloat(trip.detentionCharge) || 0
+        const cOther = parseFloat(trip.otherCharge) || 0
+        const tExtras = cLoader + cUnloader + cDetention + cOther
+        
+        // Robust vehicle number retrieval
+        const tripVehicleId = trip.vehicle?._id || trip.vehicle;
+        const vNumDoc = trip.vehicle?.vehicleNumber || trip.vehicleNumber;
+        const vObj = vehicles.find(v => (v._id || v.id) === tripVehicleId);
+        const vNum = vNumDoc || vObj?.vehicleNumber || '—';
+        
+        if (trip.deliveries && trip.deliveries.length > 0) {
+          trip.deliveries.forEach((del, idx) => {
+            billItems.push({
+              date,
+              companyFrom: del.from,
+              companyTo: del.to,
+              chalanNo,
+              tempoNo: vNum,
+              extraAmount: idx === 0 ? tExtras.toString() : '0',
+              amount: (parseFloat(trip.amount)).toString(),
+              tripIds: [trip._id || trip.id]
+            })
+          })
+        } else {
+          billItems.push({
+            date,
+            companyFrom: trip.source || trip.fromLocation,
+            companyTo: trip.destination || trip.toLocation,
+            chalanNo,
+            tempoNo: vNum,
+            extraAmount: tExtras.toString(),
+            amount: (parseFloat(trip.amount)).toString(),
+            tripIds: [trip._id || trip.id]
+          })
+        }
+      })
+
+      let finalBill;
       if (draftId) {
-        // Add to existing draft
         const draft = drafts.find(d => d._id === draftId)
-        await updateBillApi(draftId, { trips: [...(draft.trips || []), ...selectedIds] })
+        finalBill = await updateBillApi(draftId, { 
+          trips: [...(draft.trips || []), ...selectedIds],
+          items: [...(draft.items || []), ...billItems]
+        })
       } else {
-        // Create new draft
-        await createBill({
+        finalBill = await createBill({
           party: partyId,
           billType: 'transport',
           status: 'draft',
-          trips: selectedIds
+          trips: selectedIds,
+          items: billItems
         })
       }
       
-      alert("Trips added to draft successfully!")
+      alert("Trips added to bill successfully!")
+      const billUrlId = finalBill?.bill?._id || finalBill?.bill?.id || finalBill?._id || finalBill?.id
+      if (billUrlId) navigate(`/bills/${billUrlId}`)
+      
       setSelectedIds([])
       setShowDraftSelect(false)
-      loadTrips() // refresh list to show billed status
+      loadTrips()
       loadDrafts()
     } catch (e) {
+      console.error(e)
       alert("Failed to update bill")
     } finally {
       setIsBilling(false)
@@ -183,11 +343,17 @@ export default function TripManagement() {
       source: trip.destination || trip.toLocation,
       destination: '',
       numberOfTrips: 1,
-      amount: ''
+      amount: '',
+      chalanNumber: '',
+      loadingCharge: '',
+      unloadingCharge: '',
+      detentionCharge: '',
+      otherCharge: '',
+      deliveries: [{ from: trip.destination || trip.toLocation, to: '' }]
     })
   }
 
-  const handleAddTrip = (e) => {
+  const handleAddTrip = async (e) => {
     e.preventDefault()
     
     // Detailed validation
@@ -203,10 +369,16 @@ export default function TripManagement() {
       vehicle: formData.vehicleId,
       party: formData.partyId,
       numberOfTrips: parseInt(formData.numberOfTrips) || 1,
-      amount: parseFloat(formData.amount)
+      amount: parseFloat(formData.amount),
+      loadingCharge: parseFloat(formData.loadingCharge) || 0,
+      unloadingCharge: parseFloat(formData.unloadingCharge) || 0,
+      detentionCharge: parseFloat(formData.detentionCharge) || 0,
+      otherCharge: parseFloat(formData.otherCharge) || 0,
+      deliveries: formData.deliveries.slice(0, parseInt(formData.numberOfTrips) || 1)
     }
 
-    createTrip(payload).then(res => {
+    try {
+      const res = await createTrip(payload)
       if (res.success) {
         setTrips(prev => [res.trip, ...prev])
         setShowForm(false)
@@ -217,11 +389,19 @@ export default function TripManagement() {
           groupId: null,
           source: '',
           destination: '',
-          numberOfTrips: '',
-          amount: ''
+          numberOfTrips: '1',
+          amount: '',
+          chalanNumber: '',
+          extraCharges: '',
+          deliveries: [{ from: '', to: '' }]
         })
+      } else {
+        alert(res.message || "Failed to save trip")
       }
-    })
+    } catch (e) {
+      console.error("Save trip error:", e)
+      alert(e.response?.data?.message || "Something went wrong while saving the trip")
+    }
   }
 
   const handleDelete = async (id) => {
@@ -285,91 +465,6 @@ export default function TripManagement() {
     }
   }
 
-  // Filter & Search (Mock)
-  const [search, setSearch] = useState('')
-  const filteredTrips = useMemo(() => {
-    // Group by date, vehicle, party
-    const groups = {}
-    trips.forEach(t => {
-      // Map back fields if they come from backend (source/destination/startDate)
-      const from = t.source || t.fromLocation || ''
-      const to = t.destination || t.toLocation || ''
-      const d = t.startDate || t.date || ''
-      const vId = typeof t.vehicle === 'object' ? t.vehicle?._id : t.vehicle
-      const pId = typeof t.party === 'object' ? t.party?._id : t.party
-
-      const key = t.groupId || `${d}_${vId}_${pId}`
-      if (!groups[key]) groups[key] = []
-      groups[key].push({ ...t, fromLocation: from, toLocation: to, date: d, vehicleId: vId, partyId: pId })
-    })
-
-    const grouped = Object.values(groups).map(group => {
-      // Sort by creation time to get the sequence
-      const sorted = [...group].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-      
-      // Combine routes: "A to B + C"
-      let displayFrom = sorted[0].fromLocation
-      let displayTo = sorted[0].toLocation
-      
-      for (let i = 1; i < sorted.length; i++) {
-        const prev = sorted[i-1]
-        const curr = sorted[i]
-        // If the current trip starts where the previous one ended, just add the new destination
-        if (curr.fromLocation.toLowerCase().trim() === prev.toLocation.toLowerCase().trim()) {
-           displayTo += ` + ${curr.toLocation}`
-        } else {
-           displayTo += ` + ${curr.fromLocation} to ${curr.toLocation}`
-        }
-      }
-
-      const totalAmount = sorted.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0)
-      const totalCount = sorted.reduce((sum, t) => sum + (parseInt(t.numberOfTrips) || 1), 0)
-      const allBilled = sorted.every(t => t.billed)
-      
-      // For photo, use the first available chalan image
-      const photo = sorted.find(t => t.chalanImage)?.chalanImage || null
-
-      // Build smart route sequence (deduplicate matching internal points)
-      let sequence = []
-      if (sorted.length > 0) {
-        sequence.push(sorted[0].fromLocation)
-        sorted.forEach((t, i) => {
-          if (i > 0) {
-            // If new source is different from last destination, show it
-            if (t.fromLocation !== sorted[i-1].toLocation) {
-               sequence.push(t.fromLocation)
-            }
-          }
-          sequence.push(t.toLocation)
-        })
-      }
-
-      return {
-        ...sorted[0], // base info
-        id: sorted.map(t => t._id || t.id).join(','), 
-        amount: totalAmount,
-        numberOfTrips: totalCount,
-        routePoints: sequence,
-        rawLegs: sorted, // Save raw legs for the View modal
-        fromLocation: displayFrom,
-        toLocation: displayTo,
-        billed: allBilled,
-        chalanImage: photo,
-        memberIds: sorted.map(s => s._id || s.id),
-        groupId: sorted[0].groupId
-      }
-    })
-
-    if (!search) return grouped
-    const s = search.toLowerCase()
-    return grouped.filter(t => 
-      t.fromLocation.toLowerCase().includes(s) || 
-      t.toLocation.toLowerCase().includes(s) ||
-      (t.vehicle?.vehicleNumber || t.vehicleNumber || '').toLowerCase().includes(s) ||
-      (t.party?.name || t.partyName || '').toLowerCase().includes(s)
-    )
-  }, [trips, search])
-
   return (
     <div className="page-wrapper animate-fadeIn trip-mgmt-container">
       
@@ -395,6 +490,30 @@ export default function TripManagement() {
             {showForm ? <><ArrowLeft size={18} /> Cancel</> : <><Plus size={18} /> Log New Trip</>}
           </button>
         </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
+        <button 
+          onClick={() => setBillingMode(false)}
+          style={{ 
+            padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+            background: !billingMode ? '#0F0D2E' : '#F3F4F6',
+            color: !billingMode ? 'white' : '#6B7280',
+            fontWeight: 700, fontSize: '0.8rem', transition: '0.2s'
+          }}
+        >All Activity</button>
+        <button 
+          onClick={() => setBillingMode(true)}
+          style={{ 
+            padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+            background: billingMode ? '#0F0D2E' : '#F3F4F6',
+            color: billingMode ? 'white' : '#6B7280',
+            fontWeight: 700, fontSize: '0.8rem', transition: '0.2s',
+            display: 'flex', alignItems: 'center', gap: 6
+          }}
+        >
+          <CreditCard size={14} /> Unbilled Trips
+        </button>
       </div>
 
       {/* Stats row */}
@@ -452,23 +571,92 @@ export default function TripManagement() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
-                <label className="form-label">From Location</label>
-                <input value={formData.source} onChange={e => setFormData({...formData, source: e.target.value})} placeholder="e.g., Ahmedabad" className="form-input" required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">To Location</label>
-                <input value={formData.destination} onChange={e => setFormData({...formData, destination: e.target.value})} placeholder="e.g., Surat" className="form-input" required />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div className="form-group">
-                <label className="form-label">Number of Trips</label>
-                <input type="number" value={formData.numberOfTrips} onChange={e => setFormData({...formData, numberOfTrips: e.target.value})} placeholder="1" className="form-input" min="1" required />
+                <label className="form-label">Number of Deliveries</label>
+                <select 
+                  value={formData.numberOfTrips} 
+                  onChange={e => {
+                    const val = parseInt(e.target.value);
+                    const newDeliveries = [...formData.deliveries];
+                    while(newDeliveries.length < val) newDeliveries.push({ from: '', to: '' });
+                    setFormData({...formData, numberOfTrips: e.target.value, deliveries: newDeliveries});
+                  }} 
+                  className="form-input"
+                >
+                  <option value="1">1 Delivery</option>
+                  <option value="2">2 Deliveries</option>
+                  <option value="3">3 Deliveries</option>
+                </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Amount (₹)</label>
                 <input type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} placeholder="1500" className="form-input" />
+              </div>
+            </div>
+
+            {/* Dynamic Delivery Locations */}
+            <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 16, border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Delivery Locations</span>
+              {Array.from({ length: parseInt(formData.numberOfTrips) || 1 }).map((_, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <input 
+                      value={formData.deliveries[idx]?.from || ''} 
+                      onChange={e => {
+                        const newD = [...formData.deliveries];
+                        newD[idx] = { ...newD[idx], from: e.target.value };
+                        // Update legacy source if it's the first delivery
+                        const update = { deliveries: newD };
+                        if(idx === 0) update.source = e.target.value;
+                        setFormData({...formData, ...update});
+                      }} 
+                      placeholder={`From Location ${idx + 1}`} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <input 
+                      value={formData.deliveries[idx]?.to || ''} 
+                      onChange={e => {
+                        const newD = [...formData.deliveries];
+                        newD[idx] = { ...newD[idx], to: e.target.value };
+                        // Update legacy destination if it's the last delivery
+                        const update = { deliveries: newD };
+                        if(idx === (parseInt(formData.numberOfTrips) - 1)) update.destination = e.target.value;
+                        setFormData({...formData, ...update});
+                      }} 
+                      placeholder={`To Location ${idx + 1}`} 
+                      className="form-input" 
+                      required 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Challan Number</label>
+                <input value={formData.chalanNumber} onChange={e => setFormData({...formData, chalanNumber: e.target.value})} placeholder="CH-123456" className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Loading (₹)</label>
+                <input type="number" value={formData.loadingCharge} onChange={e => setFormData({...formData, loadingCharge: e.target.value})} placeholder="0" className="form-input" />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <div className="form-group">
+                <label className="form-label">Unloading</label>
+                <input type="number" value={formData.unloadingCharge} onChange={e => setFormData({...formData, unloadingCharge: e.target.value})} placeholder="0" className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Detention</label>
+                <input type="number" value={formData.detentionCharge} onChange={e => setFormData({...formData, detentionCharge: e.target.value})} placeholder="0" className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Other</label>
+                <input type="number" value={formData.otherCharge} onChange={e => setFormData({...formData, otherCharge: e.target.value})} placeholder="0" className="form-input" />
               </div>
             </div>
 
@@ -484,96 +672,178 @@ export default function TripManagement() {
             <Search size={20} color="#9CA3AF" />
             <input 
               value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search by location or vehicle..." 
+              placeholder="Search by location, vehicle, party..." 
               className="search-input"
             />
           </div>
 
-          {/* Trips List */}
+          {/* Grouped Trips List */}
           <div className="trips-list">
-            {filteredTrips.length > 0 ? filteredTrips.map((trip) => (
-              <div key={trip.id} className={`animate-fadeInUp trip-card-mobile ${selectedIds.includes(trip.id) ? 'selected' : ''}`} onClick={() => toggleTripSelection(trip.id)}>
-                <div className="trip-card-main">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div className="trip-route-sequence">
-                      {trip.routePoints?.map((point, idx) => (
-                        <React.Fragment key={idx}>
-                          <span className="location">{point}</span>
-                          {idx < trip.routePoints.length - 1 && <ArrowRight size={14} className="route-arrow" />}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                    {/* Selection Indicator */}
-                    <div style={{ width: 22, height: 22, borderRadius: 6, border: '1.5px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selectedIds.includes(trip.id) ? 'var(--primary)' : 'white' }}>
-                      {selectedIds.includes(trip.id) && <CheckCircle2 size={14} color="white" />}
-                    </div>
-                  </div>
-                  
-                  <div className="trip-meta-grid">
-                    <div className="meta-item"><Hash size={12} /> {trip.vehicle?.vehicleNumber || trip.vehicleNumber}</div>
-                    <div className="meta-item"><User size={12} /> {trip.party?.name || trip.partyName}</div>
-                    <div className="meta-item"><Calendar size={12} /> {dayjs(trip.date).format('DD MMM')}</div>
-                    <div className="trip-badge">{trip.numberOfTrips} TRIP(S)</div>
-                    <div className="billing-status-chip" style={{ 
-                      background: trip.billed ? '#DCFCE7' : trip.billId ? '#EEF2FF' : '#FEF3C7',
-                      color: trip.billed ? '#16A34A' : trip.billId ? '#4F46E5' : '#D97706'
-                    }}>
-                      {trip.billed ? 'BILLED' : trip.billId ? 'IN DRAFT' : 'PENDING'}
-                    </div>
-                  </div>
+            {filteredByParty.length > 0 ? filteredByParty.map((group) => (
+              <div key={group.id} className={`party-accordion-item ${expandedParties.includes(group.id) ? 'expanded' : ''}`} style={{ marginBottom: 12 }}>
+                <div 
+                  className="party-accordion-header"
+                  onClick={() => setExpandedParties(prev => prev.includes(group.id) ? prev.filter(id => id !== group.id) : [...prev, group.id])}
+                  style={{ 
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                    padding: '12px 16px', background: 'white', borderRadius: 16, 
+                    border: '1.5px solid #F1F5F9', cursor: 'pointer', transition: '0.2s'
+                  }}
+                >
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                     <div style={{ 
+                        width: 36, height: 36, borderRadius: 12, 
+                        background: expandedParties.includes(group.id) ? 'var(--primary)' : '#EDE9FE', 
+                        color: expandedParties.includes(group.id) ? 'white' : '#7C3AED', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', transition: '0.3s'
+                     }}>{group.name[0]}</div>
+                     <div>
+                       <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0F0D2E' }}>{group.name}</h3>
+                       <p style={{ margin: 0, fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>{group.trips.length} Journey(s)</p>
+                     </div>
+                   </div>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                     {group.totalPending > 0 && (
+                       <div style={{ fontSize: '0.75rem', fontWeight: 950, color: '#DC2626', background: '#FEE2E2', padding: '4px 12px', borderRadius: 10 }}>
+                         ₹{group.totalPending.toLocaleString()}
+                       </div>
+                     )}
+                     <div style={{ transform: expandedParties.includes(group.id) ? 'rotate(180deg)' : 'rotate(0)', transition: '0.3s', color: '#94A3B8' }}>
+                       <Navigation size={16} />
+                     </div>
+                   </div>
                 </div>
-
-                <div className="trip-card-actions" onClick={e => e.stopPropagation()}>
-                  <div className="action-left">
-                    {trip.chalanImage ? (
-                      <div className="chalan-thumb" onClick={() => { setPreviewImage(trip.chalanImage); setIsPreviewOpen(true); }}>
-                        <img src={trip.chalanImage} alt="Chalan" />
-                        <button className="remove-photo-btn" onClick={(e) => removePhoto(e, trip.id)} aria-label="Remove photo">
-                          <X size={10} />
+                
+                {expandedParties.includes(group.id) && (
+                  <div className="party-accordion-content animate-fadeIn" style={{ padding: '12px 4px 4px 4px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {billingMode && (
+                      <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const pIds = group.trips.filter(t => !t.billed && !t.billId).map(t => t.id);
+                            setSelectedIds(prev => {
+                              const other = prev.filter(id => !pIds.includes(id));
+                              const allSelected = pIds.every(id => prev.includes(id));
+                              return allSelected ? other : [...other, ...pIds];
+                            });
+                          }}
+                          style={{ border: 'none', background: '#F5F3FF', color: '#4F46E5', fontSize: '0.7rem', fontWeight: 800, padding: '4px 12px', borderRadius: 8, cursor: 'pointer' }}
+                        >
+                          {group.trips.filter(t => !t.billed && !t.billId).every(t => selectedIds.includes(t.id)) ? 'Deselect All' : 'Select All for Bill'}
                         </button>
                       </div>
-                    ) : (
-                      <button className="upload-chalan-btn" onClick={() => handlePhotoCapture(trip.id)}>
-                        <Camera size={16} />
-                        <span>CHALAN</span>
-                      </button>
                     )}
-                    {trip.amount && <div className="trip-amount-badge">₹{parseFloat(trip.amount).toLocaleString()}</div>}
+                    {group.trips.map((trip) => (
+                      <div 
+                        key={trip.id} 
+                        className={`animate-fadeInUp trip-card-mobile ${selectedIds.includes(trip.id) ? 'selected' : ''} ${(trip.billed || trip.billId) ? 'billed-item' : ''}`} 
+                        onClick={() => {
+                          const billId = trip.billId || trip.bill?._id || trip.bill;
+                          if (billId) {
+                            navigate(`/bills/${billId}`);
+                          } else {
+                            toggleTripSelection(trip.id);
+                          }
+                        }}
+                      >
+                        <div className="trip-card-main">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div className="trip-route-sequence">
+                              {trip.routePoints?.map((point, idx) => (
+                                <React.Fragment key={idx}>
+                                  <span className="location">{point}</span>
+                                  {idx < trip.routePoints.length - 1 && <ArrowRight size={14} className="route-arrow" />}
+                                </React.Fragment>
+                              ))}
+                            </div>
+                            {/* Selection Indicator */}
+                            {!(trip.billed || trip.billId) && (
+                              <div style={{ width: 22, height: 22, borderRadius: 6, border: '1.5px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selectedIds.includes(trip.id) ? 'var(--primary)' : 'white' }}>
+                                {selectedIds.includes(trip.id) && <CheckCircle2 size={14} color="white" />}
+                              </div>
+                            )}
+                            {(trip.billed || trip.billId) && (
+                              <div style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.65rem', fontWeight: 800 }}>
+                                VIEW <Eye size={14} />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="trip-meta-grid">
+                            <div className="meta-item"><Hash size={12} /> {trip.vehicle?.vehicleNumber || trip.vehicleNumber}</div>
+                            <div className="meta-item"><Calendar size={12} /> {dayjs(trip.date).format('DD MMM')}</div>
+                            {trip.chalanNumber && <div className="meta-item"><FileText size={12} /> {trip.chalanNumber}</div>}
+                            <div className="trip-badge">{trip.numberOfTrips} DELIVERY(S)</div>
+                            {((parseFloat(trip.loadingCharge) || 0) + (parseFloat(trip.unloadingCharge) || 0) + (parseFloat(trip.detentionCharge) || 0) + (parseFloat(trip.otherCharge) || 0)) > 0 && 
+                              <div className="trip-badge extra" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                                +₹{(parseFloat(trip.loadingCharge) || 0) + (parseFloat(trip.unloadingCharge) || 0) + (parseFloat(trip.detentionCharge) || 0) + (parseFloat(trip.otherCharge) || 0)} EXTRA
+                              </div>
+                            }
+                            <div className="billing-status-chip" style={{ 
+                              background: trip.billed ? '#DCFCE7' : trip.billId ? '#EEF2FF' : '#FEF3C7',
+                              color: trip.billed ? '#16A34A' : trip.billId ? '#4F46E5' : '#D97706'
+                            }}>
+                              {trip.billed ? 'BILLED' : trip.billId ? 'IN DRAFT' : 'PENDING'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="trip-card-actions" onClick={e => e.stopPropagation()}>
+                          <div className="action-left">
+                            {trip.chalanImage ? (
+                              <div className="chalan-thumb" onClick={() => { setPreviewImage(trip.chalanImage); setIsPreviewOpen(true); }}>
+                                <img src={trip.chalanImage} alt="Chalan" />
+                                <button className="remove-photo-btn" onClick={(e) => removePhoto(e, trip.id)} aria-label="Remove photo">
+                                  <X size={10} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button className="upload-chalan-btn" onClick={() => handlePhotoCapture(trip.id)}>
+                                <Camera size={16} />
+                                <span>CHALAN</span>
+                              </button>
+                            )}
+                            {trip.amount && <div className="trip-amount-badge">₹{parseFloat(trip.amount).toLocaleString()}</div>}
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedJourney(trip); setIsDetailOpen(true); }}
+                              title="View journey breakdown"
+                              style={{ height: 34, width: 34, borderRadius: 9, border: '1.5px solid #F1F5F9', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleAddLeg(trip); }}
+                              title="Add another leg/destination to this trip"
+                              style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                              <Plus size={12} /> ADD LEG
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank'); }}
+                              title="Pay checkpost tax for this trip on the official government portal"
+                              style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #FDE68A', background: '#FFFBEB', color: '#B45309', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                              <ExternalLink size={12} /> PAY TAX
+                            </button>
+                            <button className="delete-trip-btn" onClick={() => handleDelete(trip.id)} aria-label="Delete trip">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSelectedJourney(trip); setIsDetailOpen(true); }}
-                      title="View journey breakdown"
-                      style={{ height: 34, width: 34, borderRadius: 9, border: '1.5px solid #F1F5F9', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleAddLeg(trip); }}
-                      title="Add another leg/destination to this trip"
-                      style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                    >
-                      <Plus size={12} /> ADD LEG
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank'); }}
-                      title="Pay checkpost tax for this trip on the official government portal"
-                      style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #FDE68A', background: '#FFFBEB', color: '#B45309', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                    >
-                      <ExternalLink size={12} /> PAY TAX
-                    </button>
-                    <button className="delete-trip-btn" onClick={() => handleDelete(trip.id)} aria-label="Delete trip">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             )) : (
               <div className="empty-state">
                 <Truck size={48} className="empty-icon" />
-                <div className="empty-title">No trips recorded yet</div>
-                <p className="empty-subtitle">Start by logging a new trip today</p>
+                <div className="empty-title">No trips found</div>
+                <p className="empty-subtitle">{billingMode ? 'No unbilled trips found for any party' : 'Start by logging a new trip today'}</p>
               </div>
             )}
           </div>
@@ -585,37 +855,42 @@ export default function TripManagement() {
         <div className="animate-slideUp billing-action-bar">
           <div className="action-bar-info">
             <span className="selection-count">{selectedIds.length} Trips Selected</span>
-            <button className="btn-clear-selection" onClick={() => setSelectedIds([])}>Clear</button>
+            <button className="btn-clear-selection" style={{ background: 'transparent', border: 'none', color: '#64748B', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }} onClick={() => setSelectedIds([])}>Clear</button>
           </div>
-          <div className="action-bar-btns">
-            {showDraftSelect ? (
-              <div className="draft-selector animate-fadeIn">
-                <div className="draft-selector-header">
-                  <span>Select Draft Bill</span>
-                  <X size={16} onClick={() => setShowDraftSelect(false)} style={{ cursor: 'pointer' }} />
+          <div className="action-bar-btns" style={{ display: 'flex', gap: 8 }}>
+            <button 
+              className="btn" 
+              style={{ height: 44, borderRadius: 12, border: '1.5px solid #F1F5F9', background: 'white', color: '#0F0D2E', padding: '0 16px', fontWeight: 800, fontSize: '0.75rem' }}
+              onClick={() => setShowDraftSelect(!showDraftSelect)}
+              disabled={isBilling}
+            >
+              Add to Draft
+            </button>
+            <button 
+              className="btn btn-primary" 
+              style={{ height: 44, borderRadius: 12, padding: '0 16px', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 6 }}
+              onClick={() => handleBulkAddToDraft(null)}
+              disabled={isBilling}
+            >
+              {isBilling ? <Loader2 size={16} className="spin" /> : <Plus size={16} />}
+              Generate Bill
+            </button>
+            
+            {showDraftSelect && (
+              <div className="draft-selector animate-fadeIn" style={{ position: 'absolute', bottom: 60, right: 0, width: 200, background: 'white', border: '1.5px solid #F1F5F9', borderRadius: 16, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', padding: 12, zIndex: 100 }}>
+                <div className="draft-selector-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                   <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>Draft Bills</span>
+                   <X size={14} onClick={() => setShowDraftSelect(false)} style={{ cursor: 'pointer' }} />
                 </div>
-                <div className="draft-items-list">
+                <div className="draft-items-list" style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto' }}>
                   {drafts.length > 0 ? drafts.map(d => (
-                    <div key={d._id} className="draft-item" onClick={() => handleBulkAddToDraft(d._id)}>
-                      <div style={{ fontWeight: 700 }}>{d.billNumber || 'New Draft'}</div>
-                      <div style={{ fontSize: '0.65rem', opacity: 0.7 }}>{d.party?.name}</div>
+                    <div key={d._id} className="draft-item" onClick={() => handleBulkAddToDraft(d._id)} style={{ padding: '8px 10px', background: '#F8FAFC', borderRadius: 10, cursor: 'pointer' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.75rem' }}>{d.billNumber || 'No #'}</div>
+                      <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>{d.party?.name}</div>
                     </div>
-                  )) : <div className="draft-empty">No active drafts</div>}
+                  )) : <div className="draft-empty" style={{ fontSize: '0.7rem', textAlign: 'center', padding: 10 }}>No drafts</div>}
                 </div>
-                <button className="btn-new-draft" onClick={() => handleBulkAddToDraft(null)}>
-                  + Create New Bill
-                </button>
               </div>
-            ) : (
-              <button 
-                className="btn btn-primary" 
-                style={{ height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px', fontWeight: 800 }}
-                onClick={() => setShowDraftSelect(true)}
-                disabled={isBilling}
-              >
-                {isBilling ? <Loader2 size={18} className="spin" /> : <FileText size={18} />}
-                Add to Bill
-              </button>
             )}
           </div>
         </div>
@@ -716,6 +991,9 @@ export default function TripManagement() {
         .summary-item .label { font-weight: 800; color: #64748B; font-size: 0.875rem; }
         .summary-item .value { font-weight: 950; color: #0F0D2E; font-size: 1.25rem; }
         
+        .party-accordion-header:hover { border-color: #DDD6FE !important; background: #FDFDFF !important; }
+        .party-accordion-item.expanded .party-accordion-header { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-color: #EDE9FE !important; }
+        
         .empty-state { text-align: center; padding: 40px 20px; }
         .empty-icon { opacity: 0.1; margin-bottom: 8px; color: #0F0D2E; }
         .empty-title { font-size: 0.9375rem; font-weight: 700; color: #334155; }
@@ -741,6 +1019,8 @@ export default function TripManagement() {
         
         .billing-status-chip { font-size: 0.6rem; font-weight: 950; padding: 3px 10px; border-radius: 8px; letter-spacing: 0.05em; }
         .trip-card-mobile.selected { border: 2px solid var(--primary); background: #f5f3ff; }
+        .trip-card-mobile.billed-item { border-left: 4px solid #10B981; cursor: pointer; }
+        .trip-card-mobile.billed-item:hover { background: #F0FDF4; }
         .animate-slideUp { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}</style>

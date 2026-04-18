@@ -50,13 +50,7 @@ function SectionCard({ icon: Icon, iconBg, iconColor, title, children }) {
   )
 }
 
-const PAYMENT_STATUSES = [
-  { val: 'unpaid', label: 'Unpaid',  color: '#DC2626', bg: '#FEE2E2' },
-  { val: 'paid',   label: 'Paid',    color: '#16A34A', bg: '#DCFCE7' },
-  { val: 'partial',label: 'Partial', color: '#D97706', bg: '#FEF3C7' },
-]
 
-const PAYMENT_METHODS = ["Cash", "Online Payment", "UPI", "Bank Transfer", "Card", "Credit", "Cheque"]
 
 export default function GarageBill({ initialData }) {
   const { addBill, updateBill } = useBills()
@@ -90,8 +84,6 @@ export default function GarageBill({ initialData }) {
       kmReading: initialData?.kmReading || '',
       nextServiceKm: initialData?.nextServiceKm || '',
       nextServiceDate: initialData?.nextServiceDate ? dayjs(initialData.nextServiceDate).format('YYYY-MM-DD') : '',
-      paymentStatus: initialData?.status || 'unpaid',
-      paymentMethod: initialData?.paymentMethod || 'Cash',
       gstPercent: initialData?.gstPercent?.toString() || '0',
       laborCharge: initialData?.laborCharge?.toString() || '0',
       notes: initialData?.notes || '',
@@ -120,7 +112,6 @@ export default function GarageBill({ initialData }) {
         kmReading: initialData.kmReading || '',
         nextServiceKm: initialData.nextServiceKm || '',
         nextServiceDate: initialData?.nextServiceDate ? dayjs(initialData.nextServiceDate).format('YYYY-MM-DD') : '',
-        paymentMethod: initialData.paymentMethod || 'Cash',
         gstPercent: initialData.gstPercent?.toString() || '0',
         laborCharge: initialData.laborCharge?.toString() || '0',
         notes: initialData.notes || '',
@@ -131,8 +122,6 @@ export default function GarageBill({ initialData }) {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
  
-  const paymentStatus = watch('paymentStatus')
-  const paymentMethod = watch('paymentMethod')
   const gstPercent  = watch('gstPercent')
   const laborCharge = watch('laborCharge')
   const items       = watch('items')
@@ -200,7 +189,7 @@ export default function GarageBill({ initialData }) {
   const onSubmit = async (data, statusArg = 'unpaid') => {
     setSaving(true)
     try {
-      const finalStatus = statusArg === 'draft' ? 'draft' : data.paymentStatus;
+      const finalStatus = statusArg === 'draft' ? 'draft' : 'unpaid';
 
       const payload = {
         billType: 'garage',
@@ -212,7 +201,6 @@ export default function GarageBill({ initialData }) {
         subTotal: subtotal,
         gstAmount,
         grandTotal,
-        paymentMethod: data.paymentMethod,
         status: finalStatus,
       }
 
@@ -236,7 +224,7 @@ export default function GarageBill({ initialData }) {
         <CheckCircle2 size={36} color="#16A34A" />
       </div>
       <h2 style={{ fontWeight: 800, color: '#0F0D2E' }}>Bill Created!</h2>
-      <p style={{ color: '#6B7280' }}>Invoice #{savedBill.invoiceNo}</p>
+      <p style={{ color: '#6B7280' }}>Bill Number: #{savedBill.billNumber || 'Draft'}</p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
         <button className="btn btn-primary" onClick={() => navigate(`/bills/${savedBill._id || savedBill.id}`)}><FileText size={16} /> View Invoice</button>
         <button className="btn btn-ghost" onClick={() => navigate('/garage/bills/new')}><Plus size={16} /> New Bill</button>
@@ -462,34 +450,7 @@ export default function GarageBill({ initialData }) {
         </SectionCard>
 
         {/* Payment Mode */}
-        <SectionCard icon={CreditCard} iconBg="#EDE9FE" iconColor="#7C3AED" title="Payment Details">
-          <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Payment Status</label>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {PAYMENT_STATUSES.map(pm => {
-              const isActive = paymentStatus === pm.val
-              return (
-                <button key={pm.val} type="button" onClick={() => setValue('paymentStatus', pm.val)}
-                  style={{ 
-                    padding: '10px 4px', borderRadius: 12, 
-                    border: isActive ? `2px solid ${pm.color}` : '2px solid transparent', 
-                    background: isActive ? pm.bg : '#F8FAFC', 
-                    color: isActive ? pm.color : '#64748B', 
-                    fontWeight: 700, fontSize: '0.8125rem', cursor: 'pointer', transition: 'all 0.2s' 
-                  }}>
-                  {pm.label}
-                </button>
-              )
-            })}
-          </div>
 
-          <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Payment Method (Cash, Online, etc.)</label>
-          <div style={{ position: 'relative' }}>
-            <select {...register('paymentMethod')} className="form-input" style={{ appearance: 'none', paddingRight: 36 }}>
-              {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <ChevronDown size={15} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
-          </div>
-        </SectionCard>
 
         {/* Notes */}
         <div style={{ background: 'white', borderRadius: 20, padding: '18px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: 20, border: '1px solid #F1F5F9' }}>

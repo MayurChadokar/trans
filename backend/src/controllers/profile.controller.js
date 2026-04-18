@@ -16,7 +16,7 @@ async function updateProfile(req, res, next) {
     const userId = req.user.id;
     const allowed = [
       "name", "businessName", "slogan", "email", "address", "city", 
-      "pincode", "panNo", "gstin", "aadharNo", "bankDetails"
+      "pincode", "panNo", "gstin", "aadharNo", "bankDetails", "alternatePhone"
     ];
     
     const updateData = {};

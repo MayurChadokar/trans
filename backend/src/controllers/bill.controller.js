@@ -125,7 +125,7 @@ async function createBill(req, res, next) {
       const allTripIds = (items || []).flatMap(it => it.tripIds || []);
 
       // Calculate totals
-      const itemsTotal = (items || []).reduce((s, it) => s + (parseFloat(it.amount) || 0), 0);
+      const itemsTotal = (items || []).reduce((s, it) => s + (parseFloat(it.amount) || 0) + (parseFloat(it.extraAmount) || 0), 0);
       const extras = [loadingCharge, unloadingCharge, detentionCharge, otherCharge]
         .reduce((s, v) => s + (parseFloat(v) || 0), 0);
       const subTotal  = itemsTotal + extras;
@@ -143,9 +143,11 @@ async function createBill(req, res, next) {
         billedToGstin, billedToPan,
         items: (items || []).map(it => ({
           date: it.date,
+          tempoNo: it.tempoNo,
           companyFrom: it.companyFrom,
           companyTo: it.companyTo,
           chalanNo: it.chalanNo,
+          extraAmount: parseFloat(it.extraAmount) || 0,
           amount: parseFloat(it.amount) || 0,
           tripIds: it.tripIds || [],
         })),
