@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { Wrench, Car, User, TrendingUp, Clock, AlertTriangle, ArrowRight, Plus, Bell, Calendar as CalIcon, X, Shield } from 'lucide-react'
+import { Wrench, Car, User, Users, Receipt, TrendingUp, Clock, AlertTriangle, ArrowRight, Plus, Bell, Calendar as CalIcon, X, Shield } from 'lucide-react'
 import { useBills } from '../../context/BillContext'
 import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'

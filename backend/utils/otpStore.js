@@ -6,7 +6,14 @@ const store = new Map(); // phone -> { otp, expiresAtMs }
 
 function generateOtp(phone) {
   // Fixed OTP for test admin/transport phones
-  if (phone === "9999999999" || phone === "8888888888") return "123456";
+  if (
+    phone === "9999999999" || 
+    phone === "8888888888" || 
+    phone === "9999922222" || 
+    phone === "9999933333"
+  ) {
+    return "123456";
+  }
   
   // Random 6 digit OTP for others
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -20,6 +27,12 @@ function issueOtp(phone) {
 }
 
 function verifyOtp(phone, otp) {
+  // Allow test OTPs even if not in store
+  const testPhones = ["9999999999", "8888888888", "9999922222", "9999933333"];
+  if (testPhones.includes(phone) && otp === "123456") {
+    return true;
+  }
+
   const rec = store.get(phone);
   if (!rec) return false;
   if (Date.now() > rec.expiresAtMs) {
