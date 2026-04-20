@@ -42,6 +42,7 @@ export default function MainLayout() {
     '/transport/vehicles': { title: t('vehicles'), subtitle: 'Your fleet' },
     '/garage/vehicles': { title: t('vehicles'), subtitle: 'Customer vehicles' },
     '/garage/services': { title: t('services'), subtitle: 'Service records' },
+    '/transport/expenses': { title: 'Daily Expense', subtitle: 'Log fuel & maintenance' },
     '/admin/dashboard': { title: t('admin'), subtitle: 'System overview' },
     '/admin/users': { title: t('user_mgmt'), subtitle: 'Manage platform users' },
     '/admin/billing': { title: t('bills'), subtitle: 'All system bills' },

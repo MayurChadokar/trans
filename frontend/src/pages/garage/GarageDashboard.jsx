@@ -5,17 +5,27 @@ import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
 import { getGarageStats } from '../../api/garageApi'
+import { apiClient } from '../../api/apiClient'
+import { AlertCircle } from 'lucide-react'
 
 export default function GarageDashboard() {
   const { bills } = useBills()
   const navigate = useNavigate()
   const [showReminders, setShowReminders] = useState(false)
   const [apiStats, setApiStats] = useState(null)
+  const [banners, setBanners] = useState([])
   
   useEffect(() => {
     getGarageStats().then(res => {
       if (res.success) setApiStats(res.stats)
     })
+    
+    // Fetch dynamic banners
+    apiClient.get('/system/banners').then(res => {
+      if (res.data.success && res.data.banners) {
+        setBanners(res.data.banners.filter(b => b.active))
+      }
+    }).catch(e => console.error("Banner fetch failed", e))
   }, [])
   
   const formatVehicleNo = (no) => {
@@ -129,41 +139,67 @@ export default function GarageDashboard() {
         </div>
       </div>
 
-      {/* Insurance Service Banner - Horizontal Box */}
-      <div 
-        onClick={() => navigate('/insurance')}
-        style={{ 
-           background: 'white', 
-           borderRadius: 20, 
-           padding: '12px 18px', 
-           marginBottom: 20, 
-           display: 'flex', 
-           alignItems: 'center', 
-           gap: 14, 
-           cursor: 'pointer',
-           boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-           border: '1px solid #E5E7EB',
-           transition: 'all 0.2s'
-        }}
-        onMouseEnter={e => {
-           e.currentTarget.style.transform = 'translateY(-2px)'
-           e.currentTarget.style.borderColor = '#10B981'
-        }}
-        onMouseLeave={e => {
-           e.currentTarget.style.transform = 'translateY(0)'
-           e.currentTarget.style.borderColor = '#E5E7EB'
-        }}
-      >
-        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#ECFDF5', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Shield size={18} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1F2937', display: 'flex', alignItems: 'center', gap: 6 }}>
-            Insurance Service <span style={{ fontSize: '0.55rem', background: '#3B82F6', color: 'white', padding: '2px 6px', borderRadius: 100, textTransform: 'uppercase' }}>New</span>
+      {/* Dynamic Banners from Admin Panel */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
+        {banners.map((banner) => (
+          <div 
+            key={banner.id}
+            onClick={() => {
+              if (banner.link.startsWith('/')) navigate(banner.link)
+              else window.open(banner.link, '_blank')
+            }}
+            style={{ 
+               background: 'linear-gradient(135deg, #065F46, #047857)', 
+               borderRadius: 24, 
+               padding: '20px 24px', 
+               color: 'white',
+               cursor: 'pointer',
+               position: 'relative',
+               overflow: 'hidden',
+               boxShadow: '0 8px 20px rgba(6, 95, 70, 0.15)',
+               transition: 'all 0.3s'
+            }}
+            onMouseEnter={e => {
+               e.currentTarget.style.transform = 'translateY(-3px)'
+               e.currentTarget.style.boxShadow = '0 12px 28px rgba(6, 95, 70, 0.2)'
+            }}
+            onMouseLeave={e => {
+               e.currentTarget.style.transform = 'translateY(0)'
+               e.currentTarget.style.boxShadow = '0 8px 20px rgba(6, 95, 70, 0.15)'
+            }}
+          >
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 900, margin: 0, color: 'white' }}>{banner.title}</h2>
+                {banner.badge && (
+                  <span style={{ fontSize: '0.55rem', fontWeight: 900, background: '#3B82F6', color: 'white', padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase' }}>{banner.badge}</span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', margin: 0, maxWidth: '80%' }}>{banner.subtitle}</p>
+              
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', fontWeight: 800, color: '#A7F3D0' }}>
+                 Get Started <ArrowRight size={14} />
+              </div>
+            </div>
+
+            {/* Background Image / Icon */}
+            <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+              {banner.imageUrl ? (
+                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <img src={banner.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="B" />
+                  <div style={{ 
+                    position: 'absolute', inset: 0, 
+                    background: 'linear-gradient(to right, #065F46 40%, rgba(6, 95, 70, 0.4) 100%)' 
+                  }} />
+                </div>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', opacity: 0.1, paddingRight: 20 }}>
+                  <Wrench size={100} style={{ transform: 'rotate(-20deg)' }} />
+                </div>
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: '0.625rem', color: '#6B7280', marginTop: 1 }}>Compare rates for your customer's vehicles and earn more</div>
-        </div>
-        <ArrowRight size={16} color="#D1D5DB" />
+        ))}
       </div>
 
       {/* Stats Cards */}

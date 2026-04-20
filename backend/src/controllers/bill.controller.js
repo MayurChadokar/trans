@@ -36,12 +36,23 @@ function getModel(billType) {
   return null;
 }
 
-function genBillNumber(type) {
-  const prefix = type === "garage" ? "G-INV-" : "T-INV-";
-  // Use last 8 digits of timestamp + 4 random hex chars for uniqueness
-  const ts = Date.now().toString().slice(-8);
-  const rand = Math.random().toString(16).slice(2, 6).toUpperCase();
-  return `${prefix}${ts}-${rand}`;
+async function genBillNumber(type, ownerId) {
+  const prefix = "INV-";
+  const now = new Date();
+  const dateStr = now.getFullYear().toString() + 
+                  (now.getMonth() + 1).toString().padStart(2, '0') + 
+                  now.getDate().toString().padStart(2, '0');
+  
+  const regex = new RegExp("^" + prefix + dateStr);
+  
+  // Count across BOTH models to ensure cross-module uniqueness
+  const [tCount, gCount] = await Promise.all([
+    TransportBill.countDocuments({ owner: ownerId, billNumber: regex }),
+    GarageBill.countDocuments({ owner: ownerId, billNumber: regex })
+  ]);
+
+  const seq = (tCount + gCount + 1).toString().padStart(2, '0');
+  return `${prefix}${dateStr}-${seq}`;
 }
 
 // ─── GET /bills/drafts ────────────────────────────────────────────────────────
@@ -168,7 +179,7 @@ async function createBill(req, res, next) {
       };
 
       if (isFinal && !billData.billNumber) {
-        billData.billNumber = genBillNumber("transport");
+        billData.billNumber = await genBillNumber("transport", req.user.id);
       }
 
       const bill = await TransportBill.create(billData);
@@ -246,7 +257,7 @@ async function createBill(req, res, next) {
       };
 
       if (isFinal && !billData.billNumber) {
-        billData.billNumber = genBillNumber("garage");
+        billData.billNumber = await genBillNumber("garage", req.user.id);
       }
 
       const bill = await GarageBill.create(billData);
@@ -322,7 +333,7 @@ async function updateBill(req, res, next) {
     const updateData = { ...req.body };
     const becomingFinal = status && status !== "draft" && bill.status === "draft";
     if (becomingFinal && !bill.billNumber && !updateData.billNumber) {
-      updateData.billNumber = genBillNumber(resolvedType);
+      updateData.billNumber = await genBillNumber(resolvedType, req.user.id);
     }
 
     const previousStatus = bill.status;

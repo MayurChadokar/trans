@@ -135,7 +135,12 @@ async function refresh(req, res, next) {
       userAgent: req.get("user-agent"),
     });
 
-    const user = await User.findById(rotated.userId).populate('planId');
+    let user = await User.findById(rotated.userId).populate('planId');
+    if (!user) {
+      const Admin = require("../models/Admin");
+      user = await Admin.findById(rotated.userId);
+    }
+
     if (!user) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
@@ -165,7 +170,13 @@ async function logout(req, res, next) {
 
 async function me(req, res, next) {
   try {
-    const user = await User.findById(req.user?.id).populate('planId');
+    const userId = req.user?.id;
+    let user = await User.findById(userId).populate('planId');
+    if (!user) {
+       const Admin = require("../models/Admin");
+       user = await Admin.findById(userId);
+    }
+
     if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
     return res.json({ success: true, user: userDto(user) });
   } catch (e) {

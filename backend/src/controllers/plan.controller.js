@@ -35,17 +35,21 @@ async function subscribeToPlan(req, res, next) {
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     }
 
+    const price = Number(plan.price) || 0;
+    const gst = Math.round(price * 0.18);
+    const total = price + gst;
+
     const sale = await SoftwareSale.create({
-      owner: user._id, // Recording the purchaser as owner for self-service sales
+      owner: user._id, 
       transporter: user._id,
       planName: plan.name,
-      totalAmount: plan.price,
-      amountPaid: plan.price,
+      totalAmount: total,
+      amountPaid: total,
       status: "paid",
       purchaseDate: new Date(),
       expiryDate,
       paymentHistory: [{
-        amount: plan.price,
+        amount: total,
         mode: paymentMode || "upi",
         transactionId: transactionId || "MOCK_TXN_" + Date.now()
       }]
@@ -53,7 +57,7 @@ async function subscribeToPlan(req, res, next) {
 
     user.subscriptionActive = true;
     user.subscriptionExpiry = expiryDate;
-    user.allowedVehicles = plan.allowedVehicles;
+    user.allowedVehicles = 0; // Unlimited as requested
     user.planId = plan._id;
     await user.save();
 
@@ -77,9 +81,12 @@ async function createOrder(req, res, next) {
     const plan = await SoftwarePlan.findById(planId);
     if (!plan) return res.status(404).json({ success: false, message: "Plan not found" });
 
+    const price = Number(plan.price) || 0;
+    const total = price + Math.round(price * 0.18);
+
     let order;
     try {
-      order = await razorpayUtil.createRazorpayOrder(plan.price, `receipt_${Date.now()}`);
+      order = await razorpayUtil.createRazorpayOrder(total, `receipt_${Date.now()}`);
     } catch (rzpErr) {
       console.error("Razorpay Error Details:", rzpErr);
       return res.status(500).json({ 
@@ -128,17 +135,21 @@ async function verifyPayment(req, res, next) {
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     }
 
+    const price = Number(plan.price) || 0;
+    const gst = Math.round(price * 0.18);
+    const total = price + gst;
+
     const sale = await SoftwareSale.create({
       owner: user._id,
       transporter: user._id,
       planName: plan.name,
-      totalAmount: plan.price,
-      amountPaid: plan.price,
+      totalAmount: total,
+      amountPaid: total,
       status: "paid",
       purchaseDate: new Date(),
       expiryDate,
       paymentHistory: [{
-        amount: plan.price,
+        amount: total,
         mode: "razorpay",
         transactionId: razorpay_payment_id
       }]
@@ -146,7 +157,7 @@ async function verifyPayment(req, res, next) {
 
     user.subscriptionActive = true;
     user.subscriptionExpiry = expiryDate;
-    user.allowedVehicles = plan.allowedVehicles;
+    user.allowedVehicles = 0; // Unlimited as requested
     user.planId = plan._id;
     await user.save();
 

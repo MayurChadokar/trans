@@ -55,6 +55,11 @@ export default function BusinessProfile() {
     }
   })
 
+  useEffect(() => {
+    if (user?.logoUrl) setLogoPreview(user.logoUrl)
+    if (user?.signatureUrl) setSignPreview(user.signatureUrl)
+  }, [user?.logoUrl, user?.signatureUrl])
+
   const dataUrlToFile = async (dataUrl, filename = 'image.png') => {
     if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return null
     const res = await fetch(dataUrl)
@@ -67,9 +72,14 @@ export default function BusinessProfile() {
       const formData = new FormData()
       
       // Append text fields
+      // Append text fields
       Object.keys(data).forEach(key => {
-        if (data[key] !== undefined && data[key] !== null) {
-          formData.append(key, data[key])
+        if (data[key] !== undefined && data[key] !== null && key !== 'id') {
+          if (typeof data[key] === 'object' && !(data[key] instanceof File) && !(data[key] instanceof FileList)) {
+             formData.append(key, JSON.stringify(data[key]))
+          } else {
+             formData.append(key, data[key])
+          }
         }
       })
 

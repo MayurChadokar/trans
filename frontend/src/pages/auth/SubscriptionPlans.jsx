@@ -3,12 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { Check, Loader2, CreditCard, ShieldCheck, Zap, Star, LayoutDashboard, ChevronRight, ArrowLeft } from 'lucide-react'
 import { getAvailablePlans, subscribeToPlan, createRazorpayOrder, verifyRazorpayPayment } from '../../api/planApi'
 import { useAuth } from '../../context/AuthContext'
-import { useVehicles } from '../../context/VehicleContext'
 import logo from '../../assets/trans-logo.png'
 
 export default function SubscriptionPlans() {
   const { user, login, logout } = useAuth()
-  const { vehicles } = useVehicles()
   const navigate = useNavigate()
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
@@ -150,11 +148,7 @@ export default function SubscriptionPlans() {
           Choose a Plan
         </h2>
         <p className="text-sm sm:text-base" style={{ color: '#64748B', fontWeight: 500, maxWidth: 480, margin: '0 auto' }}>
-          {user?.role === 'transport' ? (
-            <>You have <strong style={{color: '#7C3AED'}}>{vehicles.length} vehicles</strong>. Pick a plan to get started.</>
-          ) : (
-            <>Pick a professional subscription to power your garage workflow.</>
-          )}
+          Pick a professional subscription to power your business workflow.
         </p>
 
         <div style={{ 
@@ -182,7 +176,9 @@ export default function SubscriptionPlans() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
         {filteredPlans.map((plan, idx) => {
           const isPro = plan.name.toLowerCase().includes('pro');
-          const isAllowed = plan.allowedVehicles === 0 || vehicles.length <= plan.allowedVehicles;
+          const price = Number(plan.price) || 0
+          const gst = Math.round(price * 0.18)
+          const total = price + gst
 
           return (
             <div key={plan._id} 
@@ -200,27 +196,24 @@ export default function SubscriptionPlans() {
               </div>
               <div style={{ marginBottom: 10 }}>
                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-                    <span className="text-lg sm:text-xl" style={{ fontWeight: 900, color: '#0F172A' }}>₹{plan.price}</span>
+                    <span className="text-lg sm:text-xl" style={{ fontWeight: 900, color: '#0F172A' }}>₹{total}</span>
                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>/{plan.interval === 'Monthly' ? 'mo' : 'yr'}</span>
                  </div>
-                 {plan.allowedVehicles > 0 && (
-                    <div style={{ fontSize: '0.6rem', color: isAllowed ? '#16A34A' : '#EF4444', fontWeight: 700, marginTop: 2 }}>
-                       Up to {plan.allowedVehicles} Vehicles Allowed
-                    </div>
-                 )}
+                 <div style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: 650, marginTop: 2 }}>
+                    ₹{price} + ₹{gst} GST (18%)
+                 </div>
               </div>
               <button 
                 onClick={() => handleSubscribe(plan)} 
-                disabled={!!submitting || !isAllowed} 
+                disabled={!!submitting} 
                 className="h-[38px] sm:h-[42px] w-full rounded-[10px] flex items-center justify-center gap-2 transition-all duration-200"
                 style={{ 
                   border: 'none', 
                   background: '#8B5CF6', color: 'white', 
-                  fontSize: '0.75rem', fontWeight: 800, cursor: (submitting || !isAllowed) ? 'not-allowed' : 'pointer', 
-                  opacity: !isAllowed ? 0.6 : 1, 
+                  fontSize: '0.75rem', fontWeight: 800, cursor: (submitting) ? 'not-allowed' : 'pointer', 
                 }}
               >
-                {submitting === plan._id ? <Loader2 size={18} className="spin" /> : (!isAllowed ? (user?.role === 'transport' ? 'Fleet too large' : 'Limit reached') : 'Subscribe Now')}
+                {submitting === plan._id ? <Loader2 size={18} className="spin" /> : 'Subscribe Now'}
               </button>
             </div>
           )

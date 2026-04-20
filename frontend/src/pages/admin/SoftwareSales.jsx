@@ -12,13 +12,13 @@ const ITEMS_PER_PAGE = 8
 
 function PlanManagerModal({ plans, onAdd, onUpdate, onDelete, onClose, isTransport }) {
    const [editPlan, setEditPlan] = useState(null)
-   const [form, setForm] = useState({ name: '', interval: 'Monthly', price: '', features: '', allowedVehicles: '' })
+   const [form, setForm] = useState({ name: '', interval: 'Monthly', price: '', features: '' })
 
    const handleSave = (e) => {
       e.preventDefault()
       if (editPlan) onUpdate(editPlan.id, form)
       else onAdd(form)
-      setForm({ name: '', interval: 'Monthly', price: '', features: '', allowedVehicles: '' })
+      setForm({ name: '', interval: 'Monthly', price: '', features: '' })
       setEditPlan(null)
    }
 
@@ -55,19 +55,13 @@ function PlanManagerModal({ plans, onAdd, onUpdate, onDelete, onClose, isTranspo
                            value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
                         />
                      </div>
-                     {isTransport && (
-                        <input 
-                           type="number" className="form-input" placeholder="Allowed Vehicles (e.g. 10)" min="0"
-                           value={form.allowedVehicles} onChange={e => setForm(p => ({ ...p, allowedVehicles: e.target.value }))}
-                        />
-                     )}
                      <textarea 
                         className="form-input" placeholder="Features (comma separated)" style={{ height: 80, fontSize: '0.8rem' }}
                         value={form.features} onChange={e => setForm(p => ({ ...p, features: e.target.value }))}
                      />
                      <div style={{ display: 'flex', gap: 8 }}>
                         <button type="submit" className="btn btn-primary btn-full">{editPlan ? 'Update' : 'Add Plan'}</button>
-                        {editPlan && <button type="button" className="btn btn-ghost" onClick={() => { setEditPlan(null); setForm({ name: '', interval: 'Monthly', price: '', features: '', allowedVehicles: '' }) }}><X size={16} /></button>}
+                        {editPlan && <button type="button" className="btn btn-ghost" onClick={() => { setEditPlan(null); setForm({ name: '', interval: 'Monthly', price: '', features: '' }) }}><X size={16} /></button>}
                      </div>
                   </form>
                </div>
@@ -79,7 +73,6 @@ function PlanManagerModal({ plans, onAdd, onUpdate, onDelete, onClose, isTranspo
                            <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{p.name} <span style={{ fontSize: '0.65rem', padding: '2px 6px', background: '#F3F4F6', borderRadius: 4, marginLeft: 6 }}>{p.interval}</span></div>
                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7C3AED' }}>
                               ₹{Number(p.price).toLocaleString()} 
-                              {isTransport && <span style={{ color: 'var(--text-muted)' }}> · {p.allowedVehicles || 0} Vehicles</span>}
                            </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
@@ -108,7 +101,10 @@ function SaleModal({ plans, users, existing, onSave, onClose, isTransport }) {
      if (k === 'planId') {
         const selected = plans.find(p => p.id === val)
         if (selected) {
-           setForm(p => ({ ...p, planId: val, totalAmount: selected.price }))
+           const price = Number(selected.price) || 0
+           const gst = Math.round(price * 0.18)
+           const total = price + gst
+           setForm(p => ({ ...p, planId: val, totalAmount: total }))
            return
         }
      }
@@ -174,6 +170,11 @@ function SaleModal({ plans, users, existing, onSave, onClose, isTransport }) {
                    <IndianRupee className="input-icon" size={18} />
                    <input type="number" className="form-input" placeholder="Total Cost" required value={form.totalAmount} onChange={set('totalAmount')} />
                 </div>
+                {form.planId && (
+                    <div style={{ fontSize: '0.65rem', color: '#64748B', marginTop: 4, fontWeight: 700 }}>
+                       Inc. 18% GST (₹{Math.round(form.totalAmount - (form.totalAmount / 1.18))} approx)
+                    </div>
+                 )}
              </div>
              <div className="form-group">
                 <label className="form-label">INITIAL PAYMENT *</label>

@@ -148,7 +148,7 @@ export default function TransportRegistration() {
 
       const res = await completeTransportSetup(formattedData)
       if (res.success) {
-        navigate('/setup/vehicles', { replace: true })
+        navigate('/subscription', { replace: true })
       } else {
         setLoading(false)
         alert(res.message || 'Setup failed. Please try again.')

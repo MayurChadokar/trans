@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Building2, Receipt,
   BarChart2, Bell, ShieldCheck,
   LogOut, ChevronLeft, ChevronRight, Truck,
-  Wrench, Monitor,
+  Wrench, Monitor, Layout,
   Plus, ChevronDown, UserCircle, MapPin, Banknote, CreditCard
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -115,7 +115,7 @@ export default function Sidebar() {
     { to: '/transport/parties', icon: Users, label: t('parties') },
     { to: '/transport/vehicles', icon: Truck, label: t('vehicles') },
     { to: '/transport/trips', icon: MapPin || Monitor, label: t('trips') },
-    { to: '/finance', icon: Banknote || Receipt, label: t('finance') },
+    { to: '/transport/expenses', icon: Banknote, label: 'Daily Expense' },
     { to: '/profile', icon: UserCircle, label: t('profile') },
   ]
 
@@ -137,6 +137,7 @@ export default function Sidebar() {
     { to: '/admin/manage', icon: Building2, label: isTransport ? "Transport Business" : "Garage Business" },
     { to: '/admin/billing', icon: Receipt, label: t('bills') },
     { to: '/admin/software-sales', icon: CreditCard, label: t('software_sales') },
+    { to: '/admin/banners', icon: Layout, label: 'Dashboard Banners' },
     
     // Only show Trip Management in Transport Mode
     ...(isTransport ? [{ to: '/admin/trips/history', icon: MapPin, label: t('trips') }] : []),
@@ -169,7 +170,7 @@ export default function Sidebar() {
           width: 42, height: 42, borderRadius: 12, overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.4s'
         }}>
-          <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={user?.logoUrl || logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
         {!sidebarCollapsed && (
           <div style={{ lineHeight: 1 }}>
@@ -251,7 +252,7 @@ export default function Sidebar() {
           </div>
           {!sidebarCollapsed && (
             <div style={{ overflow: 'hidden' }}>
-              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.8125rem', color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user?.name || (isAdmin ? 'Super Admin' : 'Business Owner')}</p>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.8125rem', color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user?.businessName || user?.name || (isAdmin ? 'Super Admin' : 'Business Owner')}</p>
               <p style={{ margin: 0, fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>{isAdmin ? (isTransport ? 'Transport Ops' : 'Garage Ops') : (user?.role?.toUpperCase())}</p>
             </div>
           )}

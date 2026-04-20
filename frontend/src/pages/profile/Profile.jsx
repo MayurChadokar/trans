@@ -1,4 +1,4 @@
-import { UserCircle, Building2, CreditCard, QrCode, ChevronRight, LogOut, Zap, Calendar } from 'lucide-react'
+import { UserCircle, Building2, CreditCard, QrCode, ChevronRight, LogOut, Zap, Calendar, PenTool } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
 import { useNavigate } from 'react-router-dom'
@@ -24,18 +24,35 @@ export default function Profile() {
     <div className="page-wrapper animate-fadeIn">
       {/* Profile header */}
       <div className="card" style={{ marginBottom: 16, textAlign: 'center', padding: '28px 20px' }}>
-        <div className="avatar avatar-lg" style={{ margin: '0 auto 12px', width: 64, height: 64, fontSize: '1.25rem', overflow: 'hidden', background: '#F1F5F9' }}>
-          {user?.logoUrl ? (
-            <img src={user.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
-          ) : initials}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 16 }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="avatar avatar-lg" style={{ margin: '0 auto 8px', width: 64, height: 64, fontSize: '1.25rem', overflow: 'hidden', background: '#F1F5F9', border: '2px solid #E2E8F0' }}>
+              {user?.logoUrl ? (
+                <img src={user.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
+              ) : initials}
+            </div>
+            <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', margin: 0 }}>Logo</p>
+          </div>
+          
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 12, background: '#FFF1F2', border: '2px solid #FECDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', margin: '0 auto 8px' }}>
+              {user?.signatureUrl ? (
+                <img src={user.signatureUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Signature" />
+              ) : (
+                <PenTool size={24} color="#E11D48" />
+              )}
+            </div>
+            <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', margin: 0 }}>Signature</p>
+          </div>
         </div>
-        <h3 style={{ fontWeight: 800, fontSize: '1.125rem' }}>{user?.businessName || user?.name || 'Business Owner'}</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: 4 }}>
+
+        <h3 style={{ fontWeight: 800, fontSize: '1.125rem', margin: '8px 0 0' }}>{user?.businessName || user?.name || 'Business Owner'}</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: 4, marginBottom: 0 }}>
           +91 {user?.phone?.replace(/(\d{5})(\d{5})/, '$1 $2') || 'XXXXX XXXXX'}
         </p>
         <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 10 }}>
           <button 
-            onClick={() => navigate('/profile/edit')}
+            onClick={() => navigate('/profile/business')}
             className="btn btn-sm" 
             style={{ fontSize: '0.75rem', padding: '6px 12px', background: 'white', border: '1.5px solid #E2E8F0', borderRadius: 10, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}
           >

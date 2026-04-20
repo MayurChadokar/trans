@@ -18,7 +18,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 app.use(cookieParser());
 
 // Request logging (Morgan - very fast)
@@ -57,6 +58,7 @@ app.use("/api/finance", require("./src/routes/finance.routes"));
 app.use("/api/garage", require("./src/routes/garage.routes"));
 app.use("/api/garage/vehicles", require("./src/routes/garageVehicle.routes"));
 app.use("/api/profile", require("./src/routes/profile.routes"));
+app.use("/api/system", require("./src/routes/system.routes"));
 
 // basic error handler
 app.use(require("./src/middleware/error.middleware").errorMiddleware);

@@ -17,8 +17,9 @@ export default function TopHeader({ title, subtitle }) {
     navigate(user?.role === 'admin' ? '/admin' : '/login')
   }
 
-  const initials = user?.name
-    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const displayName = user?.businessName || user?.name || ''
+  const initials = displayName
+    ? displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : user?.phone?.slice(-2) || '??'
 
   return (
@@ -76,7 +77,7 @@ export default function TopHeader({ title, subtitle }) {
             <div className="avatar avatar-sm">{initials}</div>
             <div style={{ textAlign: 'left', lineHeight: 1.3 }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {user?.name || 'User'}
+                {user?.businessName || user?.name || 'User'}
               </div>
               <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
                 {user?.role || 'User'}

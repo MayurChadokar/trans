@@ -28,7 +28,7 @@ export default function BottomNav() {
 
   const handleNewClick = () => {
     if (isTransport) {
-      navigate('/transport/trips')
+      window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank')
     } else {
       navigate('/garage/bills/new')
     }
@@ -54,18 +54,18 @@ export default function BottomNav() {
           </NavLink>
         ))}
 
-        {/* Center PLUS FAB */}
+        {/* Center FAB - Border Tax for Transport, New Job for Garage */}
         <button
           className="bottom-nav-fab"
           id="btn-create-new"
           onClick={handleNewClick}
-          aria-label={isTransport ? t('new_trip') : 'New Job Card'}
+          aria-label={isTransport ? 'Border Tax' : 'New Job Card'}
         >
           <div className="fab-btn">
             <Plus size={28} color="white" strokeWidth={3} />
           </div>
           <span className="bottom-nav-label" style={{ marginTop: 6 }}>
-            {isTransport ? 'Log New Trip' : 'New Job Card'}
+            {isTransport ? 'Border Tax' : 'New Job Card'}
           </span>
         </button>
 

@@ -46,6 +46,7 @@ const PartyDetail      = lazy(() => import('../pages/parties/PartyDetail'))
 const TransportVehicleList = lazy(() => import('../pages/transport/VehicleList'))
 const AddVehicle           = lazy(() => import('../pages/transport/AddVehicle'))
 const TripManagement       = lazy(() => import('../pages/transport/TripManagement'))
+const DailyExpense         = lazy(() => import('../pages/transport/DailyExpense'))
 
 // Phase 2 — Garage
 const GarageVehicles = lazy(() => import('../pages/garage/GarageVehicles'))
@@ -67,6 +68,7 @@ const GarageServiceLogs  = lazy(() => import('../pages/admin/GarageServiceLogs')
 const TripHistoryLogs    = lazy(() => import('../pages/admin/TripHistoryLogs'))
 const AdminFinance     = lazy(() => import('../pages/admin/finance/FinanceModule'))
 const SoftwareSales     = lazy(() => import('../pages/admin/SoftwareSales'))
+const AdminBanners      = lazy(() => import('../pages/admin/AdminBanners'))
 
 // Loader fallback
 const PageLoader = () => (
@@ -138,6 +140,7 @@ export default function AppRouter() {
               <Route path="/transport/vehicles/add"      element={<AddVehicle />} />
               <Route path="/transport/vehicles/edit/:id" element={<AddVehicle />} />
               <Route path="/transport/trips"             element={<TripManagement />} />
+              <Route path="/transport/expenses"          element={<DailyExpense />} />
             </Route>
 
             {/* ── Garage Module ── */}
@@ -175,6 +178,7 @@ export default function AppRouter() {
               <Route path="/admin/notifications" element={<AdminNotifications />} />
               <Route path="/admin/services/garage" element={<GarageServiceLogs />} />
               <Route path="/admin/trips/history" element={<TripHistoryLogs />} />
+              <Route path="/admin/banners" element={<AdminBanners />} />
             </Route>
 
             {/* Shared Bills View */}
