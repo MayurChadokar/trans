@@ -1,4 +1,4 @@
-import { UserCircle, Building2, CreditCard, QrCode, ChevronRight, LogOut, Zap, Calendar, PenTool } from 'lucide-react'
+import { UserCircle, Building2, CreditCard, QrCode, ChevronRight, LogOut, Zap, Calendar, PenTool, Share2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useApp } from '../../context/AppContext'
 import { useNavigate } from 'react-router-dom'
@@ -9,6 +9,7 @@ const menuItems = [
   { icon: CreditCard, label: 'Bank Details',     sub: 'Account & UPI info',     to: '/profile/bank',     color: '#2563EB'        },
   { icon: QrCode,     label: 'QR Code',          sub: 'Payment QR code',         to: '/profile/qr',       color: '#16A34A'        },
   { icon: Zap,        label: 'Subscription',     sub: 'Plan & Billing',          to: '/subscription',     color: '#D97706'        },
+  { icon: Share2,     label: 'Share App',        sub: 'Invite friends & partners', onClick: 'share',      color: '#7C3AED'        },
 ]
 
 export default function Profile() {
@@ -19,6 +20,25 @@ export default function Profile() {
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : user?.phone?.slice(-2) || '?'
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Trans & Garage App',
+      text: `Try this amazing app for Transport & Garage management! 🚀\nManage Bills, Party Khata, and Expenses easily.`,
+      url: window.location.origin
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData)
+      } else {
+        const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareData.text + " " + shareData.url)}`
+        window.open(waUrl, '_blank')
+      }
+    } catch (err) {
+      console.warn('Share error:', err)
+    }
+  }
 
   return (
     <div className="page-wrapper animate-fadeIn">
@@ -130,7 +150,7 @@ export default function Profile() {
           <button
             key={item.label}
             id={`btn-profile-${item.label.toLowerCase().replace(/ /g, '-')}`}
-            onClick={() => navigate(item.to)}
+            onClick={() => item.onClick === 'share' ? handleShare() : navigate(item.to)}
             style={{
               width: '100%', display: 'flex', alignItems: 'center',
               gap: 14, padding: '16px 20px', background: 'none',
