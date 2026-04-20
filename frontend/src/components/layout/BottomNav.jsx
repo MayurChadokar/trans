@@ -27,7 +27,11 @@ export default function BottomNav() {
   ]
 
   const handleNewClick = () => {
-    navigate(`${modulePrefix}/trips`)
+    if (isTransport) {
+      navigate('/transport/trips')
+    } else {
+      navigate('/garage/bills/new')
+    }
   }
 
   return (
@@ -55,12 +59,14 @@ export default function BottomNav() {
           className="bottom-nav-fab"
           id="btn-create-new"
           onClick={handleNewClick}
-          aria-label={t('new_trip')}
+          aria-label={isTransport ? t('new_trip') : 'New Job Card'}
         >
           <div className="fab-btn">
             <Plus size={28} color="white" strokeWidth={3} />
           </div>
-          <span className="bottom-nav-label" style={{ marginTop: 6 }}>Log New Trip</span>
+          <span className="bottom-nav-label" style={{ marginTop: 6 }}>
+            {isTransport ? 'Log New Trip' : 'New Job Card'}
+          </span>
         </button>
 
         {/* Right Side */}
