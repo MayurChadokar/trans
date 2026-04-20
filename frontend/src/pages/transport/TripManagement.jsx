@@ -43,6 +43,7 @@ const JourneyDetailModal = ({ isOpen, onClose, trip, onDeleteLeg }) => {
                 <div className="leg-meta">
                   <span>₹{parseFloat(leg.amount).toLocaleString()}</span>
                   {leg.extraCharges > 0 && <span style={{ color: '#D97706' }}>+₹{leg.extraCharges}</span>}
+                  {leg.returnCharges > 0 && <span style={{ color: '#047857' }}>+₹{leg.returnCharges} (Ret)</span>}
                   <span>•</span>
                   <span>{leg.chalanNumber || dayjs(leg.startDate).format('DD MMM')}</span>
                 </div>
@@ -103,6 +104,9 @@ export default function TripManagement() {
     amount: '',
     chalanNumber: '',
     extraCharges: '',
+    returnCharges: '',
+    isCompleted: true,
+    reason: '',
     deliveries: [{ from: '', to: '' }]
   })
 
@@ -139,6 +143,9 @@ export default function TripManagement() {
       
       // Aggregate all charge types
       const totalExtra = sorted.reduce((sum, t) => sum + (parseFloat(t.extraCharges) || 0), 0)
+      const totalReturn = sorted.reduce((sum, t) => sum + (parseFloat(t.returnCharges) || 0), 0)
+      const anyIncomplete = sorted.some(t => t.isCompleted === false)
+      const reasons = sorted.map(t => t.reason).filter(Boolean)
 
       const chalanNums = [...new Set(sorted.map(t => t.chalanNumber).filter(Boolean))].join(', ')
       const allBilled = sorted.every(t => t.billed)
@@ -154,6 +161,7 @@ export default function TripManagement() {
       return {
         ...sorted[0], id: sorted.map(t => t._id || t.id).join(','), 
         amount: totalAmount, numberOfTrips: totalCount, extraCharges: totalExtra,
+        returnCharges: totalReturn, isCompleted: !anyIncomplete, reasons,
         chalanNumber: chalanNums, routePoints: sequence, rawLegs: sorted,
         fromLocation: displayFrom, toLocation: displayTo, billed: allBilled,
         chalanImage: photo, memberIds: sorted.map(s => s._id || s.id), groupId: sorted[0].groupId
@@ -165,7 +173,8 @@ export default function TripManagement() {
     return grouped.filter(t => 
       t.fromLocation.toLowerCase().includes(s) || t.toLocation.toLowerCase().includes(s) ||
       (t.vehicle?.vehicleNumber || t.vehicleNumber || '').toLowerCase().includes(s) ||
-      (t.party?.name || t.partyName || '').toLowerCase().includes(s)
+      (t.party?.name || t.partyName || '').toLowerCase().includes(s) ||
+      (t.party?.phone || '').toLowerCase().includes(s)
     )
   }, [trips, search])
   
@@ -179,12 +188,15 @@ export default function TripManagement() {
       if (!groups[pId]) groups[pId] = { id: pId, name: pName, trips: [], totalPending: 0 }
       groups[pId].trips.push(t)
       if (!t.billed && !t.billId) {
-        const tExtras = (parseFloat(t.loadingCharge) || 0) + (parseFloat(t.unloadingCharge) || 0) + 
-                        (parseFloat(t.detentionCharge) || 0) + (parseFloat(t.otherCharge) || 0)
+        const tExtras = (parseFloat(t.extraCharges) || 0) + (parseFloat(t.returnCharges) || 0)
         groups[pId].totalPending += (parseFloat(t.amount) || 0) + tExtras
       }
     })
-    return Object.values(groups).sort((a,b) => b.totalPending - a.totalPending)
+    return Object.values(groups).sort((a,b) => {
+      const dateA = new Date(a.trips?.[0]?.startDate || a.trips?.[0]?.date || 0);
+      const dateB = new Date(b.trips?.[0]?.startDate || b.trips?.[0]?.date || 0);
+      return dateB - dateA;
+    })
   }, [filteredTrips, billingMode])
 
   const loadTrips = async () => {
@@ -248,7 +260,7 @@ export default function TripManagement() {
       selectedTripDocs.forEach(trip => {
         const date = dayjs(trip.startDate).format('YYYY-MM-DD')
         const chalanNo = trip.chalanNumber || ''
-        const tExtras = parseFloat(trip.extraCharges) || 0
+        const tExtras = (parseFloat(trip.extraCharges) || 0) + (parseFloat(trip.returnCharges) || 0)
         
         // Robust vehicle number retrieval
         const tripVehicleId = trip.vehicle?._id || trip.vehicle;
@@ -371,6 +383,9 @@ export default function TripManagement() {
       numberOfTrips: parseInt(formData.numberOfTrips) || 1,
       amount: parseFloat(formData.amount),
       extraCharges: parseFloat(formData.extraCharges) || 0,
+      returnCharges: parseFloat(formData.returnCharges) || 0,
+      isCompleted: formData.isCompleted,
+      reason: formData.reason,
       deliveries: formData.deliveries.slice(0, parseInt(formData.numberOfTrips) || 1)
     }
 
@@ -390,6 +405,9 @@ export default function TripManagement() {
           amount: '',
           chalanNumber: '',
           extraCharges: '',
+          returnCharges: '',
+          isCompleted: true,
+          reason: '',
           deliveries: [{ from: '', to: '' }]
         })
       } else {
@@ -546,7 +564,11 @@ export default function TripManagement() {
                 <label className="form-label">Select Vehicle</label>
                 <select value={formData.vehicleId} onChange={e => setFormData({...formData, vehicleId: e.target.value})} className="form-input" required>
                   <option value="">— Select —</option>
-                  {vehicles.map(v => <option key={v._id || v.id} value={v._id || v.id}>{v.vehicleNumber} ({v.vehicleType})</option>)}
+                  {vehicles.map(v => (
+                    <option key={v._id || v.id} value={v._id || v.id}>
+                      {v.vehicleNumber} {v.tripCount > 0 ? `(${v.tripCount} trips)` : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -635,13 +657,46 @@ export default function TripManagement() {
                 <input value={formData.chalanNumber} onChange={e => setFormData({...formData, chalanNumber: e.target.value})} placeholder="CH-123456" className="form-input" />
               </div>
               <div className="form-group">
+                <label className="form-label" style={{ color: '#047857' }}>Return Charges (₹)</label>
+                <div className="input-group">
+                  <span className="input-prefix" style={{ color: '#047857' }}>₹</span>
+                  <input type="number" value={formData.returnCharges} onChange={e => setFormData({...formData, returnCharges: e.target.value})} placeholder="0" className="form-input" style={{ color: '#047857', fontWeight: 700 }} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
                 <label className="form-label" style={{ color: '#D97706' }}>Extra Charges (₹)</label>
                 <div className="input-group">
                   <span className="input-prefix" style={{ color: '#D97706' }}>₹</span>
                   <input type="number" value={formData.extraCharges} onChange={e => setFormData({...formData, extraCharges: e.target.value})} placeholder="0" className="form-input" style={{ color: '#D97706', fontWeight: 700 }} />
                 </div>
               </div>
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
+                <input 
+                  type="checkbox" 
+                  id="isCompleted"
+                  checked={formData.isCompleted} 
+                  onChange={e => setFormData({...formData, isCompleted: e.target.checked})} 
+                  style={{ width: 20, height: 20, cursor: 'pointer' }}
+                />
+                <label htmlFor="isCompleted" className="form-label" style={{ marginBottom: 0, cursor: 'pointer' }}>Trip Is Completed</label>
+              </div>
             </div>
+
+            {!formData.isCompleted && (
+              <div className="form-group animate-fadeIn">
+                <label className="form-label" style={{ color: '#DC2626' }}>Reason for Incomplete Trip</label>
+                <textarea 
+                  value={formData.reason} 
+                  onChange={e => setFormData({...formData, reason: e.target.value})} 
+                  placeholder="Why is the trip incomplete? (e.g. breakdown, returned, etc.)" 
+                  className="form-input"
+                  style={{ height: 80, resize: 'none' }}
+                />
+              </div>
+            )}
 
             <button type="submit" className="btn btn-primary" style={{ marginTop: 10, height: 50, borderRadius: 16, fontWeight: 800 }}>
               Save Trip Record
@@ -758,11 +813,21 @@ export default function TripManagement() {
                             <div className="meta-item"><Calendar size={12} /> {dayjs(trip.date).format('DD MMM')}</div>
                             {trip.chalanNumber && <div className="meta-item"><FileText size={12} /> {trip.chalanNumber}</div>}
                             <div className="trip-badge">{trip.numberOfTrips} DELIVERY(S)</div>
+                            {(parseFloat(trip.returnCharges) || 0) > 0 && 
+                              <div className="trip-badge return" style={{ background: '#D1FAE5', color: '#047857' }}>
+                                +₹{(parseFloat(trip.returnCharges)).toLocaleString()} RETURN
+                              </div>
+                            }
                             {(parseFloat(trip.extraCharges) || 0) > 0 && 
                               <div className="trip-badge extra" style={{ background: '#FEF3C7', color: '#D97706' }}>
                                 +₹{(parseFloat(trip.extraCharges)).toLocaleString()} EXTRA
                               </div>
                             }
+                            {!trip.isCompleted && (
+                              <div className="trip-badge alert" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                                INCOMPLETE {trip.reasons?.length > 0 && `(${trip.reasons[0].slice(0, 15)}...)`}
+                              </div>
+                            )}
                             <div className="billing-status-chip" style={{ 
                               background: trip.billed ? '#DCFCE7' : trip.billId ? '#EEF2FF' : '#FEF3C7',
                               color: trip.billed ? '#16A34A' : trip.billId ? '#4F46E5' : '#D97706'

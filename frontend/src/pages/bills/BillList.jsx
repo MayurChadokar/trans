@@ -153,6 +153,9 @@ export default function BillList({ type }) {
         b.billedToName?.toLowerCase().includes(q) ||
         b.customerName?.toLowerCase().includes(q) ||
         b.vehicleNo?.toLowerCase().includes(q) ||
+        b.billedToPhone?.toLowerCase().includes(q) ||
+        b.customerPhone?.toLowerCase().includes(q) ||
+        (b.party?.phone || '').toLowerCase().includes(q) ||
         b.items?.some(item => 
           item.companyFrom?.toLowerCase().includes(q) || 
           item.companyTo?.toLowerCase().includes(q) || 
@@ -171,29 +174,34 @@ export default function BillList({ type }) {
         : (bill.customerName || bill.party?.name || 'Uncategorized');
       
       const key = name.toLowerCase().trim();
+      const bDate = new Date(bill.billingDate || bill.createdAt);
+
       if (!map[key]) {
-        map[key] = { name, bills: [], totalAmount: 0, pendingAmount: 0 };
+        map[key] = { name, bills: [], totalAmount: 0, pendingAmount: 0, latestDate: bDate };
       }
       map[key].bills.push(bill);
       map[key].totalAmount += (bill.grandTotal || 0);
       if (bill.status !== 'paid' && bill.status !== 'draft') {
         map[key].pendingAmount += (bill.grandTotal || 0);
       }
+      if (bDate > map[key].latestDate) {
+        map[key].latestDate = bDate;
+      }
     });
 
-    // If a search is active, we might want to prioritize parties that match the search name
-    // but the 'filtered' list already filters individual bills. 
-    return Object.values(map).sort((a,b) => b.totalAmount - a.totalAmount);
+    return Object.values(map).sort((a,b) => b.latestDate - a.latestDate);
   }, [filtered]);
 
   const displayedBillsForParty = useMemo(() => {
     if (!selectedParty) return [];
-    return filtered.filter(bill => {
-      const name = bill.billType === 'transport' 
-        ? (bill.billedToName || bill.party?.name || 'Uncategorized') 
-        : (bill.customerName || bill.party?.name || 'Uncategorized');
-      return name.toLowerCase().trim() === selectedParty.toLowerCase().trim();
-    });
+    return filtered
+      .filter(bill => {
+        const name = bill.billType === 'transport' 
+          ? (bill.billedToName || bill.party?.name || 'Uncategorized') 
+          : (bill.customerName || bill.party?.name || 'Uncategorized');
+        return name.toLowerCase().trim() === selectedParty.toLowerCase().trim();
+      })
+      .sort((a, b) => new Date(b.billingDate || b.createdAt) - new Date(a.billingDate || a.createdAt));
   }, [selectedParty, filtered]);
 
   const totals = useMemo(() => {

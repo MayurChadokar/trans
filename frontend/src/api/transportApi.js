@@ -10,6 +10,11 @@ export async function getVehicles() {
   return data
 }
 
+export async function getVehicleDetail(id) {
+  const { data } = await apiClient.get(`/transport/vehicles/${id}`)
+  return data
+}
+
 export async function createVehicle(vehicleData) {
   const { data } = await apiClient.post('/transport/vehicles', vehicleData)
   return data

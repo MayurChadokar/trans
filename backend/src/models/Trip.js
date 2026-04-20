@@ -24,6 +24,9 @@ const TripSchema = new mongoose.Schema(
     chalanImage: { type: String, default: null },
     chalanNumber: { type: String, default: null },
     extraCharges: { type: Number, default: 0 },
+    returnCharges: { type: Number, default: 0 },
+    isCompleted: { type: Boolean, default: true },
+    reason: { type: String, default: null },
     deliveries: [
       {
         from: { type: String },

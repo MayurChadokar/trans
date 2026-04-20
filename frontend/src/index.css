@@ -1300,8 +1300,21 @@ a:hover { color: var(--primary-dark); }
 }
 .btn-danger:hover { box-shadow: 0 6px 20px rgba(220,38,38,0.45); transform: translateY(-1px); }
 
-/* ── slideInRight animation (party card actions) ── */
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(20px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease both;
 }

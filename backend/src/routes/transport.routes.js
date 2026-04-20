@@ -9,6 +9,7 @@ router.use(requireRole("transport"));
 
 router.get("/stats", transportController.getTransportStats);
 router.get("/vehicles", transportController.listVehicles);
+router.get("/vehicles/:id", transportController.getVehicleDetail);
 router.post("/vehicles", transportController.createVehicle);
 router.patch("/vehicles/:id", transportController.updateVehicle);
 

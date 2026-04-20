@@ -42,9 +42,31 @@ async function getTransportStats(req, res, next) {
 
 async function listVehicles(req, res, next) {
   try {
-    const vehicles = await Vehicle.find({ owner: req.user.id }).sort({ createdAt: -1 }).lean();
+    const ownerId = new mongoose.Types.ObjectId(req.user.id);
+    const vehicles = await Vehicle.aggregate([
+      { $match: { owner: ownerId } },
+      {
+        $lookup: {
+          from: "trips",
+          localField: "_id",
+          foreignField: "vehicle",
+          as: "trips"
+        }
+      },
+      {
+        $project: {
+          vehicleNumber: 1,
+          vehicleType: 1,
+          owner: 1,
+          createdAt: 1,
+          tripCount: { $size: "$trips" }
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]);
     return res.json({ success: true, vehicles });
   } catch (e) {
+    console.error("List Vehicles Error:", e);
     return res.status(500).json({ success: false, message: "Failed to load vehicles" });
   }
 }
@@ -95,11 +117,37 @@ async function updateVehicle(req, res, next) {
   }
 }
 
+async function getVehicleDetail(req, res, next) {
+  try {
+    const ownerId = req.user.id;
+    const vehicleId = req.params.id;
+
+    const vehicle = await Vehicle.findOne({ _id: vehicleId, owner: ownerId }).lean();
+    if (!vehicle) return res.status(404).json({ success: false, message: "Vehicle not found" });
+
+    const trips = await Trip.find({ vehicle: vehicleId, owner: ownerId })
+      .populate("party", "name phone")
+      .sort({ startDate: -1 })
+      .lean();
+
+    return res.json({ 
+      success: true, 
+      vehicle: {
+        ...vehicle,
+        trips,
+        tripCount: trips.length
+      }
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message || "Failed to load vehicle details" });
+  }
+}
+
 async function listTrips(req, res, next) {
   try {
     const trips = await Trip.find({ owner: req.user.id })
       .populate("vehicle", "vehicleNumber vehicleType")
-      .populate("party", "name")
+      .populate("party", "name phone")
       .sort({ startDate: -1 })
       .lean();
     return res.json({ success: true, trips });
@@ -122,7 +170,7 @@ async function createTrip(req, res, next) {
     // Populate for immediate UI update
     const populated = await Trip.findById(trip._id)
       .populate("vehicle", "vehicleNumber vehicleType")
-      .populate("party", "name")
+      .populate("party", "name phone")
       .lean();
       
     return res.json({ success: true, trip: populated });
@@ -164,4 +212,5 @@ module.exports = {
   createTrip,
   updateTrip,
   deleteTrip,
+  getVehicleDetail
 };
