@@ -78,7 +78,7 @@ function TransportInvoice({ bill, business, onPayOnline }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ccc', borderTop: 'none', marginBottom: 0 }}>
         <thead>
           <tr style={{ background: '#fdf7f2' }}>
-            {['No.', 'Date', 'Vehicle No.', 'Company (From)', 'Company (To)', 'Chalan No.', 'Extra', 'Amount'].map((h, i) => (
+            {['No.', 'Date', 'Vehicle No.', 'Company (From)', 'Company (To)', 'Chalan No.', 'Extra/Ret', 'Amount'].map((h, i) => (
               <th key={h} style={{ padding: '12px 6px', fontSize: '0.75rem', fontWeight: 800, border: '1px solid #ccc', textAlign: i === 7 ? 'right' : i === 6 ? 'right' : 'center', color: '#333' }}>{h}</th>
             ))}
           </tr>

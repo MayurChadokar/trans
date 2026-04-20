@@ -657,10 +657,12 @@ export default function TripManagement() {
                 <input value={formData.chalanNumber} onChange={e => setFormData({...formData, chalanNumber: e.target.value})} placeholder="CH-123456" className="form-input" />
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ color: '#047857' }}>Return Charges (₹)</label>
+                <label className="form-label" style={{ color: !formData.isCompleted ? '#DC2626' : '#047857', fontWeight: !formData.isCompleted ? 900 : 700 }}>
+                  Return Charge (₹) {!formData.isCompleted && <span style={{ fontSize: '0.6rem' }}>[Required for Unloading]</span>}
+                </label>
                 <div className="input-group">
-                  <span className="input-prefix" style={{ color: '#047857' }}>₹</span>
-                  <input type="number" value={formData.returnCharges} onChange={e => setFormData({...formData, returnCharges: e.target.value})} placeholder="0" className="form-input" style={{ color: '#047857', fontWeight: 700 }} />
+                  <span className="input-prefix" style={{ color: !formData.isCompleted ? '#DC2626' : '#047857' }}>₹</span>
+                  <input type="number" value={formData.returnCharges} onChange={e => setFormData({...formData, returnCharges: e.target.value})} placeholder="0" className="form-input" style={{ color: !formData.isCompleted ? '#DC2626' : '#047857', fontWeight: 900 }} />
                 </div>
               </div>
             </div>

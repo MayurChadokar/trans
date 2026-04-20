@@ -95,6 +95,40 @@ export default function GarageDashboard() {
         <Wrench size={64} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', bottom: -12, right: 12, transform: 'rotate(-15deg)' }} />
       </div>
 
+      {/* Quick Actions */}
+      <div className="card" style={{ padding: '24px 16px', marginBottom: 20 }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: 16 }}>Quick Actions</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button onClick={() => navigate('/garage/bills/new')} style={{ background: '#F5F3FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.1)' }}>
+              <Plus size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>New Job Card</span>
+          </button>
+          
+          <button onClick={() => setShowReminders(true)} style={{ background: '#FFF7ED', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#F3811E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(243, 129, 30, 0.1)' }}>
+              <Bell size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Service Alerts</span>
+          </button>
+
+          <button onClick={() => navigate('/garage/parties')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
+              <Users size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Customers</span>
+          </button>
+
+          <button onClick={() => navigate('/garage/bills')} style={{ background: '#EFF6FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.1)' }}>
+              <Receipt size={22} />
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Bill History</span>
+          </button>
+        </div>
+      </div>
+
       {/* Insurance Service Banner - Horizontal Box */}
       <div 
         onClick={() => navigate('/insurance')}
@@ -146,62 +180,6 @@ export default function GarageDashboard() {
             )}
           </div>
         ))}
-      </div>
-
-      {/* Service Notification Banner */}
-      {remindersList.length > 0 && (
-         <div className="animate-fadeInLeft" style={{ background: '#FFF7ED', border: '1.5px solid #FDBA74', borderRadius: 20, padding: '14px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-               <Bell className={remindersList.some(r => r.reminderStatus === 'overdue') ? 'shake' : ''} size={22} />
-            </div>
-            <div style={{ flex: 1 }}>
-               <h4 style={{ fontSize: '0.875rem', fontWeight: 900, color: '#92400E', margin: 0 }}>Service Alerts ({remindersList.length})</h4>
-               <p style={{ fontSize: '0.75rem', color: '#B45309', margin: '2px 0 0' }}>
-                  {remindersList.filter(r => r.reminderStatus === 'overdue').length || 0} overdue and {remindersList.filter(r => r.reminderStatus !== 'overdue').length || 0} due soon.
-               </p>
-            </div>
-            <button 
-              onClick={() => setShowReminders(true)}
-              className="btn btn-sm" 
-              style={{ background: '#92400E', color: 'white', borderRadius: 10, height: 32, fontSize: '0.75rem', fontWeight: 800 }}
-            >
-              Check Now
-            </button>
-         </div>
-      )}
-
-      {/* Quick Actions */}
-      <div className="card" style={{ padding: '24px 16px', marginBottom: 20 }}>
-        <h3 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: 16 }}>Quick Actions</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <button onClick={() => navigate('/garage/bills/new')} style={{ background: '#F5F3FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.1)' }}>
-              <Plus size={22} />
-            </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>New Job Card</span>
-          </button>
-          
-          <button onClick={() => setShowReminders(true)} style={{ background: '#FFF7ED', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#F3811E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(243, 129, 30, 0.1)' }}>
-              <Bell size={22} />
-            </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Service Alerts</span>
-          </button>
-
-          <button onClick={() => navigate('/garage/parties')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
-              <Users size={22} />
-            </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Customers</span>
-          </button>
-
-          <button onClick={() => navigate('/garage/bills')} style={{ background: '#EFF6FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.1)' }}>
-              <Receipt size={22} />
-            </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Bill History</span>
-          </button>
-        </div>
       </div>
 
       {/* Recent Activity / Upcoming List */}

@@ -1,119 +1,311 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Wrench, Plus, Trash2, CheckCircle2, Loader2, ArrowLeft, ChevronDown } from 'lucide-react'
+import { 
+  Wrench, Plus, Trash2, CheckCircle2, Loader2, 
+  ArrowLeft, ChevronDown, Search, FileText, Calendar, 
+  ArrowRight, X 
+} from 'lucide-react'
 import { useVehicles } from '../../context/VehicleContext'
+import { useBills } from '../../context/BillContext'
+import dayjs from 'dayjs'
 
 const CAR_TYPES = ['Car', 'SUV', 'Bike', 'Truck', 'Bus', 'Auto', 'Van', 'Other']
 const COMPANIES  = ['Maruti', 'Hyundai', 'Tata', 'Honda', 'Toyota', 'Mahindra', 'Ford', 'Kia', 'MG', 'Renault', 'Volkswagen', 'Skoda', 'Other']
 
 function Field({ label, error, children, required }) {
   return (
-    <div className="form-group">
-      <label className="form-label">{label}{required && <span style={{ color: 'var(--danger)', marginLeft: 3 }}>*</span>}</label>
+    <div className="form-group" style={{ marginBottom: 12 }}>
+      <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>{label}{required && <span style={{ color: 'var(--danger)', marginLeft: 3 }}>*</span>}</label>
       {children}
       {error && <span className="form-error">{error.message}</span>}
     </div>
   )
 }
 
-const VCard = ({ v, onDelete }) => (
-  <div style={{ background: 'white', borderRadius: 14, padding: '12px 14px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12, border: '1px solid rgba(0,0,0,0.04)' }}>
-    <div style={{ width: 40, height: 40, borderRadius: 12, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <Wrench size={18} color="#7C3AED" />
+const VCard = ({ v, onDelete, onViewHistory }) => (
+  <div 
+    onClick={() => onViewHistory(v)}
+    style={{ 
+      background: 'white', borderRadius: 18, padding: '16px', 
+      boxShadow: '0 2px 12px rgba(0,0,0,0.04)', display: 'flex', 
+      alignItems: 'center', gap: 14, border: '1.5px solid #F1F5F9',
+      cursor: 'pointer', transition: '0.2s', position: 'relative',
+      overflow: 'hidden'
+    }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(124,58,237,0.08)' }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = '#F1F5F9'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.04)' }}
+  >
+    <div style={{ width: 44, height: 44, borderRadius: 14, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Wrench size={20} color="#7C3AED" />
     </div>
     <div style={{ flex: 1 }}>
-      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F0D2E' }}>{v.company} {v.model}</div>
-      <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{v.vehicleNumber} • {v.kmReading} km</div>
-      {v.nextServiceKm && <div style={{ fontSize: '0.6875rem', color: '#D97706', marginTop: 2 }}>⚠ Next service: {v.nextServiceKm} km</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F0D2E' }}>{v.company} {v.model}</div>
+        <div style={{ fontSize: '0.65rem', fontWeight: 800, background: '#F1F5F9', padding: '2px 8px', borderRadius: 10, color: '#475569', textTransform: 'uppercase' }}>{v.vehicleNumber}</div>
+      </div>
+      <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: 2, fontWeight: 600 }}>Current: {v.kmReading?.toLocaleString()} km</div>
+      {v.nextServiceKm && (
+        <div style={{ fontSize: '0.7rem', color: '#D97706', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#D97706' }} />
+          Next service: {v.nextServiceKm.toLocaleString()} km
+        </div>
+      )}
     </div>
-    <button onClick={() => onDelete(v.id)} style={{ width: 28, height: 28, border: 'none', background: '#FEE2E2', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Trash2 size={13} color="#DC2626" />
+    <div style={{ display: 'flex', items: 'center', gap: 8 }}>
+       <ArrowRight size={18} color="#CBD5E1" />
+    </div>
+    <button 
+      onClick={(e) => { e.stopPropagation(); onDelete(v.id || v._id); }} 
+      style={{ 
+        position: 'absolute', top: 12, right: 12, width: 28, height: 28, 
+        border: 'none', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 10, 
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: 0.4, transition: '0.2s'
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = 1}
+      onMouseLeave={e => e.currentTarget.style.opacity = 0.4}
+    >
+      <Trash2 size={13} color="#EF4444" />
     </button>
   </div>
 )
 
 export default function GarageVehicles() {
   const { vehicles, addVehicle, deleteVehicle } = useVehicles()
+  const { bills } = useBills()
+  const navigate = useNavigate()
   const [showForm, setShowForm] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedVehicle, setSelectedVehicle] = useState(null)
+
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     defaultValues: { vehicleNumber: '', company: 'Maruti', model: '', vehicleType: 'Car', kmReading: '', nextServiceKm: '', customerName: '', customerPhone: '' }
   })
 
   const onSubmit = async (data) => {
-    await new Promise(r => setTimeout(r, 300))
     addVehicle({ ...data, garageVehicle: true })
     reset()
     setShowForm(false)
   }
 
+  const filteredVehicles = useMemo(() => {
+    // Show all vehicles by default so "previously registered" ones aren't hidden
+    let list = vehicles || []
+    if (!searchTerm) return list
+    
+    const s = searchTerm.toLowerCase()
+    return list.filter(v => 
+      v.vehicleNumber?.toLowerCase().includes(s) || 
+      v.company?.toLowerCase().includes(s) || 
+      v.model?.toLowerCase().includes(s) ||
+      v.customerName?.toLowerCase().includes(s)
+    )
+  }, [vehicles, searchTerm])
+
+  const serviceHistory = useMemo(() => {
+    if (!selectedVehicle) return []
+    // Match by vehicle number (case insensitive, no spaces)
+    const vNum = selectedVehicle.vehicleNumber?.toUpperCase().replace(/\s+/g, '')
+    return bills
+      .filter(b => b.billType === 'garage' && b.vehicleNo?.toUpperCase().replace(/\s+/g, '') === vNum)
+      .sort((a, b) => dayjs(b.billingDate || b.createdAt).unix() - dayjs(a.billingDate || a.createdAt).unix())
+  }, [selectedVehicle, bills])
+
   return (
-    <div className="page-wrapper animate-fadeIn">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div>
-          <h2 style={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F0D2E', marginBottom: 2 }}>Customer Vehicles</h2>
-          <p style={{ fontSize: '0.8rem', color: '#6B7280' }}>{vehicles.length} vehicles registered</p>
+    <div className="page-wrapper animate-fadeIn" style={{ position: 'relative', minHeight: '80vh' }}>
+      
+      {/* Header & Search */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <h2 style={{ fontWeight: 800, fontSize: '1.5rem', color: '#0F0D2E', marginBottom: 4, letterSpacing: '-0.02em' }}>Garage Fleet</h2>
+            <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 600 }}>Manage customer vehicles and tracking history</p>
+          </div>
+          <button id="btn-add-garage-vehicle" className="btn btn-primary" onClick={() => setShowForm(s => !s)} style={{ borderRadius: 14, height: 44 }}>
+            <Plus size={18} /> Add Vehicle
+          </button>
         </div>
-        <button id="btn-add-garage-vehicle" className="btn btn-primary btn-sm" onClick={() => setShowForm(s => !s)}>
-          <Plus size={16} /> Add Vehicle
-        </button>
+
+        <div style={{ position: 'relative' }}>
+           <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}>
+              <Search size={18} />
+           </div>
+           <input 
+             value={searchTerm}
+             onChange={e => setSearchTerm(e.target.value)}
+             placeholder="Search by vehicle number or owner..." 
+             style={{ 
+               width: '100%', height: 52, borderRadius: 16, border: '2px solid #F1F5F9', 
+               padding: '0 16px 0 48px', fontSize: '1rem', fontWeight: 600, color: '#0F0D2E',
+               boxShadow: '0 2px 10px rgba(0,0,0,0.02)', outline: 'none', transition: '0.2s'
+             }}
+             onFocus={e => e.currentTarget.style.borderColor = '#7C3AED'}
+             onBlur={e => e.currentTarget.style.borderColor = '#F1F5F9'}
+           />
+        </div>
       </div>
 
       {/* Inline add form */}
       {showForm && (
-        <div style={{ background: 'white', borderRadius: 20, padding: '20px', marginBottom: 16, boxShadow: '0 4px 20px rgba(124,58,237,0.1)', border: '1.5px solid #EDE9FE', animation: 'fadeInUp 0.2s ease both' }}>
-          <h3 style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0F0D2E', marginBottom: 16 }}>New Vehicle</h3>
+        <div className="animate-fadeInDown" style={{ background: 'white', borderRadius: 24, padding: '24px', marginBottom: 20, boxShadow: '0 8px 30px rgba(124,58,237,0.12)', border: '2px solid #EDE9FE' }}>
+          <h3 style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F0D2E', marginBottom: 20 }}>Register New Vehicle</h3>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <Field label="Car Company">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+              <Field label="Vehicle Type">
                 <div style={{ position: 'relative' }}>
-                  <select {...register('company')} className="form-input" style={{ appearance: 'none', paddingRight: 32 }}>
-                    {COMPANIES.map(c => <option key={c}>{c}</option>)}
+                  <select {...register('vehicleType')} className="form-input" style={{ appearance: 'none', paddingRight: 32, height: 44 }}>
+                    {CAR_TYPES.map(c => <option key={c}>{c}</option>)}
                   </select>
-                  <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
+                  <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
                 </div>
               </Field>
+              <Field label="Vehicle Company">
+                <input {...register('company')} placeholder="e.g. Tata, Honda" className="form-input" style={{ height: 44 }} />
+              </Field>
               <Field label="Model" error={errors.model} required>
-                <input {...register('model', { required: 'Required' })} placeholder="e.g. Swift, i20" className={`form-input ${errors.model ? 'error' : ''}`} />
+                <input {...register('model', { required: 'Required' })} placeholder="e.g. Swift, i20" className="form-input" style={{ height: 44 }} />
               </Field>
               <Field label="Vehicle Number" error={errors.vehicleNumber} required>
-                <input {...register('vehicleNumber', { required: 'Required' })} placeholder="GJ15AB1234" className={`form-input ${errors.vehicleNumber ? 'error' : ''}`} style={{ textTransform: 'uppercase' }} />
+                <input {...register('vehicleNumber', { required: 'Required' })} placeholder="GJ15AB1234" className="form-input" style={{ textTransform: 'uppercase', height: 44 }} />
               </Field>
               <Field label="Current KM" error={errors.kmReading} required>
-                <input {...register('kmReading', { required: 'Required' })} type="number" placeholder="45000" className={`form-input ${errors.kmReading ? 'error' : ''}`} inputMode="numeric" />
+                <input {...register('kmReading', { required: 'Required' })} type="number" placeholder="45000" className="form-input" inputMode="numeric" style={{ height: 44 }} />
               </Field>
-              <Field label="Next Service KM">
-                <input {...register('nextServiceKm')} type="number" placeholder="50000" className="form-input" inputMode="numeric" />
+              <Field label="Owner Name">
+                <input {...register('customerName')} placeholder="e.g. Rahul Sharma" className="form-input" style={{ height: 44 }} />
               </Field>
-              <Field label="Customer Name">
-                <input {...register('customerName')} placeholder="Owner name" className="form-input" />
+              <Field label="Owner Phone">
+                <input {...register('customerPhone')} placeholder="10-digit number" className="form-input" inputMode="numeric" maxLength={10} style={{ height: 44 }} />
               </Field>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? <><Loader2 size={15} className="spin" /> Saving…</> : <><CheckCircle2 size={15} /> Add Vehicle</>}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button type="button" className="btn btn-ghost" style={{ flex: 1, borderRadius: 12 }} onClick={() => setShowForm(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" style={{ flex: 2, borderRadius: 12 }} disabled={isSubmitting}>
+                {isSubmitting ? <><Loader2 size={18} className="spin" /> Registering…</> : <><CheckCircle2 size={18} /> Register Vehicle</>}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {vehicles.length === 0 && !showForm ? (
-        <div style={{ background: 'white', borderRadius: 20, padding: '48px 24px', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-          <div style={{ width: 64, height: 64, borderRadius: 18, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <Wrench size={28} color="#7C3AED" />
+      {/* Grid */}
+      {filteredVehicles.length === 0 ? (
+        <div style={{ background: 'white', borderRadius: 24, padding: '64px 32px', textAlign: 'center', border: '2px dashed #F1F5F9' }}>
+          <div style={{ width: 72, height: 72, borderRadius: 24, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <Wrench size={32} color="#7C3AED" />
           </div>
-          <h3 style={{ fontWeight: 700, marginBottom: 8, color: '#0F0D2E' }}>No vehicles yet</h3>
-          <p style={{ color: '#6B7280', fontSize: '0.875rem', marginBottom: 20 }}>Add customer vehicles to track service history</p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}><Plus size={16} /> Add Vehicle</button>
+          <h3 style={{ fontWeight: 800, marginBottom: 8, color: '#0F0D2E' }}>Vehicle Not Found</h3>
+          <p style={{ color: '#64748B', fontSize: '0.9rem', maxWidth: 280, margin: '0 auto 24px', fontWeight: 600 }}>No vehicles match your search. Register a new one to start tracking.</p>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ borderRadius: 14 }}><Plus size={18} /> Register Now</button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {vehicles.map(v => <VCard key={v.id} v={v} onDelete={deleteVehicle} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+          {filteredVehicles.map(v => <VCard key={v.id || v._id} v={v} onDelete={deleteVehicle} onViewHistory={setSelectedVehicle} />)}
         </div>
       )}
-      <style>{`.spin { animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* Service History Overlay/Modal */}
+      {selectedVehicle && (
+        <div style={{ 
+          position: 'fixed', inset: 0, background: 'rgba(15, 13, 46, 0.6)', 
+          backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', 
+          alignItems: 'flex-end', justifyContent: 'center' 
+        }} onClick={() => setSelectedVehicle(null)}>
+           <div 
+             className="animate-slideUp"
+             style={{ 
+               width: '100%', maxWidth: 500, background: 'white', 
+               borderTopLeftRadius: 32, borderTopRightRadius: 32, 
+               maxHeight: '90vh', overflowY: 'auto', padding: '24px',
+               boxShadow: '0 -10px 40px rgba(0,0,0,0.2)'
+             }}
+             onClick={e => e.stopPropagation()}
+           >
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                 <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                       <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#7C3AED', color: 'white', padding: '2px 8px', borderRadius: 8 }}>{selectedVehicle.vehicleNumber}</span>
+                       <h3 style={{ fontWeight: 900, fontSize: '1.25rem', color: '#0F0D2E', margin: 0 }}>Service History</h3>
+                    </div>
+                    <p style={{ margin: 0, color: '#64748B', fontSize: '0.85rem', fontWeight: 600 }}>{selectedVehicle.company} {selectedVehicle.model} • {selectedVehicle.customerName || 'No owner name'}</p>
+                 </div>
+                 <button 
+                   onClick={() => setSelectedVehicle(null)}
+                   style={{ width: 36, height: 36, borderRadius: 12, border: 'none', background: '#F1F5F9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                 >
+                    <X size={20} color="#64748B" />
+                 </button>
+              </div>
+
+              {/* History List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                 {serviceHistory.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#F8FAFC', borderRadius: 24, border: '1.5px dashed #E2E8F0' }}>
+                       <Calendar size={32} color="#CBD5E1" style={{ marginBottom: 12 }} />
+                       <p style={{ color: '#64748B', fontSize: '0.9rem', margin: 0, fontWeight: 700 }}>No service records found</p>
+                       <p style={{ color: '#94A3B8', fontSize: '0.75rem', marginTop: 4 }}>This vehicle hasn't been billed yet.</p>
+                    </div>
+                 ) : (
+                    serviceHistory.map(bill => (
+                       <div 
+                         key={bill._id} 
+                         onClick={() => navigate(`/bills/${bill._id}`)}
+                         style={{ 
+                           padding: '16px', background: 'white', borderRadius: 20, 
+                           border: '1.5px solid #F1F5F9', cursor: 'pointer',
+                           transition: '0.2s', display: 'flex', alignItems: 'center', gap: 14
+                         }}
+                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.background = '#F9F8FF' }}
+                         onMouseLeave={e => { e.currentTarget.style.borderColor = '#F1F5F9'; e.currentTarget.style.background = 'white' }}
+                       >
+                          <div style={{ width: 44, height: 44, borderRadius: 14, background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                             <FileText size={20} color="#7C3AED" />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0F0D2E' }}>Job Card #{bill.billNumber || 'Draft'}</div>
+                                <div style={{ fontWeight: 900, color: '#16A34A', fontSize: '0.9rem' }}>₹{bill.grandTotal?.toLocaleString()}</div>
+                             </div>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                   <Calendar size={12} /> {dayjs(bill.billingDate).format('DD MMM YYYY')}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>
+                                   {bill.kmReading || 0} km
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    ))
+                 )}
+              </div>
+
+              <button 
+                className="btn btn-primary" 
+                style={{ width: '100%', height: 52, borderRadius: 16, fontSize: '0.95rem' }}
+                onClick={() => {
+                  // Navigate to create bill with this vehicle pre-filled?
+                  // For now just close
+                  setSelectedVehicle(null)
+                }}
+              >
+                 Done
+              </button>
+           </div>
+        </div>
+      )}
+
+      <style>{`
+        .animate-fadeInDown { animation: fadeInDown 0.3s ease both; }
+        @keyframes fadeInDown {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .spin { animation: spin 0.8s linear infinite; } 
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   )
 }

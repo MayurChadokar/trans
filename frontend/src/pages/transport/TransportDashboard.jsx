@@ -60,6 +60,26 @@ export default function TransportDashboard() {
         <Truck size={100} color="rgba(255,255,255,0.05)" style={{ position: 'absolute', bottom: -20, right: 10, transform: 'rotate(-10deg)' }} />
       </div>
 
+      {/* Quick Actions */}
+      <div style={{ background: 'white', borderRadius: 28, padding: '24px', marginBottom: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.02)' }}>
+        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 20 }}>Quick Actions</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button onClick={() => navigate('/transport/trips')} style={{ background: '#F5F3FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.1)' }}>
+              <Truck size={22} />
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Log New Trip</span>
+          </button>
+
+          <button onClick={() => navigate('/transport/vehicles')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
+              <Plus size={22} />
+            </div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Add Vehicle</span>
+          </button>
+        </div>
+      </div>
+
       {/* Insurance Banner - Small Horizontal Box */}
       <div 
         onClick={() => navigate('/insurance')}
@@ -108,26 +128,6 @@ export default function TransportDashboard() {
             <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div style={{ background: 'white', borderRadius: 28, padding: '24px', marginBottom: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.02)' }}>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: 20 }}>Quick Actions</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <button onClick={() => navigate('/transport/trips')} style={{ background: '#F5F3FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.1)' }}>
-              <Truck size={22} />
-            </div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Log New Trip</span>
-          </button>
-
-          <button onClick={() => navigate('/transport/vehicles')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
-              <Plus size={22} />
-            </div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Add Vehicle</span>
-          </button>
-        </div>
       </div>
 
       {/* Recent Activity */}
