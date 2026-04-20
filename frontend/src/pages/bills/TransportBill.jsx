@@ -360,57 +360,77 @@ export default function TransportBill({ initialData }) {
 
         {/* ── Billed To (Party) ── */}
         <SectionCard icon={User} iconBg="#EDE9FE" iconColor="#7C3AED" title="Billed To (Customer)">
-          <div className="grid grid-cols-1 gap-4" style={{ width: '100%', minWidth: 0 }}>
-            <Field label="Select Party (Quick Fill)">
-              <div style={{ position: 'relative', width: '100%' }}>
-                <select {...register('partyId')} className="form-input" style={{ appearance: 'none', paddingRight: 36, textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  <option value="">— Select party —</option>
-                  {parties.map(p => <option key={p.id} value={p.id}>{p.name} ({p.phone})</option>)}
-                </select>
-                <ChevronDown size={15} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
-              </div>
-            </Field>
-            <div className="grid md-grid-cols-2 gap-3" style={{ width: '100%', minWidth: 0 }}>
-              <Field label="Business Name" error={errors.billedToName} required>
-                <input {...register('billedToName', { required: 'Required' })} placeholder="Party Name" className="form-input" />
+          {!partyId ? (
+            <div className="grid grid-cols-1 gap-4" style={{ width: '100%', minWidth: 0 }}>
+              <Field label="Select Party (Quick Fill)">
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <select {...register('partyId')} className="form-input" style={{ appearance: 'none', paddingRight: 36, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                    <option value="">— Select party —</option>
+                    {parties.map(p => <option key={p.id} value={p.id}>{p.name} ({p.phone})</option>)}
+                  </select>
+                  <ChevronDown size={15} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
+                </div>
               </Field>
-              <Field label="Phone" error={errors.billedToPhone}>
-                <input {...register('billedToPhone')} placeholder="Phone" className="form-input" />
-              </Field>
-              <Field label="Email" error={errors.billedToEmail}>
-                <input {...register('billedToEmail')} placeholder="Email" className="form-input" />
-              </Field>
-              <Field label="Address">
-                <input {...register('billedToAddress')} placeholder="Party Address" className="form-input" />
-              </Field>
-              <Field label="City">
-                <input {...register('billedToCity')} placeholder="City" className="form-input" />
-              </Field>
-              <Field label="State">
-                <input {...register('billedToState')} placeholder="State" className="form-input" />
-              </Field>
-              <Field label="Pincode">
-                <input {...register('billedToPincode')} placeholder="Pincode" className="form-input" />
-              </Field>
-              <div className="grid grid-cols-2 gap-2">
-                <Field label="GSTIN">
-                  <input {...register('billedToGstin')} placeholder="GSTIN" className="form-input" />
+              <div className="grid md-grid-cols-2 gap-3" style={{ width: '100%', minWidth: 0 }}>
+                <Field label="Business Name" error={errors.billedToName} required>
+                  <input {...register('billedToName', { required: 'Required' })} placeholder="Party Name" className="form-input" />
                 </Field>
-                <Field label="PAN" error={errors.billedToPan}>
-                  <input 
-                    {...register('billedToPan', { 
-                      pattern: { value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: 'Invalid PAN (e.g. ABCDE1234F)' } 
-                    })} 
-                    onInput={e => e.target.value = e.target.value.toUpperCase()}
-                    placeholder="PAN Number" 
-                    className="form-input" 
-                    style={{ textTransform: 'uppercase' }}
-                  />
+                <Field label="Phone" error={errors.billedToPhone}>
+                  <input {...register('billedToPhone')} placeholder="Phone" className="form-input" />
                 </Field>
+                <Field label="Email" error={errors.billedToEmail}>
+                  <input {...register('billedToEmail')} placeholder="Email" className="form-input" />
+                </Field>
+                <Field label="Address">
+                  <input {...register('billedToAddress')} placeholder="Party Address" className="form-input" />
+                </Field>
+                <Field label="City">
+                  <input {...register('billedToCity')} placeholder="City" className="form-input" />
+                </Field>
+                <Field label="State">
+                  <input {...register('billedToState')} placeholder="State" className="form-input" />
+                </Field>
+                <Field label="Pincode">
+                  <input {...register('billedToPincode')} placeholder="Pincode" className="form-input" />
+                </Field>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="GSTIN">
+                    <input {...register('billedToGstin')} placeholder="GSTIN" className="form-input" />
+                  </Field>
+                  <Field label="PAN" error={errors.billedToPan}>
+                    <input 
+                      {...register('billedToPan', { 
+                        pattern: { value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: 'Invalid PAN (e.g. ABCDE1234F)' } 
+                      })} 
+                      onInput={e => e.target.value = e.target.value.toUpperCase()}
+                      placeholder="PAN Number" 
+                      className="form-input" 
+                      style={{ textTransform: 'uppercase' }}
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
-
-          </div>
+          ) : (
+            <div className="animate-fadeIn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '16px', borderRadius: 20, border: '1.5px solid #F1F5F9' }}>
+               <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0F0D2E', marginBottom: 2 }}>{watch('billedToName')}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>
+                    {watch('billedToPhone') && `${watch('billedToPhone')} • `}
+                    {watch('billedToCity') || 'No City'}
+                  </div>
+               </div>
+               <button 
+                 type="button" 
+                 onClick={() => setValue('partyId', '')} 
+                 style={{ background: 'white', color: '#7C3AED', border: '1.5px solid #7C3AED', borderRadius: 12, padding: '8px 16px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', transition: '0.2s' }}
+                 onMouseEnter={e => { e.currentTarget.style.background = '#F5F3FF' }}
+                 onMouseLeave={e => { e.currentTarget.style.background = 'white' }}
+                >
+                  Change Party
+               </button>
+            </div>
+          )}
         </SectionCard>
 
         {/* ── Billing Summary (Multiple Items) ── */}

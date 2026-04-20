@@ -188,7 +188,7 @@ export default function GarageDashboard() {
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4B5563' }}>Service Alerts</span>
           </button>
 
-          <button onClick={() => navigate('/parties')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <button onClick={() => navigate('/garage/parties')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
               <Users size={22} />
             </div>

@@ -120,26 +120,12 @@ export default function TransportDashboard() {
             </div>
             <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Log New Trip</span>
           </button>
-          
-          <button onClick={() => navigate('/transport/bills/new')} style={{ background: '#FFF7ED', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#F3811E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(243, 129, 30, 0.1)' }}>
-              <Receipt size={22} />
-            </div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Create Invoice</span>
-          </button>
 
           <button onClick={() => navigate('/transport/vehicles')} style={{ background: '#ECFDF5', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.1)' }}>
               <Plus size={22} />
             </div>
             <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>Add Vehicle</span>
-          </button>
-
-          <button onClick={() => navigate('/parties')} style={{ background: '#EFF6FF', border: 'none', borderRadius: 20, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.1)' }}>
-              <Users size={22} />
-            </div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4B5563' }}>View Parties</span>
           </button>
         </div>
       </div>
@@ -175,10 +161,6 @@ export default function TransportDashboard() {
           )}
         </div>
       </div>
-
-      <button onClick={() => navigate('/transport/bills/new')} className="btn btn-primary" style={{ position: 'fixed', bottom: 84, right: 20, borderRadius: 18, height: 56, padding: '0 24px', boxShadow: '0 8px 30px rgba(79, 70, 229, 0.4)', zIndex: 10 }}>
-        <Plus size={22} /> <span style={{ fontWeight: 800 }}>{t('new_bill')}</span>
-      </button>
     </div>
   )
 }

@@ -94,8 +94,18 @@ function BillCard({ bill, onClick, onDelete }) {
           <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0F0D2E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {bill.billNumber || 'DRAFT'}
           </span>
+          <span style={{ 
+            fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', 
+            padding: '2px 8px', borderRadius: 6, 
+            background: status.bg, color: status.color 
+          }}>
+            {status.label}
+          </span>
         </div>
-        <div style={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {partyName}
+        </div>
+        <div style={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 500, marginTop: 2 }}>
           {dayjs(bill.billDate || bill.createdAt).format('DD MMM')} • {subInfo}
         </div>
       </div>
@@ -163,7 +173,8 @@ export default function BillList({ type }) {
         )
       )
     }
-    return list
+    // Sort all by date descending (latest first)
+    return [...list].sort((a,b) => new Date(b.billDate || b.billingDate || b.createdAt) - new Date(a.billDate || a.billingDate || a.createdAt))
   }, [bills, filter, search, isAdmin, userRole, moduleType, type])
 
   const groupedByParty = useMemo(() => {
@@ -174,7 +185,7 @@ export default function BillList({ type }) {
         : (bill.customerName || bill.party?.name || 'Uncategorized');
       
       const key = name.toLowerCase().trim();
-      const bDate = new Date(bill.billingDate || bill.createdAt);
+      const bDate = new Date(bill.billDate || bill.billingDate || bill.createdAt);
 
       if (!map[key]) {
         map[key] = { name, bills: [], totalAmount: 0, pendingAmount: 0, latestDate: bDate };
@@ -201,7 +212,7 @@ export default function BillList({ type }) {
           : (bill.customerName || bill.party?.name || 'Uncategorized');
         return name.toLowerCase().trim() === selectedParty.toLowerCase().trim();
       })
-      .sort((a, b) => new Date(b.billingDate || b.createdAt) - new Date(a.billingDate || a.createdAt));
+      .sort((a,b) => new Date(b.billDate || b.billingDate || b.createdAt) - new Date(a.billDate || a.billingDate || a.createdAt));
   }, [selectedParty, filtered]);
 
   const totals = useMemo(() => {
@@ -248,53 +259,50 @@ export default function BillList({ type }) {
           <input type="text" placeholder="Search bills, companies, chalan..." value={search} onChange={e => setSearch(e.target.value)}
             className="form-input" style={{ paddingLeft: 44, height: 48, borderRadius: 16, border: '1px solid #F3F4F6' }} />
         </div>
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+        
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
           {FILTERS.map(f => (
             <button key={f.val} onClick={() => setFilter(f.val)}
               style={{
-                padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
                 background: filter === f.val ? '#0F0D2E' : '#F3F4F6',
                 color: filter === f.val ? 'white' : '#6B7280',
-                fontWeight: 700, fontSize: '0.8rem', transition: '0.2s'
+                fontWeight: 800, fontSize: '0.75rem', transition: '0.2s'
               }}
             >{f.label}</button>
           ))}
         </div>
       </div>
 
-      {/* Selected Party Header */}
-      {selectedParty && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <button onClick={() => setSelectedParty(null)} style={{ border: 'none', background: '#F3F4F6', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', color: '#4B5563', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <X size={14} /> Back to Parties
-          </button>
-          <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F0D2E' }}>
-            {selectedParty}
-          </div>
-        </div>
-      )}
-
-      {/* List */}
+      {/* List Content */}
       {!loaded ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 90, borderRadius: 20 }} />)}
         </div>
-      ) : groupedByParty.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: 28 }}>
           <FileText size={48} color="#E5E7EB" style={{ marginBottom: 16 }} />
           <h3 style={{ margin: 0, color: '#111827' }}>No bills found</h3>
           <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>{search ? 'Try a different search term' : 'Start by creating a new invoice'}</p>
         </div>
-      ) : selectedParty ? (
+      ) : !selectedParty ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {displayedBillsForParty.map(bill => (
-            <BillCard key={bill._id} bill={bill} onClick={b => navigate(`/bills/${b._id}`)} onDelete={deleteBill} />
+          {groupedByParty.map(party => (
+            <PartyCard key={party.name} party={party} onClick={setSelectedParty} />
           ))}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {groupedByParty.map(party => (
-            <PartyCard key={party.name} party={party} onClick={setSelectedParty} />
+          {/* Back button for party view */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <button onClick={() => setSelectedParty(null)} style={{ border: 'none', background: '#F3F4F6', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', color: '#4B5563', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <X size={14} /> Back to Parties
+              </button>
+              <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F0D2E' }}>{selectedParty}</div>
+          </div>
+          
+          {displayedBillsForParty.map(bill => (
+            <BillCard key={bill._id} bill={bill} onClick={b => navigate(`/bills/${b._id}`)} onDelete={deleteBill} />
           ))}
         </div>
       )}

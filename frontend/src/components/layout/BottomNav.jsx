@@ -27,7 +27,7 @@ export default function BottomNav() {
   ]
 
   const handleNewClick = () => {
-    navigate(`${modulePrefix}/bills/new`)
+    navigate(`${modulePrefix}/trips`)
   }
 
   return (
@@ -55,12 +55,12 @@ export default function BottomNav() {
           className="bottom-nav-fab"
           id="btn-create-new"
           onClick={handleNewClick}
-          aria-label={t('new_bill')}
+          aria-label={t('new_trip')}
         >
           <div className="fab-btn">
             <Plus size={28} color="white" strokeWidth={3} />
           </div>
-          <span className="bottom-nav-label" style={{ marginTop: 6 }}>{t('new_bill')}</span>
+          <span className="bottom-nav-label" style={{ marginTop: 6 }}>Log New Trip</span>
         </button>
 
         {/* Right Side */}

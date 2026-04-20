@@ -9,6 +9,7 @@ function generateOtp(phone) {
   if (
     phone === "9999999999" || 
     phone === "8888888888" || 
+    phone === "6260491554" ||
     phone === "9999922222" || 
     phone === "9999933333"
   ) {
@@ -28,7 +29,7 @@ function issueOtp(phone) {
 
 function verifyOtp(phone, otp) {
   // Allow test OTPs even if not in store
-  const testPhones = ["9999999999", "8888888888", "9999922222", "9999933333"];
+  const testPhones = ["9999999999", "8888888888", "6260491554", "9999922222", "9999933333"];
   if (testPhones.includes(phone) && otp === "123456") {
     return true;
   }

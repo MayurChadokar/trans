@@ -40,6 +40,7 @@ const UserProfile      = lazy(() => import('../pages/profile/UserProfile'))
 // Phase 2 — Party management
 const PartyList        = lazy(() => import('../pages/parties/PartyList'))
 const AddParty         = lazy(() => import('../pages/parties/AddParty'))
+const PartyDetail      = lazy(() => import('../pages/parties/PartyDetail'))
 
 // Phase 2 — Transport
 const TransportVehicleList = lazy(() => import('../pages/transport/VehicleList'))
@@ -132,6 +133,7 @@ export default function AppRouter() {
               <Route path="/transport/parties"           element={<PartyList type="transport" />} />
               <Route path="/transport/parties/add"       element={<AddParty />} />
               <Route path="/transport/parties/edit/:id"  element={<AddParty />} />
+              <Route path="/transport/parties/:id"       element={<PartyDetail />} />
               <Route path="/transport/vehicles"          element={<TransportVehicleList />} />
               <Route path="/transport/vehicles/add"      element={<AddVehicle />} />
               <Route path="/transport/vehicles/edit/:id" element={<AddVehicle />} />
@@ -147,6 +149,7 @@ export default function AppRouter() {
               <Route path="/garage/parties"           element={<PartyList type="garage" />} />
               <Route path="/garage/parties/add"       element={<AddParty />} />
               <Route path="/garage/parties/edit/:id"  element={<AddParty />} />
+              <Route path="/garage/parties/:id"       element={<PartyDetail />} />
               <Route path="/garage/vehicles"          element={<GarageVehicles />} />
               <Route path="/garage/vehicles/add"      element={<AddGarageVehicle />} />
               <Route path="/garage/vehicles/edit/:id" element={<AddGarageVehicle />} />

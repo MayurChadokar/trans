@@ -10,7 +10,7 @@ import PaymentModal from '../../components/billing/PaymentModal'
 
 // ── Transport Consolidated Invoice Layout ────────────────────────────────────
 function TransportInvoice({ bill, business, onPayOnline }) {
-  const items = bill.items || []
+  const items = [...(bill.items || [])].sort((a, b) => new Date(a.date) - new Date(b.date))
   const displayDate = bill.billingDate || bill.billDate || bill.createdAt
   const accent = '#F3811E' // Radhe Tempo Orange
 
