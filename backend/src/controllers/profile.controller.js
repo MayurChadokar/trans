@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Admin = require("../models/Admin");
 const { uploadToCloudinary } = require("../middleware/upload.middleware");
 
 async function getProfile(req, res, next) {
@@ -7,7 +8,6 @@ async function getProfile(req, res, next) {
     let user = await User.findById(userId).select("-password -otp -otpExpires");
     
     if (!user) {
-      const Admin = require("../models/Admin");
       user = await Admin.findById(userId).select("-password");
     }
 
@@ -22,76 +22,81 @@ async function updateProfile(req, res, next) {
   try {
     const userId = req.user.id;
     console.log("[Profile] Update request for:", userId);
-    console.log("[Profile] Body keys:", Object.keys(req.body));
-    console.log("[Profile] Files present:", req.files ? Object.keys(req.files) : "None");
+    
     const allowed = [
       "name", "businessName", "slogan", "email", "address", "city", "state",
-      "pincode", "panNo", "gstin", "aadharNo", "bankDetails", "alternatePhone", "phone"
+      "pincode", "panNo", "gstin", "aadharNo", "bankDetails", "alternatePhone", "phone",
+      "logoUrl", "signatureUrl", "documents"
     ];
     
     const updateData = {};
-    console.log("[Profile] Update body keys:", Object.keys(req.body));
     
     for (const key of allowed) {
-      if (req.body[key] !== undefined && !key.toLowerCase().endsWith('url')) {
-        updateData[key] = req.body[key];
-      }
-    }
-
-    // Handle bankDetails nested update if sent as JSON string (common with FormData)
-    if (updateData.bankDetails && typeof updateData.bankDetails === 'string') {
-      try {
-        console.log("[Profile] Attempting to parse bankDetails...");
-        updateData.bankDetails = JSON.parse(updateData.bankDetails);
-      } catch (err) {
-        console.warn("[Profile] Failed to parse bankDetails JSON string:", err.message);
-        // If it's "[object Object]", we should probably ignore it rather than trying to save it
-        if (updateData.bankDetails === '[object Object]') {
-          delete updateData.bankDetails;
+      if (req.body[key] !== undefined) {
+        let val = req.body[key];
+        
+        // Handle JSON strings from FormData
+        if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+          try {
+            val = JSON.parse(val);
+          } catch (e) {
+            // Keep as string if parsing fails
+          }
         }
+        
+        // Skip placeholders
+        if (val === '[object Object]') continue;
+        
+        updateData[key] = val;
       }
     }
 
     // Process file uploads if present
     if (req.files) {
-      console.log("[Profile] Processing files:", Object.keys(req.files));
+      const fileKeys = Object.keys(req.files);
+      console.log("[Profile] Received files:", fileKeys);
       
       if (req.files.logo && req.files.logo[0]) {
-        console.log("[Profile] Uploading logo...");
+        console.log("[Profile] Uploading new logo to Cloudinary...");
         const url = await uploadToCloudinary(req.files.logo[0].buffer, "logos");
-        if (url) updateData.logoUrl = url;
+        if (url) {
+          updateData.logoUrl = url;
+          console.log("[Profile] Logo URL updated:", url);
+        }
       }
       
       if (req.files.signature && req.files.signature[0]) {
-        console.log("[Profile] Uploading signature...");
+        console.log("[Profile] Uploading new signature to Cloudinary...");
         const url = await uploadToCloudinary(req.files.signature[0].buffer, "signatures");
-        if (url) updateData.signatureUrl = url;
+        if (url) {
+          updateData.signatureUrl = url;
+          console.log("[Profile] Signature URL updated:", url);
+        }
       }
     }
 
-    let updatedUser = await User.findByIdAndUpdate(
+    // Determine which model to update
+    const isUser = await User.exists({ _id: userId });
+    const Model = isUser ? User : Admin;
+    
+    console.log("[Profile] Updating model:", Model.modelName, "for ID:", userId);
+    console.log("[Profile] Data to set:", Object.keys(updateData));
+
+    const updatedUser = await Model.findByIdAndUpdate(
       userId,
       { $set: updateData },
-      { returnDocument: 'after', runValidators: true }
+      { new: true, runValidators: true }
     ).select("-password -otp -otpExpires");
-
-    if (!updatedUser) {
-      const Admin = require("../models/Admin");
-      updatedUser = await Admin.findByIdAndUpdate(
-        userId,
-        { $set: updateData },
-        { returnDocument: 'after', runValidators: true }
-      ).select("-password");
-    }
 
     if (!updatedUser) {
       return res.status(404).json({ success: false, message: "Profile not found to update" });
     }
 
+    console.log("[Profile] Update successful");
     return res.json({ success: true, user: updatedUser });
   } catch (e) {
     console.error("[updateProfile Error]", e);
-    next(e);
+    return res.status(500).json({ success: false, message: e.message || "Failed to update profile" });
   }
 }
 

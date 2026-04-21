@@ -88,7 +88,7 @@ export default function TripManagement() {
   const [drafts, setDrafts] = useState([])
   const [showDraftSelect, setShowDraftSelect] = useState(false)
   const [isBilling, setIsBilling] = useState(false)
-  const [billingMode, setBillingMode] = useState(false)
+  const [billingMode, setBillingMode] = useState(true)
   const [expandedParties, setExpandedParties] = useState([])
   const [search, setSearch] = useState('')
   
@@ -179,8 +179,7 @@ export default function TripManagement() {
   }, [trips, search])
   
   const filteredByParty = useMemo(() => {
-    let list = filteredTrips
-    if (billingMode) list = list.filter(t => !t.billed && !t.billId)
+    let list = filteredTrips.filter(t => !t.billed && !t.billId)
     const groups = {}
     list.forEach(t => {
       const pId = t.party?._id || t.partyId || 'none'
@@ -490,14 +489,7 @@ export default function TripManagement() {
           <p className="trip-subtitle">Track and manage route-wise operations</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank')}
-            className="btn btn-ghost"
-            title="Redirects to official government portal for tax payment"
-            style={{ height: 44, borderRadius: 12, padding: '0 14px', fontWeight: 700, fontSize: '0.8rem', border: '1.5px solid #FDE68A', background: '#FFFBEB', color: '#B45309', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <ExternalLink size={15} /> Pay Checkpost Tax
-          </button>
+
           <button onClick={() => navigate('/bills/new?type=transport')} className="btn btn-ghost" style={{ height: 44, borderRadius: 12, padding: '0 16px', fontWeight: 700, fontSize: '0.875rem', border: '1.5px solid #F1F5F9' }}>
             <FileText size={18} /> Generate Bill
           </button>
@@ -507,29 +499,7 @@ export default function TripManagement() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
-        <button 
-          onClick={() => setBillingMode(false)}
-          style={{ 
-            padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-            background: !billingMode ? '#0F0D2E' : '#F3F4F6',
-            color: !billingMode ? 'white' : '#6B7280',
-            fontWeight: 700, fontSize: '0.8rem', transition: '0.2s'
-          }}
-        >All Activity</button>
-        <button 
-          onClick={() => setBillingMode(true)}
-          style={{ 
-            padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-            background: billingMode ? '#0F0D2E' : '#F3F4F6',
-            color: billingMode ? 'white' : '#6B7280',
-            fontWeight: 700, fontSize: '0.8rem', transition: '0.2s',
-            display: 'flex', alignItems: 'center', gap: 6
-          }}
-        >
-          <CreditCard size={14} /> Unbilled Trips
-        </button>
-      </div>
+
 
       {/* Stats row */}
       {!showForm && (
@@ -866,13 +836,7 @@ export default function TripManagement() {
                               <Eye size={16} />
                             </button>
 
-                            <button
-                              onClick={(e) => { e.stopPropagation(); window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank'); }}
-                              title="Pay checkpost tax for this trip on the official government portal"
-                              style={{ height: 34, borderRadius: 9, padding: '0 10px', border: '1.5px solid #FDE68A', background: '#FFFBEB', color: '#B45309', fontWeight: 800, fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                            >
-                              <ExternalLink size={12} /> PAY TAX
-                            </button>
+
                             <button className="delete-trip-btn" onClick={() => handleDelete(trip.id)} aria-label="Delete trip">
                               <Trash2 size={18} />
                             </button>

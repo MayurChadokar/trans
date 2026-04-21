@@ -170,7 +170,7 @@ export default function Sidebar() {
           width: 42, height: 42, borderRadius: 12, overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.4s'
         }}>
-          <img src={user?.logoUrl || logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         {!sidebarCollapsed && (
           <div style={{ lineHeight: 1 }}>
@@ -247,8 +247,17 @@ export default function Sidebar() {
         <div 
           style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}
         >
-          <div className="avatar" style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white', fontWeight: 900 }}>
-             {user?.name?.[0]?.toUpperCase() || 'A'}
+          <div className="avatar" style={{ 
+            width: 38, height: 38, borderRadius: 10, 
+            background: user?.logoUrl ? 'transparent' : 'linear-gradient(135deg, #7C3AED, #A855F7)', 
+            color: 'white', fontWeight: 900, overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+             {user?.logoUrl ? (
+               <img src={user.logoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+             ) : (
+               user?.name?.[0]?.toUpperCase() || 'A'
+             )}
           </div>
           {!sidebarCollapsed && (
             <div style={{ overflow: 'hidden' }}>

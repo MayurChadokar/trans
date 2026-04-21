@@ -145,7 +145,16 @@ async function getVehicleDetail(req, res, next) {
 
 async function listTrips(req, res, next) {
   try {
-    const trips = await Trip.find({ owner: req.user.id })
+    const { billed } = req.query;
+    const query = { owner: req.user.id };
+    
+    if (billed === "false") {
+      query.billed = false;
+    } else if (billed === "true") {
+      query.billed = true;
+    }
+
+    const trips = await Trip.find(query)
       .populate("vehicle", "vehicleNumber vehicleType")
       .populate("party", "name phone")
       .sort({ startDate: -1 })

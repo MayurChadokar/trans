@@ -54,7 +54,7 @@ function TransportInvoice({ bill, business, onPayOnline }) {
           <div style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: 2 }}>From : <span style={{ fontWeight: 900 }}>{business?.businessName}</span></div>
           <div style={{ fontSize: '0.6rem', color: '#333', lineHeight: 1.3 }}>
             {business?.address}<br />
-            Mob : {business?.phone} {business?.email && `| Email: ${business?.email}`}<br />
+            Mob : {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''} {business?.email && `| Email: ${business?.email}`}<br />
             {business?.gstin && `GSTIN: ${business?.gstin} `} {business?.panNo && `| PAN: ${business?.panNo}`}
           </div>
         </div>
@@ -189,6 +189,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontWeight: 900, fontSize: '1.125rem', color: '#111' }}>{business?.businessName?.toUpperCase() || 'AUTO REPAIRS'}</div>
+            <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: 2, opacity: 0.8 }}>Mob: {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''}</div>
             <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</div>
           </div>
         </div>
@@ -217,6 +218,8 @@ function GarageInvoice({ bill, business, onPayOnline }) {
               <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr' }}><span style={{ fontWeight: 700 }}>Make:</span> <span>{bill.vehicleCompany || '—'}</span></div>
               <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr' }}><span style={{ fontWeight: 700 }}>Model:</span> <span>{bill.vehicleModel || '—'}</span></div>
               <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr' }}><span style={{ fontWeight: 700 }}>Reg No:</span> <span style={{ fontWeight: 800 }}>{bill.vehicleNo?.toUpperCase()}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr' }}><span style={{ fontWeight: 700 }}>KMs:</span> <span>{bill.kmReading || '—'}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr' }}><span style={{ fontWeight: 700 }}>Next Serv. KM:</span> <span style={{ fontWeight: 800, color: '#DC2626' }}>{bill.nextServiceKm ? `${bill.nextServiceKm} KM` : '—'}</span></div>
             </div>
           </div>
         </div>

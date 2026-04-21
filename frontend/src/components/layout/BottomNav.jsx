@@ -21,18 +21,14 @@ export default function BottomNav() {
     { to: `${modulePrefix}/bills`,     icon: FileText,        label: t('bills') },
   ]
 
-  const rightItems = [
+  const rightItems = isTransport ? [
+    { to: `${modulePrefix}/parties`,   icon: Users,           label: t('parties') },
+    { to: 'https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', icon: Banknote, label: 'Border Tax', isExternal: true },
+    { to: '/profile',                  icon: UserCircle,      label: t('profile') },
+  ] : [
     { to: `${modulePrefix}/parties`,   icon: Users,           label: t('parties') },
     { to: '/profile',                  icon: UserCircle,      label: t('profile') },
   ]
-
-  const handleNewClick = () => {
-    if (isTransport) {
-      window.open('https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', '_blank')
-    } else {
-      navigate('/garage/bills/new')
-    }
-  }
 
   return (
     <nav className="bottom-nav" role="navigation" aria-label="Bottom navigation">
@@ -54,35 +50,54 @@ export default function BottomNav() {
           </NavLink>
         ))}
 
-        {/* Center FAB - Border Tax for Transport, New Job for Garage */}
-        <button
-          className="bottom-nav-fab"
-          id="btn-create-new"
-          onClick={handleNewClick}
-          aria-label={isTransport ? 'Border Tax' : 'New Job Card'}
-        >
-          <div className="fab-btn">
-            <Plus size={28} color="white" strokeWidth={3} />
-          </div>
-          <span className="bottom-nav-label" style={{ marginTop: 6 }}>
-            {isTransport ? 'Border Tax' : 'New Job Card'}
-          </span>
-        </button>
+        {/* Center FAB - New Job for Garage only */}
+        {!isTransport && (
+          <button
+            className="bottom-nav-fab"
+            id="btn-create-new"
+            onClick={() => navigate('/garage/bills/new')}
+            aria-label="New Job Card"
+          >
+            <div className="fab-btn">
+              <Plus size={28} color="white" strokeWidth={3} />
+            </div>
+            <span className="bottom-nav-label" style={{ marginTop: 6 }}>
+              New Job Card
+            </span>
+          </button>
+        )}
 
         {/* Right Side */}
         {rightItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
-          >
-            <div className="bottom-nav-icon-wrap">
-              <item.icon size={22} />
-            </div>
-            <span className="bottom-nav-label">
-              {item.label}
-            </span>
-          </NavLink>
+          item.isExternal ? (
+            <a
+              key={item.label}
+              href={item.to}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bottom-nav-item"
+            >
+              <div className="bottom-nav-icon-wrap">
+                <item.icon size={22} />
+              </div>
+              <span className="bottom-nav-label">
+                {item.label}
+              </span>
+            </a>
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
+            >
+              <div className="bottom-nav-icon-wrap">
+                <item.icon size={22} />
+              </div>
+              <span className="bottom-nav-label">
+                {item.label}
+              </span>
+            </NavLink>
+          )
         ))}
       </div>
     </nav>
