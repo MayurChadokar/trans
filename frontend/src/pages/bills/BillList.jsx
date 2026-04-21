@@ -106,7 +106,7 @@ function BillCard({ bill, onClick, onDelete }) {
           {partyName}
         </div>
         <div style={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 500, marginTop: 2 }}>
-          {dayjs(bill.billDate || bill.createdAt).format('DD MMM')} • {subInfo}
+          {dayjs(bill.billDate || bill.billingDate || bill.createdAt).format('DD MMM')} • {subInfo}
         </div>
       </div>
 
@@ -136,6 +136,9 @@ export default function BillList({ type }) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [selectedParty, setSelectedParty] = useState(null)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [showDateFilters, setShowDateFilters] = useState(false)
 
   const userRole = user?.role || 'transport'
   const moduleType = type || userRole
@@ -156,6 +159,15 @@ export default function BillList({ type }) {
     if (filter === 'transport') list = list.filter(b => b.billType === 'transport')
     if (filter === 'garage')    list = list.filter(b => b.billType === 'garage')
     
+    if (startDate) {
+      const qStart = dayjs(startDate).format('YYYY-MM-DD')
+      list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') >= qStart)
+    }
+    if (endDate) {
+      const qEnd = dayjs(endDate).format('YYYY-MM-DD')
+      list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') <= qEnd)
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(b =>
@@ -253,21 +265,64 @@ export default function BillList({ type }) {
       </div>
 
       {/* Search & Filter */}
-      <div style={{ background: 'white', borderRadius: 28, padding: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', marginBottom: 24 }}>
-        <div style={{ position: 'relative', marginBottom: 12 }}>
-          <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-          <input type="text" placeholder="Search bills, companies, chalan..." value={search} onChange={e => setSearch(e.target.value)}
-            className="form-input" style={{ paddingLeft: 44, height: 48, borderRadius: 16, border: '1px solid #F3F4F6' }} />
+      <div style={{ background: 'white', borderRadius: 28, padding: '20px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {/* Search Box */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+            <input type="text" placeholder="Search bills..." value={search} onChange={e => setSearch(e.target.value)}
+              className="form-input" style={{ paddingLeft: 44, height: 44, borderRadius: 12, border: '1px solid #F3F4F6', background: '#F9FAFB' }} />
+          </div>
+
+          {/* Search Action Icon */}
+          <button style={{
+            width: 44, height: 44, borderRadius: 12, border: 'none', background: '#0F0D2E', color: 'white',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(15, 13, 46, 0.15)'
+          }}>
+            <Search size={20} />
+          </button>
+        </div>
+
+        {/* Date Filters */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={e => setStartDate(e.target.value)}
+              className="form-input" 
+              style={{ height: 40, borderRadius: 10, fontSize: '0.8rem', border: '1px solid #F3F4F6', background: '#F9FAFB' }} 
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={e => setEndDate(e.target.value)}
+              className="form-input" 
+              style={{ height: 40, borderRadius: 10, fontSize: '0.8rem', border: '1px solid #F3F4F6', background: '#F9FAFB' }} 
+            />
+          </div>
+          {(startDate || endDate || search) && (
+            <button 
+              onClick={() => { setStartDate(''); setEndDate(''); setSearch(''); setFilter('all') }}
+              style={{ height: 40, width: 40, padding: 0, borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
         
+        {/* Filter Tabs */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
           {FILTERS.map(f => (
             <button key={f.val} onClick={() => setFilter(f.val)}
               style={{
-                padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                background: filter === f.val ? '#0F0D2E' : '#F3F4F6',
-                color: filter === f.val ? 'white' : '#6B7280',
-                fontWeight: 800, fontSize: '0.75rem', transition: '0.2s'
+                padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                background: filter === f.val ? '#7C3AED' : '#F1F5F9',
+                color: filter === f.val ? 'white' : '#64748B',
+                fontWeight: 800, fontSize: '0.65rem', transition: '0.2s'
               }}
             >{f.label}</button>
           ))}

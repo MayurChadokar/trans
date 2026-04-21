@@ -83,21 +83,35 @@ async function getDrafts(req, res, next) {
 // ─── GET /bills ───────────────────────────────────────────────────────────────
 async function listBills(req, res, next) {
   try {
+    const { from, to } = req.query;
+    const filter = { owner: req.user.id };
+
+    if (from || to) {
+      filter.billingDate = {};
+      if (from) filter.billingDate.$gte = new Date(from);
+      if (to) {
+        // Set 'to' to end of the day or month
+        const end = new Date(to);
+        end.setHours(23, 59, 59, 999);
+        filter.billingDate.$lte = end;
+      }
+    }
+
     const [tBills, gBills] = await Promise.all([
-      TransportBill.find({ owner: req.user.id })
+      TransportBill.find(filter)
         .populate("party", "name phone")
-        .sort({ createdAt: -1 })
+        .sort({ billingDate: -1 })
         .lean(),
-      GarageBill.find({ owner: req.user.id })
+      GarageBill.find(filter)
         .populate("party", "name phone")
-        .sort({ createdAt: -1 })
+        .sort({ billingDate: -1 })
         .lean(),
     ]);
 
     const bills = [
       ...tBills.map(b => ({ ...b, billType: "transport" })),
       ...gBills.map(b => ({ ...b, billType: "garage" })),
-    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    ].sort((a, b) => new Date(b.billingDate) - new Date(a.billingDate));
 
     return res.json({ success: true, bills });
   } catch (e) {

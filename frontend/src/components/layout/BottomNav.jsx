@@ -23,7 +23,7 @@ export default function BottomNav() {
 
   const rightItems = isTransport ? [
     { to: `${modulePrefix}/parties`,   icon: Users,           label: t('parties') },
-    { to: 'https://checkpost.parivahan.gov.in/checkpost/faces/public/payment/TaxCollectionMainOnline.xhtml#', icon: Banknote, label: 'Border Tax', isExternal: true },
+    { to: 'https://staging.parivahan.nic.in/parivahan/en/content/checkpost-tax', icon: Banknote, label: 'Border Tax', isExternal: true },
     { to: '/profile',                  icon: UserCircle,      label: t('profile') },
   ] : [
     { to: `${modulePrefix}/parties`,   icon: Users,           label: t('parties') },
