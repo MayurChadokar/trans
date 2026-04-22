@@ -37,22 +37,21 @@ function getModel(billType) {
 }
 
 async function genBillNumber(type, ownerId) {
-  const prefix = "INV-";
-  const now = new Date();
-  const dateStr = now.getFullYear().toString() + 
-                  (now.getMonth() + 1).toString().padStart(2, '0') + 
-                  now.getDate().toString().padStart(2, '0');
+  const year = new Date().getFullYear();
+  const prefix = type === "garage" ? "Inv-G-" : "Inv-T-";
+  const yearStr = year.toString();
   
-  const regex = new RegExp("^" + prefix + dateStr);
+  // Search for bills in the current year to determine the sequence
+  const regex = new RegExp("^" + prefix + yearStr + "-");
   
-  // Count across BOTH models to ensure cross-module uniqueness
-  const [tCount, gCount] = await Promise.all([
-    TransportBill.countDocuments({ owner: ownerId, billNumber: regex }),
-    GarageBill.countDocuments({ owner: ownerId, billNumber: regex })
-  ]);
+  // Count across BOTH models to ensure cross-module uniqueness if they share the same numbering logic,
+  // though with different prefixes they would be unique anyway. 
+  // We'll count per prefix to keep sequences clean for each type.
+  const Model = type === "garage" ? GarageBill : TransportBill;
+  const count = await Model.countDocuments({ owner: ownerId, billNumber: regex });
 
-  const seq = (tCount + gCount + 1).toString().padStart(2, '0');
-  return `${prefix}${dateStr}-${seq}`;
+  const seq = (count + 1).toString().padStart(2, '0');
+  return `${prefix}${yearStr}-${seq}`;
 }
 
 // ─── GET /bills/drafts ────────────────────────────────────────────────────────
@@ -194,6 +193,21 @@ async function createBill(req, res, next) {
 
       if (isFinal && !billData.billNumber) {
         billData.billNumber = await genBillNumber("transport", req.user.id);
+      }
+
+      // Check for duplicates (if trips are already billed)
+      if (allTripIds.length > 0) {
+        const alreadyBilled = await Trip.findOne({ 
+          _id: { $in: allTripIds }, 
+          billed: true,
+          owner: req.user.id 
+        });
+        if (alreadyBilled) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "One or more trips in this selection are already billed. Please refresh and try again." 
+          });
+        }
       }
 
       const bill = await TransportBill.create(billData);

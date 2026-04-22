@@ -58,6 +58,7 @@ export default function GarageBill({ initialData }) {
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [savedBill, setSavedBill] = useState(null)
+  const isSubmitting = useRef(false)
   
   const isEdit = !!initialData?._id
 
@@ -187,7 +188,8 @@ export default function GarageBill({ initialData }) {
   const grandTotal  = subtotal + gstAmount
 
   const onSubmit = async (data, statusArg = 'unpaid') => {
-    if (saving) return;
+    if (isSubmitting.current) return;
+    isSubmitting.current = true;
     setSaving(true)
     try {
       const finalStatus = statusArg === 'draft' ? 'draft' : 'unpaid';
@@ -216,6 +218,7 @@ export default function GarageBill({ initialData }) {
       alert('Failed to save bill. Please try again.')
     } finally {
       setSaving(false)
+      isSubmitting.current = false;
     }
   }
 

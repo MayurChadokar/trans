@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
 import {
@@ -51,6 +51,7 @@ export default function TransportBill({ initialData }) {
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [savedBill, setSavedBill] = useState(null)
+  const isSubmitting = useRef(false)
   
   // Account-based billing states
   const [fromDate, setFromDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'))
@@ -251,7 +252,8 @@ export default function TransportBill({ initialData }) {
   }
 
   const onSubmit = async (data, statusArg = 'unpaid') => {
-    if (saving) return; // Prevent multiple clicks
+    if (isSubmitting.current) return;
+    isSubmitting.current = true;
     setSaving(true)
     try {
       // Determine final status
@@ -319,6 +321,7 @@ export default function TransportBill({ initialData }) {
       alert('Failed to save bill: ' + (e?.response?.data?.message || e.message || 'Please try again.'))
     } finally {
       setSaving(false)
+      isSubmitting.current = false;
     }
   }
 

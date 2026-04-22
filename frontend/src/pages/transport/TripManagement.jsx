@@ -88,6 +88,7 @@ export default function TripManagement() {
   const [drafts, setDrafts] = useState([])
   const [showDraftSelect, setShowDraftSelect] = useState(false)
   const [isBilling, setIsBilling] = useState(false)
+  const isBillingRef = useRef(false)
   const [billingMode, setBillingMode] = useState(true)
   const [expandedParties, setExpandedParties] = useState([])
   const [search, setSearch] = useState('')
@@ -230,7 +231,8 @@ export default function TripManagement() {
   }, [filteredByParty])
 
   const handleBulkAddToDraft = async (draftId = null, forceStatus = 'draft') => {
-    if (isBilling || selectedIds.length === 0) return
+    if (isBillingRef.current || selectedIds.length === 0) return
+    isBillingRef.current = true;
     setIsBilling(true)
     try {
       // Flatten joined IDs (from grouped trips) into a list of individual IDs
@@ -333,6 +335,7 @@ export default function TripManagement() {
       alert("Failed to update bill")
     } finally {
       setIsBilling(false)
+      isBillingRef.current = false;
     }
   }
 
