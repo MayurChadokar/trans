@@ -41,12 +41,7 @@ export default function AddVehicle() {
       if (isEdit) {
         await updateVehicle(id, data)
       } else {
-        // Front-end safety check for vehicle limit
-        const limit = user?.allowedVehicles || 0
-        if (limit > 0 && vehicles.length >= limit) {
-          alert(`Package Limit Reached! Your current plan allows only ${limit} vehicles. Please upgrade your package to add more vehicles.`)
-          return
-        }
+        // No vehicle limit check - user wants to allow any number of vehicles
         await addVehicle({ ...data, vehicleNumber: data.vehicleNumber.toUpperCase() })
       }
       navigate('/transport/vehicles')
