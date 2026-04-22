@@ -44,6 +44,7 @@ export default function DailyExpense() {
   })
 
   const onSubmit = async (data) => {
+    if (saving) return;
     setSaving(true)
     try {
       const payload = {

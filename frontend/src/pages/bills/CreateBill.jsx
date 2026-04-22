@@ -1,7 +1,7 @@
 import { useAuth } from '../../context/AuthContext'
 import TransportBill from './TransportBill'
 import GarageBill   from './GarageBill'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Truck, Wrench, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useBills } from '../../context/BillContext'
@@ -10,10 +10,12 @@ export default function CreateBill() {
   const { user } = useAuth()
   const navigate  = useNavigate()
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
+  const typeParam = searchParams.get('type')
   const { fetchBill, getBill } = useBills()
   const role      = user?.role
 
-  const [picked, setPicked] = useState(null)
+  const [picked, setPicked] = useState(typeParam)
   const [initialData, setInitialData] = useState(null)
   const [loading, setLoading] = useState(!!id)
 

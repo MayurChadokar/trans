@@ -230,7 +230,7 @@ export default function TripManagement() {
   }, [filteredByParty])
 
   const handleBulkAddToDraft = async (draftId = null, forceStatus = 'draft') => {
-    if (selectedIds.length === 0) return
+    if (isBilling || selectedIds.length === 0) return
     setIsBilling(true)
     try {
       // Flatten joined IDs (from grouped trips) into a list of individual IDs

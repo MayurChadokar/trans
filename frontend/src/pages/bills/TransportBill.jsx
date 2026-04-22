@@ -251,6 +251,7 @@ export default function TransportBill({ initialData }) {
   }
 
   const onSubmit = async (data, statusArg = 'unpaid') => {
+    if (saving) return; // Prevent multiple clicks
     setSaving(true)
     try {
       // Determine final status

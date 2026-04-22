@@ -182,6 +182,7 @@ export default function AppRouter() {
             </Route>
 
             {/* Shared Bills View */}
+            <Route path="/bills/new" element={<CreateBill />} />
             <Route path="/bills/:id" element={<BillDetail />} />
 
           </Route>

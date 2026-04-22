@@ -187,6 +187,7 @@ export default function GarageBill({ initialData }) {
   const grandTotal  = subtotal + gstAmount
 
   const onSubmit = async (data, statusArg = 'unpaid') => {
+    if (saving) return;
     setSaving(true)
     try {
       const finalStatus = statusArg === 'draft' ? 'draft' : 'unpaid';
