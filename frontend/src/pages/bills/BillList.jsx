@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, FileText, Truck, Wrench, X, Trash2, Eye } from 'lucide-react'
+import { Plus, Search, FileText, Truck, Wrench, X, Trash2, Eye, Calendar } from 'lucide-react'
 import { useBills } from '../../context/BillContext'
 import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
@@ -136,9 +136,9 @@ export default function BillList({ type }) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [selectedParty, setSelectedParty] = useState(null)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [showDateFilters, setShowDateFilters] = useState(false)
+  const [startDate, setStartDate] = useState(dayjs().subtract(1, 'month').format('YYYY-MM'))
+  const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM'))
+  const [showDateFilters, setShowDateFilters] = useState(true)
 
   const userRole = user?.role || 'transport'
   const moduleType = type || userRole
@@ -160,11 +160,11 @@ export default function BillList({ type }) {
     if (filter === 'garage')    list = list.filter(b => b.billType === 'garage')
     
     if (startDate) {
-      const qStart = dayjs(startDate).format('YYYY-MM-DD')
+      const qStart = dayjs(startDate).startOf('month').format('YYYY-MM-DD')
       list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') >= qStart)
     }
     if (endDate) {
-      const qEnd = dayjs(endDate).format('YYYY-MM-DD')
+      const qEnd = dayjs(endDate).endOf('month').format('YYYY-MM-DD')
       list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') <= qEnd)
     }
 
@@ -285,34 +285,41 @@ export default function BillList({ type }) {
         </div>
 
         {/* Date Filters */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <input 
-              type="date" 
-              value={startDate} 
-              onChange={e => setStartDate(e.target.value)}
-              className="form-input" 
-              style={{ height: 40, borderRadius: 10, fontSize: '0.8rem', border: '1px solid #F3F4F6', background: '#F9FAFB' }} 
-            />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, background: '#F8FAFC', padding: 12, borderRadius: 16, border: '1px solid #F1F5F9' }}>
+          <div style={{ flex: '1 1 140px' }}>
+            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: 4, marginLeft: 4 }}>From Month</label>
+            <div style={{ position: 'relative' }}>
+              <Calendar size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <input 
+                type="month" 
+                value={startDate} 
+                onChange={e => setStartDate(e.target.value)} 
+                style={{ width: '100%', padding: '10px 12px 10px 34px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: 700, background: 'white' }} 
+              />
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <input 
-              type="date" 
-              value={endDate} 
-              onChange={e => setEndDate(e.target.value)}
-              className="form-input" 
-              style={{ height: 40, borderRadius: 10, fontSize: '0.8rem', border: '1px solid #F3F4F6', background: '#F9FAFB' }} 
-            />
+          <div style={{ flex: '1 1 140px' }}>
+            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: 4, marginLeft: 4 }}>To Month</label>
+            <div style={{ position: 'relative' }}>
+              <Calendar size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <input 
+                type="month" 
+                value={endDate} 
+                onChange={e => setEndDate(e.target.value)} 
+                style={{ width: '100%', padding: '10px 12px 10px 34px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: 700, background: 'white' }} 
+              />
+            </div>
           </div>
-          {(startDate || endDate || search) && (
-            <button 
-              onClick={() => { setStartDate(''); setEndDate(''); setSearch(''); setFilter('all') }}
-              style={{ height: 40, width: 40, padding: 0, borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <X size={18} />
-            </button>
-          )}
         </div>
+
+        {(startDate !== dayjs().subtract(1, 'month').format('YYYY-MM') || endDate !== dayjs().format('YYYY-MM') || search) && (
+          <button 
+            onClick={() => { setStartDate(dayjs().subtract(1, 'month').format('YYYY-MM')); setEndDate(dayjs().format('YYYY-MM')); setSearch(''); setFilter('all') }}
+            style={{ padding: '8px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', gap: 6 }}
+          >
+            <X size={16} /> Reset Filters
+          </button>
+        )}
         
         {/* Filter Tabs */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>

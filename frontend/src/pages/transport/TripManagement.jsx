@@ -92,6 +92,8 @@ export default function TripManagement() {
   const [billingMode, setBillingMode] = useState(true)
   const [expandedParties, setExpandedParties] = useState([])
   const [search, setSearch] = useState('')
+  const [saving, setSaving] = useState(false)
+  const isSavingRef = useRef(false)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -369,14 +371,17 @@ export default function TripManagement() {
 
   const handleAddTrip = async (e) => {
     e.preventDefault()
+    if (isSavingRef.current) return
+    isSavingRef.current = true
+    setSaving(true)
     
     // Detailed validation
-    if (!formData.startDate) return alert("Please select a Date")
-    if (!formData.vehicleId) return alert("Please select a Vehicle")
-    if (!formData.partyId) return alert("Please select an Account/Party")
-    if (!formData.source) return alert("Please enter the Starting Location (From)")
-    if (!formData.destination) return alert("Please enter the Destination (To)")
-    if (!formData.amount) return alert("Please enter the Trip Amount (₹)")
+    if (!formData.startDate) { setSaving(false); isSavingRef.current = false; return alert("Please select a Date"); }
+    if (!formData.vehicleId) { setSaving(false); isSavingRef.current = false; return alert("Please select a Vehicle"); }
+    if (!formData.partyId) { setSaving(false); isSavingRef.current = false; return alert("Please select an Account/Party"); }
+    if (!formData.source) { setSaving(false); isSavingRef.current = false; return alert("Please enter the Starting Location (From)"); }
+    if (!formData.destination) { setSaving(false); isSavingRef.current = false; return alert("Please enter the Destination (To)"); }
+    if (!formData.amount) { setSaving(false); isSavingRef.current = false; return alert("Please enter the Trip Amount (₹)"); }
 
     const payload = {
       ...formData,
@@ -412,12 +417,21 @@ export default function TripManagement() {
           reason: '',
           deliveries: [{ from: '', to: '' }]
         })
+        // Enforce 5 second delay to prevent double submissions
+        setTimeout(() => {
+          setSaving(false)
+          isSavingRef.current = false
+        }, 5000)
       } else {
         alert(res.message || "Failed to save trip")
+        setSaving(false)
+        isSavingRef.current = false
       }
     } catch (e) {
       console.error("Save trip error:", e)
       alert(e.response?.data?.message || "Something went wrong while saving the trip")
+      setSaving(false)
+      isSavingRef.current = false
     }
   }
 
@@ -673,8 +687,8 @@ export default function TripManagement() {
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: 10, height: 50, borderRadius: 16, fontWeight: 800 }}>
-              Save Trip Record
+            <button type="submit" className="btn btn-primary" disabled={saving} style={{ marginTop: 10, height: 50, borderRadius: 16, fontWeight: 800 }}>
+              {saving ? <><Loader2 size={18} className="spin" /> Saving...</> : 'Save Trip Record'}
             </button>
           </form>
         </div>
