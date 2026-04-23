@@ -54,12 +54,14 @@ async function sendOtp(req, res, next) {
     const { otp, ttlSeconds } = otpService.issue(phone);
     
     let smsResult = null;
-    if (process.env.NODE_ENV !== 'production') {
-      // In dev, wait for result to debug
-      smsResult = await smsService.sendOtpSms(phone, otp);
-    } else {
-      // In prod, fire-and-forget
-      smsService.sendOtpSms(phone, otp).catch(e => console.error("OTP SMS Failed:", e.message));
+    if (otp !== "123456") {
+      if (process.env.NODE_ENV !== 'production') {
+        // In dev, wait for result to debug
+        smsResult = await smsService.sendOtpSms(phone, otp);
+      } else {
+        // In prod, fire-and-forget
+        smsService.sendOtpSms(phone, otp).catch(e => console.error("OTP SMS Failed:", e.message));
+      }
     }
 
     return res.json({ 

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { Wrench, Car, User, Users, Receipt, TrendingUp, Clock, AlertTriangle, ArrowRight, Plus, Bell, Calendar as CalIcon, X, Shield } from 'lucide-react'
+import { Wrench, Car, User, Users, Receipt, TrendingUp, Clock, AlertTriangle, ArrowRight, Plus, Bell, Calendar as CalIcon, X, Shield, Share } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 import { useBills } from '../../context/BillContext'
 import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -9,6 +10,7 @@ import { apiClient } from '../../api/apiClient'
 import { AlertCircle } from 'lucide-react'
 
 export default function GarageDashboard() {
+  const { user } = useAuth()
   const { bills } = useBills()
   const navigate = useNavigate()
   const [showReminders, setShowReminders] = useState(false)
@@ -69,7 +71,7 @@ export default function GarageDashboard() {
           reminderStatus: status
         }
       })
-      .filter(r => r.reminderStatus !== 'upcoming')
+      .filter(r => r.daysLeft <= 180) // Show services due within 6 months
       .sort((a, b) => a.daysLeft - b.daysLeft)
   }, [garageBills])
 
@@ -149,51 +151,51 @@ export default function GarageDashboard() {
               else window.open(banner.link, '_blank')
             }}
             style={{ 
-               background: 'linear-gradient(135deg, #065F46, #047857)', 
+               background: '#FFFFFF', 
                borderRadius: 24, 
-               padding: '20px 24px', 
-               color: 'white',
+               padding: '24px 28px', 
+               color: '#0F172A',
                cursor: 'pointer',
                position: 'relative',
                overflow: 'hidden',
-               boxShadow: '0 8px 20px rgba(6, 95, 70, 0.15)',
-               transition: 'all 0.3s'
+               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+               transition: 'all 0.3s',
+               minHeight: 160,
+               display: 'flex',
+               alignItems: 'center',
+               border: '1px solid #F1F5F9'
             }}
             onMouseEnter={e => {
                e.currentTarget.style.transform = 'translateY(-3px)'
-               e.currentTarget.style.boxShadow = '0 12px 28px rgba(6, 95, 70, 0.2)'
+               e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.12)'
             }}
             onMouseLeave={e => {
                e.currentTarget.style.transform = 'translateY(0)'
-               e.currentTarget.style.boxShadow = '0 8px 20px rgba(6, 95, 70, 0.15)'
+               e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)'
             }}
           >
-            <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ position: 'relative', zIndex: 2, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <h2 style={{ fontSize: '1.125rem', fontWeight: 900, margin: 0, color: 'white' }}>{banner.title}</h2>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0F172A' }}>{banner.title}</h2>
                 {banner.badge && (
-                  <span style={{ fontSize: '0.55rem', fontWeight: 900, background: '#3B82F6', color: 'white', padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase' }}>{banner.badge}</span>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 900, background: '#3B82F6', color: 'white', padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase' }}>{banner.badge}</span>
                 )}
               </div>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', margin: 0, maxWidth: '80%' }}>{banner.subtitle}</p>
+              <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0, maxWidth: '75%', fontWeight: 500, lineHeight: 1.4 }}>{banner.subtitle}</p>
               
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', fontWeight: 800, color: '#A7F3D0' }}>
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>
                  Get Started <ArrowRight size={14} />
               </div>
             </div>
 
             {/* Background Image / Icon */}
-            <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', zIndex: 1 }}>
               {banner.imageUrl ? (
                 <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                  <img src={banner.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="B" />
-                  <div style={{ 
-                    position: 'absolute', inset: 0, 
-                    background: 'linear-gradient(to right, #065F46 40%, rgba(6, 95, 70, 0.4) 100%)' 
-                  }} />
+                  <img src={banner.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 15 }} alt="B" />
                 </div>
               ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', opacity: 0.1, paddingRight: 20 }}>
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', opacity: 0.05, paddingRight: 30 }}>
                   <Wrench size={100} style={{ transform: 'rotate(-20deg)' }} />
                 </div>
               )}
@@ -261,8 +263,8 @@ export default function GarageDashboard() {
                </div>
  
                <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {remindersList.length > 0 ? remindersList.map(r => (
-                     <div key={r.id} style={{ border: '1px solid #E5E7EB', borderRadius: 16, padding: '14px', position: 'relative' }}>
+                  {remindersList.length > 0 ? remindersList.map((r, index) => (
+                     <div key={r._id || r.id || index} style={{ border: '1px solid #E5E7EB', borderRadius: 16, padding: '14px', position: 'relative' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                            <div style={{ width: 36, height: 36, borderRadius: 10, background: r.reminderStatus === 'overdue' ? '#FEE2E2' : '#EFF6FF', color: r.reminderStatus === 'overdue' ? '#EF4444' : '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Car size={18} />
@@ -283,12 +285,25 @@ export default function GarageDashboard() {
                               {r.reminderStatus === 'overdue' ? `Delayed by ${Math.abs(r.daysLeft)} days` : `In ${r.daysLeft} days`}
                            </span>
                         </div>
-                        <button 
-                           onClick={() => navigate(`/garage/bills/new?vehicleNo=${r.vehicleNo}`)}
-                           style={{ width: '100%', marginTop: 10, background: '#0F0D2E', color: 'white', border: 'none', borderRadius: 10, padding: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
-                        >
-                           Create New Job Card
-                        </button>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                           <button 
+                              onClick={() => navigate(`/garage/bills/new?vehicleNo=${r.vehicleNo}`)}
+                              style={{ flex: 1, background: '#0F0D2E', color: 'white', border: 'none', borderRadius: 10, padding: '10px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                           >
+                              <Plus size={14} /> New Job
+                           </button>
+                           <button 
+                              onClick={() => {
+                                 const bizName = user?.businessName || 'Your Garage';
+                                 const msg = `Hello Sir,\n\nYour vehicle (No. ${r.vehicleNo}) is due for service. Kindly bring it in at your convenience.\n\n– ${bizName}`;
+                                 const url = `https://wa.me/${r.customerPhone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(msg)}`;
+                                 window.open(url, '_blank');
+                              }}
+                              style={{ flex: 1, background: '#16A34A', color: 'white', border: 'none', borderRadius: 10, padding: '10px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                           >
+                              <Share size={14} /> Share
+                           </button>
+                        </div>
                      </div>
                   )) : (
                      <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9CA3AF' }}>

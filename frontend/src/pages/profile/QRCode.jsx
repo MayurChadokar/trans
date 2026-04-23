@@ -67,6 +67,25 @@ export default function QRCode() {
     }
   }
 
+  const shareQr = async () => {
+    const text = `Pay ${business.businessName || 'Business'} easily via any UPI app using this QR code or UPI ID: ${currentUpiId}`
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Pay via UPI',
+          text: text,
+          url: displayQr
+        })
+      } catch (err) {
+        console.warn('Share cancelled or failed', err)
+      }
+    } else {
+      // Fallback
+      copyUpi()
+      alert('Sharing is not supported on this browser. UPI ID copied to clipboard instead.')
+    }
+  }
+
   return (
     <div className="page-wrapper animate-fadeIn" style={{ maxWidth: 480, margin: '0 auto', paddingBottom: 40 }}>
       {/* Header */}
@@ -146,7 +165,11 @@ export default function QRCode() {
               >
                 <Download size={18} /> Save QR
               </button>
-              <button className="btn btn-ghost" style={{ height: 48, borderRadius: 16, fontWeight: 700, fontSize: '0.9rem', background: '#F1F5F9', border: 'none', color: '#475569' }}>
+              <button 
+                onClick={shareQr}
+                className="btn btn-ghost" 
+                style={{ height: 48, borderRadius: 16, fontWeight: 700, fontSize: '0.9rem', background: '#F1F5F9', border: 'none', color: '#475569' }}
+              >
                 <Share2 size={18} /> Share
               </button>
             </div>

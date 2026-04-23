@@ -25,6 +25,8 @@ const UserSchema = new mongoose.Schema(
     },
     signatureUrl: { type: String, default: null },
     logoUrl: { type: String, default: null },
+    slogan: { type: String, default: null },
+    wishingName: { type: String, default: null },
     documents: {
       aadharUrl: { type: String, default: null },
       panUrl: { type: String, default: null },

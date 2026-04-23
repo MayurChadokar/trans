@@ -245,7 +245,7 @@ export default function GarageBill({ initialData }) {
         </button>
         <div>
           <h2 style={{ fontWeight: 800, fontSize: '1.125rem', color: '#0F0D2E', margin: 0 }}>Garage Bill</h2>
-          <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>Vehicle Service Invoice</p>
+          <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>Cash Credit Memo / Estimate</p>
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <input type="date" {...register('billDate')} className="form-input" style={{ fontSize: '0.8125rem', padding: '6px 10px', borderRadius: 10, background: 'white' }} />

@@ -393,7 +393,7 @@ async function getBillDetail(req, res, next) {
     // Check both collections
     let bill = await TransportBill.findOne({ _id: id, ...ownerFilter })
       .populate("party")
-      .populate("owner", "businessName name email address phone alternatePhone gstin panNo logoUrl signatureUrl bankDetails slogan")
+      .populate("owner", "businessName name email address phone alternatePhone gstin panNo logoUrl signatureUrl bankDetails slogan wishingName")
       .populate({ path: "trips", populate: { path: "vehicle", select: "vehicleNumber model" } });
 
     if (bill) {
@@ -401,7 +401,7 @@ async function getBillDetail(req, res, next) {
     }
 
     bill = await GarageBill.findOne({ _id: id, ...ownerFilter })
-      .populate("owner", "businessName name email address phone alternatePhone gstin panNo logoUrl signatureUrl bankDetails slogan")
+      .populate("owner", "businessName name email address phone alternatePhone gstin panNo logoUrl signatureUrl bankDetails slogan wishingName")
       .populate("party");
       
     if (bill) {

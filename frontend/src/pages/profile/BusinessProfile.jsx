@@ -52,6 +52,7 @@ export default function BusinessProfile() {
       gstin: user?.gstin || '',
       panNo: user?.panNo || '',
       alternatePhone: user?.alternatePhone || '',
+      wishingName: user?.wishingName || '',
     }
   })
 
@@ -195,6 +196,12 @@ export default function BusinessProfile() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Name of Wishing (Shown on TOP of Bill, e.g. Jai Shree Ram)">
+               <div className="input-group">
+                 <span className="input-prefix"><Type size={16} /></span>
+                 <input {...register('wishingName')} placeholder="e.g. Jai Shree Ram" className="form-input" />
+               </div>
+            </Field>
             <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 640 ? '1fr' : '1fr 1.5fr', gap: 12 }}>
               <Field label="Owner Name" error={errors.name} required>
                 <input {...register('name', { required: 'Name required' })} placeholder="Full Name" className="form-input" />

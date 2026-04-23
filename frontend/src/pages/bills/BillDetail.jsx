@@ -28,6 +28,11 @@ function TransportInvoice({ bill, business, onPayOnline }) {
             }
           </div>
           <div style={{ flex: 1, textAlign: 'center' }}>
+            {business?.wishingName && (
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#333', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {business.wishingName}
+              </div>
+            )}
             <h1 style={{ fontSize: '1.4rem', fontWeight: 950, margin: 0, letterSpacing: '-0.04em', lineHeight: 0.9 }}>{business?.businessName?.toUpperCase() || 'KHAN TRANSPORT'}</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
               <div style={{ flex: 1, height: '1px', background: '#ddd' }} />
@@ -176,7 +181,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
       {/* Top Banner */}
       <div style={{ background: themeColor, padding: window.innerWidth < 640 ? '10px 15px' : '12px 30px', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: window.innerWidth < 640 ? '1.5rem' : '2rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#111' }}>Repair Estimate</h1>
+          <h1 style={{ margin: 0, fontSize: window.innerWidth < 640 ? '1.5rem' : '1.8rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#111' }}>Cash Credit Memo / Estimate</h1>
           <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, opacity: 0.85, color: '#333' }}>{business?.slogan || 'Restoring Vehicles, Reviving Peace of Mind'}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -188,6 +193,9 @@ function GarageInvoice({ bill, business, onPayOnline }) {
             }
           </div>
           <div style={{ textAlign: 'right' }}>
+            {business?.wishingName && (
+               <div style={{ fontWeight: 700, fontSize: '0.65rem', color: '#444', textTransform: 'uppercase', marginBottom: 1 }}>{business.wishingName}</div>
+            )}
             <div style={{ fontWeight: 900, fontSize: '1.125rem', color: '#111' }}>{business?.businessName?.toUpperCase() || 'AUTO REPAIRS'}</div>
             <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: 2, opacity: 0.8 }}>Mob: {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''}</div>
             <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</div>

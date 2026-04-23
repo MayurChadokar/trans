@@ -24,7 +24,7 @@ async function updateProfile(req, res, next) {
     console.log("[Profile] Update request for:", userId);
     
     const allowed = [
-      "name", "businessName", "slogan", "email", "address", "city", "state",
+      "name", "businessName", "slogan", "wishingName", "email", "address", "city", "state",
       "pincode", "panNo", "gstin", "aadharNo", "bankDetails", "alternatePhone", "phone",
       "logoUrl", "signatureUrl", "documents"
     ];

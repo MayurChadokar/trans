@@ -104,52 +104,52 @@ export default function TransportDashboard() {
               else window.open(banner.link, '_blank')
             }}
             style={{ 
-              background: 'linear-gradient(135deg, #1E1B4B, #312E81)', 
+              background: '#FFFFFF', 
               borderRadius: 28, 
-              padding: '24px 28px', 
-              color: 'white',
+              padding: '32px 36px', 
+              color: '#0F172A',
               cursor: 'pointer',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 10px 25px rgba(30, 27, 75, 0.2)',
-              transition: 'all 0.3s'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+              transition: 'all 0.3s',
+              minHeight: 180,
+              display: 'flex',
+              alignItems: 'center',
+              border: '1px solid #F1F5F9'
             }}
             onMouseEnter={e => {
               e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.boxShadow = '0 15px 35px rgba(30, 27, 75, 0.3)'
+              e.currentTarget.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.12)'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 10px 25px rgba(30, 27, 75, 0.2)'
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)'
             }}
           >
-            <div style={{ position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: 'white' }}>{banner.title}</h2>
+            <div style={{ position: 'relative', zIndex: 2, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: '#0F172A' }}>{banner.title}</h2>
                 {banner.badge && (
-                  <span style={{ fontSize: '0.6rem', fontWeight: 900, background: '#F59E0B', color: 'white', padding: '2px 10px', borderRadius: 100, textTransform: 'uppercase' }}>{banner.badge}</span>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#F59E0B', color: 'white', padding: '3px 12px', borderRadius: 100, textTransform: 'uppercase' }}>{banner.badge}</span>
                 )}
               </div>
-              <p style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.85)', margin: 0, maxWidth: '80%' }}>{banner.subtitle}</p>
+              <p style={{ fontSize: '1rem', color: '#64748B', margin: 0, maxWidth: '70%', fontWeight: 500, lineHeight: 1.4 }}>{banner.subtitle}</p>
               
-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 800, color: '#A5B4FC' }}>
-                 Explore Now <ArrowRight size={14} />
+              <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem', fontWeight: 800, color: '#4F46E5' }}>
+                 Explore Now <ArrowRight size={16} />
               </div>
             </div>
 
             {/* Background Image / Icon */}
-            <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '45%', zIndex: 1 }}>
               {banner.imageUrl ? (
                 <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                  <img src={banner.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="B" />
-                  <div style={{ 
-                    position: 'absolute', inset: 0, 
-                    background: 'linear-gradient(to right, #1E1B4B 40%, rgba(30, 27, 75, 0.4) 100%)' 
-                  }} />
+                  <img src={banner.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 20 }} alt="B" />
                 </div>
               ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', opacity: 0.1, paddingRight: 20 }}>
-                  <Shield size={120} style={{ transform: 'rotate(-20deg)' }} />
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', opacity: 0.05, paddingRight: 40 }}>
+                  <Shield size={140} style={{ transform: 'rotate(-20deg)' }} />
                 </div>
               )}
             </div>
