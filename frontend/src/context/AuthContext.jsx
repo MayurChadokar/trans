@@ -11,6 +11,7 @@ function stripLargeFields(u) {
     email, address, city, pincode, panNo, gstin, aadharNo,
     bankDetails, logoUrl, signatureUrl, documents, alternatePhone,
     subscriptionActive, subscriptionExpiry, planName, allowedVehicles,
+    wishingName,
     // drop anything else potentially large
     ...rest
   } = u
@@ -19,7 +20,7 @@ function stripLargeFields(u) {
     id, phone, name, role, businessName, setupComplete,
     email, address, city, pincode, panNo, gstin, aadharNo,
     bankDetails, alternatePhone,
-    subscriptionActive, subscriptionExpiry, planName, allowedVehicles,
+    subscriptionActive, subscriptionExpiry, planName, allowedVehicles, wishingName,
     logoUrl: typeof logoUrl === 'string' && logoUrl.startsWith('data:') ? null : (logoUrl || null),
     signatureUrl: typeof signatureUrl === 'string' && signatureUrl.startsWith('data:') ? null : (signatureUrl || null),
     documents: documents && typeof documents === 'object' ? documents : undefined,

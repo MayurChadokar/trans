@@ -133,10 +133,16 @@ export default function TransportBill({ initialData }) {
 
   // Auto-fill party details
   const partyId = watch('partyId')
+  const prevPartyId = useRef(initialData?.party?._id || initialData?.party || '')
+
   useEffect(() => {
     if (!partyId) return
-    const p = parties.find(x => x._id === partyId || x.id === partyId)
-    // Only auto-fill if not in edit mode or if the party actually changed manually
+    
+    // Only auto-fill if the partyId has actually changed from the last known one
+    // This prevents overwriting specifically saved bill details when loading an edit form
+    if (partyId === prevPartyId.current) return
+
+    const p = parties.find(x => (x._id || x.id) === partyId)
     if (p) {
       setValue('billedToName', p.name || '')
       setValue('billedToPhone', p.phone || '')
@@ -147,8 +153,9 @@ export default function TransportBill({ initialData }) {
       setValue('billedToPincode', p.pincode || '')
       setValue('billedToGstin', p.gstin || '')
       setValue('billedToPan', p.pan || '')
+      prevPartyId.current = partyId
     }
-  }, [partyId, parties, setValue])
+  }, [partyId, parties, setValue, initialData])
 
   // Totals calculation
   const itemsTotal = (watchedItems || []).reduce((sum, item) => {
@@ -418,10 +425,15 @@ export default function TransportBill({ initialData }) {
           ) : (
             <div className="animate-fadeIn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '16px', borderRadius: 20, border: '1.5px solid #F1F5F9' }}>
                <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0F0D2E', marginBottom: 2 }}>{watch('billedToName')}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>
-                    {watch('billedToPhone') && `${watch('billedToPhone')} • `}
-                    {watch('billedToCity') || 'No City'}
+                  <div style={{ fontSize: '0.95rem', fontWeight: 950, color: '#0F0D2E', marginBottom: 2 }}>{watch('billedToName')}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 700, lineHeight: 1.4 }}>
+                    {watch('billedToPhone') && <div style={{ marginBottom: 2 }}>Mob: {watch('billedToPhone')}</div>}
+                    <div>
+                      {watch('billedToAddress') && `${watch('billedToAddress')}, `}
+                      {watch('billedToCity') || 'No City'}
+                      {watch('billedToState') && `, ${watch('billedToState')}`}
+                      {watch('billedToPincode') && ` - ${watch('billedToPincode')}`}
+                    </div>
                   </div>
                </div>
                <button 

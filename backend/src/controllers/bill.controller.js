@@ -212,6 +212,11 @@ async function createBill(req, res, next) {
 
       const bill = await TransportBill.create(billData);
       
+      // Populate for frontend
+      const populatedBill = await TransportBill.findById(bill._id)
+        .populate("party")
+        .populate("owner", "businessName name email address phone alternatePhone gstin panNo logoUrl signatureUrl bankDetails slogan wishingName");
+
       // Auto-create transaction if paid
       if (bill.status === "paid") {
         await autoCreateTransaction(bill, "transport");
@@ -225,7 +230,7 @@ async function createBill(req, res, next) {
         );
       }
 
-      return res.json({ success: true, bill: { ...bill.toObject(), billType: "transport" } });
+      return res.json({ success: true, bill: { ...populatedBill.toObject(), billType: "transport" } });
     }
 
     // ── GARAGE BILL ─────────────────────────────────────────────────────────
@@ -290,6 +295,11 @@ async function createBill(req, res, next) {
 
       const bill = await GarageBill.create(billData);
 
+      // Populate for frontend
+      const populatedBill = await GarageBill.findById(bill._id)
+        .populate("party")
+        .populate("owner", "businessName name email address phone alternatePhone gstin panNo logoUrl signatureUrl bankDetails slogan wishingName");
+
       // Auto-create transaction if paid
       if (bill.status === "paid") {
         await autoCreateTransaction(bill, "garage");
@@ -321,7 +331,7 @@ async function createBill(req, res, next) {
         }
       }
 
-      return res.json({ success: true, bill: { ...bill.toObject(), billType: "garage" } });
+      return res.json({ success: true, bill: { ...populatedBill.toObject(), billType: "garage" } });
     }
   } catch (e) {
     console.error("[createBill ERROR]", e.message, e.errors ? JSON.stringify(e.errors) : "");
@@ -365,7 +375,9 @@ async function updateBill(req, res, next) {
     }
 
     const previousStatus = bill.status;
-    const updatedBill = await Model.findByIdAndUpdate(id, { $set: updateData }, { returnDocument: "after", new: true });
+    let updatedBill = await Model.findByIdAndUpdate(id, { $set: updateData }, { returnDocument: "after", new: true })
+      .populate("party")
+      .populate("owner", "businessName name email address phone alternatePhone gstin panNo logoUrl signatureUrl bankDetails slogan wishingName");
 
     // Auto-create transaction if payment recorded
     if (previousStatus !== "paid" && updatedBill.status === "paid") {

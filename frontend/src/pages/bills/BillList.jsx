@@ -39,9 +39,10 @@ function PartyCard({ party, onClick }) {
         <h3 style={{ margin: '0 0 2px 0', fontSize: '0.95rem', fontWeight: 800, color: '#0F0D2E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {party.name}
         </h3>
-        <p style={{ margin: 0, fontSize: '0.75rem', color: '#6B7280', fontWeight: 500 }}>
-          {billCount} Bill{billCount !== 1 ? 's' : ''} • {party.bills.filter(b => b.status === 'paid').length} Paid
-        </p>
+        <div style={{ margin: 0, fontSize: '0.75rem', color: '#6B7280', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {party.phone && <span>{party.phone} • </span>}
+          <span>{billCount} Bill{billCount !== 1 ? 's' : ''} • {party.bills.filter(b => b.status === 'paid').length} Paid</span>
+        </div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0F0D2E', marginBottom: 2 }}>
@@ -103,7 +104,7 @@ function BillCard({ bill, onClick, onDelete }) {
           </span>
         </div>
         <div style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {partyName}
+          {partyName} {bill.billedToPhone || bill.party?.phone ? `• ${bill.billedToPhone || bill.party?.phone}` : ''}
         </div>
         <div style={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 500, marginTop: 2 }}>
           {dayjs(bill.billDate || bill.billingDate || bill.createdAt).format('DD MMM')} • {subInfo}
@@ -200,12 +201,22 @@ export default function BillList({ type }) {
       const bDate = new Date(bill.billDate || bill.billingDate || bill.createdAt);
 
       if (!map[key]) {
-        map[key] = { name, bills: [], totalAmount: 0, pendingAmount: 0, latestDate: bDate };
+        map[key] = { 
+          name, 
+          phone: bill.billedToPhone || bill.party?.phone || bill.customerPhone,
+          bills: [], 
+          totalAmount: 0, 
+          pendingAmount: 0, 
+          latestDate: bDate 
+        };
       }
       map[key].bills.push(bill);
       map[key].totalAmount += (bill.grandTotal || 0);
       if (bill.status !== 'paid' && bill.status !== 'draft') {
         map[key].pendingAmount += (bill.grandTotal || 0);
+      }
+      if (!map[key].phone) {
+        map[key].phone = bill.billedToPhone || bill.party?.phone || bill.customerPhone;
       }
       if (bDate > map[key].latestDate) {
         map[key].latestDate = bDate;
@@ -250,6 +261,11 @@ export default function BillList({ type }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
         <div style={{ minWidth: 0 }}>
+          {user?.wishingName && (
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#F3811E', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
+              || {user.wishingName} ||
+            </div>
+          )}
           <h2 style={{ fontWeight: 900, fontSize: window.innerWidth < 640 ? '1.25rem' : '1.5rem', color: '#0F0D2E', margin: 0 }}>
             {moduleType === 'transport' ? 'Transport Bills' : 'Garage Bills'}
           </h2>

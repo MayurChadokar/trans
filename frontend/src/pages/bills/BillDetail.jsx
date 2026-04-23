@@ -17,7 +17,6 @@ function TransportInvoice({ bill, business, onPayOnline }) {
   return (
     <div className="invoice-wrap" style={{ color: '#000', fontFamily: 'Inter, sans-serif', padding: '10px', minHeight: '800px', backgroundColor: '#fff' }}>
       {/* Top Header Section */}
-      {/* Top Header Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', border: '1px solid #ccc', borderRadius: '4px 4px 0 0' }}>
         <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* Logo / Placeholder Box */}
@@ -29,8 +28,8 @@ function TransportInvoice({ bill, business, onPayOnline }) {
           </div>
           <div style={{ flex: 1, textAlign: 'center' }}>
             {business?.wishingName && (
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#333', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {business.wishingName}
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#444', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                || {business.wishingName} ||
               </div>
             )}
             <h1 style={{ fontSize: '1.4rem', fontWeight: 950, margin: 0, letterSpacing: '-0.04em', lineHeight: 0.9 }}>{business?.businessName?.toUpperCase() || 'KHAN TRANSPORT'}</h1>
@@ -56,20 +55,26 @@ function TransportInvoice({ bill, business, onPayOnline }) {
       {/* From / To Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid #ccc', borderTop: 'none' }}>
         <div style={{ padding: '8px 10px', background: '#fdf3f0', borderRight: '1px solid #ccc' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: 2 }}>From : <span style={{ fontWeight: 900 }}>{business?.businessName}</span></div>
-          <div style={{ fontSize: '0.6rem', color: '#333', lineHeight: 1.3 }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, marginBottom: 2 }}>FROM : <span style={{ fontWeight: 900 }}>{business?.businessName}</span></div>
+          <div style={{ fontSize: '0.7rem', color: '#000', lineHeight: 1.4, fontWeight: 500 }}>
             {business?.address}<br />
+            {(business?.city || business?.state) && `${business?.city || ''}${business?.city && business?.state ? ', ' : ''}${business?.state || ''} ${business?.pincode || ''}`}<br />
             Mob : {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''} {business?.email && `| Email: ${business?.email}`}<br />
             {business?.gstin && `GSTIN: ${business?.gstin} `} {business?.panNo && `| PAN: ${business?.panNo}`}
           </div>
         </div>
         <div style={{ padding: '8px 10px', background: '#fdf3f0' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: 2 }}>Billed To : <span style={{ fontWeight: 900 }}>{bill.billedToName || bill.party?.name || '—'}</span></div>
-          <div style={{ fontSize: '0.6rem', color: '#333', lineHeight: 1.3 }}>
-            {bill.billedToAddress || bill.party?.address}<br />
-            {(bill.billedToCity || bill.party?.city) && `${bill.billedToCity || bill.party?.city}, `}{bill.billedToState || bill.party?.state} {bill.billedToPincode || bill.party?.pincode}<br />
-            {(bill.billedToPhone || bill.party?.phone) && `Mob: ${bill.billedToPhone || bill.party?.phone}`} {(bill.billedToEmail || bill.party?.email) && `| Email: ${bill.billedToEmail || bill.party?.email}`}<br />
-            {(bill.billedToGstin || bill.party?.gstin) && `GSTIN: ${bill.billedToGstin || bill.party?.gstin} `} {(bill.billedToPan || bill.party?.pan) && `| PAN: ${bill.billedToPan || bill.party?.pan}`}
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, marginBottom: 2 }}>BILLED TO : <span style={{ fontWeight: 950 }}>{bill.billedToName || bill.party?.name || '—'}</span></div>
+          <div style={{ fontSize: '0.7rem', color: '#000', lineHeight: 1.4, fontWeight: 500 }}>
+            {(bill.billedToAddress || bill.party?.address) && <>{bill.billedToAddress || bill.party?.address}<br /></>}
+            {(bill.billedToCity || bill.party?.city || bill.billedToState || bill.party?.state) && (
+              <>{[bill.billedToCity || bill.party?.city, bill.billedToState || bill.party?.state].filter(Boolean).join(', ')} {bill.billedToPincode || bill.party?.pincode || ''}<br /></>
+            )}
+            {(bill.billedToPhone || bill.party?.phone) && <span style={{ fontWeight: 700 }}>Mob: {bill.billedToPhone || bill.party?.phone}</span>}
+            {(bill.billedToEmail || bill.party?.email) && <span style={{ marginLeft: 8 }}>| Email: {bill.billedToEmail || bill.party?.email}</span>}
+            <br />
+            {(bill.billedToGstin || bill.party?.gstin) && <><span style={{ fontWeight: 700 }}>GSTIN:</span> {bill.billedToGstin || bill.party?.gstin} </>}
+            {(bill.billedToPan || bill.party?.pan) && <><span style={{ marginLeft: 8, fontWeight: 700 }}>PAN:</span> {bill.billedToPan || bill.party?.pan}</>}
           </div>
         </div>
       </div>
@@ -194,7 +199,7 @@ function GarageInvoice({ bill, business, onPayOnline }) {
           </div>
           <div style={{ textAlign: 'right' }}>
             {business?.wishingName && (
-               <div style={{ fontWeight: 700, fontSize: '0.65rem', color: '#444', textTransform: 'uppercase', marginBottom: 1 }}>{business.wishingName}</div>
+               <div style={{ fontWeight: 800, fontSize: '0.6rem', color: '#444', textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.05em' }}>|| {business.wishingName} ||</div>
             )}
             <div style={{ fontWeight: 900, fontSize: '1.125rem', color: '#111' }}>{business?.businessName?.toUpperCase() || 'AUTO REPAIRS'}</div>
             <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: 2, opacity: 0.8 }}>Mob: {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''}</div>
@@ -354,13 +359,13 @@ export default function BillDetail() {
 
   useEffect(() => {
     if (!id || id === 'new') return
-    if (bill) return
+    // Always fetch to ensure we get fully populated owner (with wishingName) and party details
     setLoading(true)
     fetchBill(id).then(b => {
       if (b) setBill(b)
       setLoading(false)
     })
-  }, [id, bill, fetchBill])
+  }, [id, fetchBill])
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 60, color: '#6B7280' }}>
@@ -462,8 +467,8 @@ export default function BillDetail() {
               id="btn-mark-paid"
               onClick={() => {
                 if (window.confirm('Mark this bill as fully paid?')) {
-                  recordPayment(bill._id, bill.grandTotal || 0).then(() => {
-                    setBill(prev => ({ ...prev, status: 'paid' }))
+                  recordPayment(bill._id, bill.grandTotal || 0).then((updated) => {
+                    if (updated) setBill(updated)
                   })
                 }
               }}

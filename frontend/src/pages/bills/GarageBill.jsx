@@ -154,9 +154,15 @@ export default function GarageBill({ initialData }) {
   }, [vehicleNo, vehicles, setValue, partyId])
 
   // Auto-fill from party
+  const prevPartyId = useRef(initialData?.party?._id || initialData?.party || '')
+
   useEffect(() => {
     if (!partyId) return
-    const p = parties.find(x => x._id === partyId || x.id === partyId)
+    
+    // Only auto-fill if the partyId has actually changed from the last known one
+    if (partyId === prevPartyId.current) return
+
+    const p = parties.find(x => (x._id || x.id) === partyId)
     if (p) {
       setValue('customerName', p.name)
       setValue('customerPhone', p.phone || '')
@@ -168,8 +174,9 @@ export default function GarageBill({ initialData }) {
       setValue('customerGstin', p.gstin || '')
       setValue('customerPan', p.pan || '')
       setValue('customerSignatureUrl', p.signatureUrl || '')
+      prevPartyId.current = partyId
     }
-  }, [partyId, parties, setValue])
+  }, [partyId, parties, setValue, initialData])
 
   // Auto-calc item amounts
   useEffect(() => {

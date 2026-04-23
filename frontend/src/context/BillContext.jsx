@@ -64,16 +64,17 @@ export function BillProvider({ children }) {
   const getBill = useCallback((id) => bills.find(b => b._id === id || b.id === id), [bills])
 
   const fetchBill = useCallback(async (id) => {
-    // Try local state first
-    const local = bills.find(b => b._id === id || b.id === id)
-    if (local) return local
-    // Fall back to API
+    // We always fetch from API to ensure we get fully populated details (owner, party, trips)
+    // which are not available in the lean list view.
     try {
       const res = await getBillDetail(id)
       if (res.success) {
         setBills(prev => {
           const exists = prev.find(b => b._id === id || b.id === id)
-          return exists ? prev : [res.bill, ...prev]
+          if (exists) {
+            return prev.map(b => (b._id === id || b.id === id) ? res.bill : b)
+          }
+          return [res.bill, ...prev]
         })
         return res.bill
       }
@@ -81,7 +82,7 @@ export function BillProvider({ children }) {
       console.error("Failed to fetch bill detail", e)
     }
     return null
-  }, [bills])
+  }, [])
 
   const deleteBill = useCallback(async (id) => {
     try {
