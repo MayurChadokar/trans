@@ -59,8 +59,10 @@ function TransportInvoice({ bill, business, onPayOnline }) {
           <div style={{ fontSize: '0.7rem', color: '#000', lineHeight: 1.4, fontWeight: 500 }}>
             {business?.address}<br />
             {(business?.city || business?.state) && `${business?.city || ''}${business?.city && business?.state ? ', ' : ''}${business?.state || ''} ${business?.pincode || ''}`}<br />
-            Mob : {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''} {business?.email && `| Email: ${business?.email}`}<br />
-            {business?.gstin && `GSTIN: ${business?.gstin} `} {business?.panNo && `| PAN: ${business?.panNo}`}
+            Mob : {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''}<br />
+            {business?.email && <>Email: {business?.email}<br /></>}
+            {business?.gstin && <>GSTIN: {business?.gstin}<br /></>}
+            {business?.panNo && <>PAN: {business?.panNo}</>}
           </div>
         </div>
         <div style={{ padding: '8px 10px', background: '#fdf3f0' }}>
@@ -70,11 +72,10 @@ function TransportInvoice({ bill, business, onPayOnline }) {
             {(bill.billedToCity || bill.party?.city || bill.billedToState || bill.party?.state) && (
               <>{[bill.billedToCity || bill.party?.city, bill.billedToState || bill.party?.state].filter(Boolean).join(', ')} {bill.billedToPincode || bill.party?.pincode || ''}<br /></>
             )}
-            {(bill.billedToPhone || bill.party?.phone) && <span style={{ fontWeight: 700 }}>Mob: {bill.billedToPhone || bill.party?.phone}</span>}
-            {(bill.billedToEmail || bill.party?.email) && <span style={{ marginLeft: 8 }}>| Email: {bill.billedToEmail || bill.party?.email}</span>}
-            <br />
-            {(bill.billedToGstin || bill.party?.gstin) && <><span style={{ fontWeight: 700 }}>GSTIN:</span> {bill.billedToGstin || bill.party?.gstin} </>}
-            {(bill.billedToPan || bill.party?.pan) && <><span style={{ marginLeft: 8, fontWeight: 700 }}>PAN:</span> {bill.billedToPan || bill.party?.pan}</>}
+            {(bill.billedToPhone || bill.party?.phone) && <><span style={{ fontWeight: 700 }}>Mob: {bill.billedToPhone || bill.party?.phone}</span><br /></>}
+            {(bill.billedToEmail || bill.party?.email) && <>Email: {bill.billedToEmail || bill.party?.email}<br /></>}
+            {(bill.billedToGstin || bill.party?.gstin) && <><span style={{ fontWeight: 700 }}>GSTIN:</span> {bill.billedToGstin || bill.party?.gstin}<br /></>}
+            {(bill.billedToPan || bill.party?.pan) && <><span style={{ fontWeight: 700 }}>PAN:</span> {bill.billedToPan || bill.party?.pan}</>}
           </div>
         </div>
       </div>

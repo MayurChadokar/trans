@@ -137,8 +137,10 @@ export default function BillList({ type }) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [selectedParty, setSelectedParty] = useState(null)
-  const [startDate, setStartDate] = useState(dayjs().subtract(1, 'month').format('YYYY-MM'))
-  const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM'))
+  const [startDate, setStartDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'))
+  const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'))
+  const [viewMode, setViewMode] = useState('party') // 'party' or 'all'
+  const [sortOrder, setSortOrder] = useState('desc') // 'desc' or 'asc'
   const [showDateFilters, setShowDateFilters] = useState(true)
 
   const userRole = user?.role || 'transport'
@@ -161,12 +163,10 @@ export default function BillList({ type }) {
     if (filter === 'garage')    list = list.filter(b => b.billType === 'garage')
     
     if (startDate) {
-      const qStart = dayjs(startDate).startOf('month').format('YYYY-MM-DD')
-      list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') >= qStart)
+      list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') >= startDate)
     }
     if (endDate) {
-      const qEnd = dayjs(endDate).endOf('month').format('YYYY-MM-DD')
-      list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') <= qEnd)
+      list = list.filter(b => dayjs(b.billDate || b.billingDate || b.createdAt).format('YYYY-MM-DD') <= endDate)
     }
 
     if (search.trim()) {
@@ -186,9 +186,13 @@ export default function BillList({ type }) {
         )
       )
     }
-    // Sort all by date descending (latest first)
-    return [...list].sort((a,b) => new Date(b.billDate || b.billingDate || b.createdAt) - new Date(a.billDate || a.billingDate || a.createdAt))
-  }, [bills, filter, search, isAdmin, userRole, moduleType, type])
+    // Sort
+    return [...list].sort((a, b) => {
+      const dateA = new Date(a.billDate || a.billingDate || a.createdAt)
+      const dateB = new Date(b.billDate || b.billingDate || b.createdAt)
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
+    })
+  }, [bills, filter, search, isAdmin, userRole, moduleType, type, sortOrder])
 
   const groupedByParty = useMemo(() => {
     const map = {};
@@ -223,7 +227,9 @@ export default function BillList({ type }) {
       }
     });
 
-    return Object.values(map).sort((a,b) => b.latestDate - a.latestDate);
+    return Object.values(map).sort((a, b) => {
+      return sortOrder === 'desc' ? b.latestDate - a.latestDate : a.latestDate - b.latestDate
+    });
   }, [filtered]);
 
   const displayedBillsForParty = useMemo(() => {
@@ -276,7 +282,7 @@ export default function BillList({ type }) {
       </div>
 
       {/* Search & Filter */}
-      <div style={{ background: 'white', borderRadius: 28, padding: '20px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ background: 'white', borderRadius: 28, padding: '20px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {/* Search Box */}
           <div style={{ position: 'relative', flex: 1 }}>
@@ -298,11 +304,11 @@ export default function BillList({ type }) {
         {/* Date Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex-1">
-            <label className="form-label" style={{ fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>From Month</label>
+            <label className="form-label" style={{ fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>From Date</label>
             <div className="input-group">
               <Calendar size={16} className="input-icon" />
               <input 
-                type="month" 
+                type="date" 
                 value={startDate} 
                 onChange={e => setStartDate(e.target.value)} 
                 className="form-input"
@@ -311,11 +317,11 @@ export default function BillList({ type }) {
             </div>
           </div>
           <div className="flex-1">
-            <label className="form-label" style={{ fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>To Month</label>
+            <label className="form-label" style={{ fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>To Date</label>
             <div className="input-group">
               <Calendar size={16} className="input-icon" />
               <input 
-                type="month" 
+                type="date" 
                 value={endDate} 
                 onChange={e => setEndDate(e.target.value)} 
                 className="form-input"
@@ -325,27 +331,66 @@ export default function BillList({ type }) {
           </div>
         </div>
 
-        {(startDate !== dayjs().subtract(1, 'month').format('YYYY-MM') || endDate !== dayjs().format('YYYY-MM') || search) && (
+        {(startDate !== dayjs().startOf('month').format('YYYY-MM-DD') || endDate !== dayjs().format('YYYY-MM-DD') || search) && (
           <button 
-            onClick={() => { setStartDate(dayjs().subtract(1, 'month').format('YYYY-MM')); setEndDate(dayjs().format('YYYY-MM')); setSearch(''); setFilter('all') }}
+            onClick={() => { setStartDate(dayjs().startOf('month').format('YYYY-MM-DD')); setEndDate(dayjs().format('YYYY-MM-DD')); setSearch(''); setFilter('all') }}
             style={{ padding: '8px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', gap: 6 }}
           >
             <X size={16} /> Reset Filters
           </button>
         )}
         
-        {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
-          {FILTERS.map(f => (
-            <button key={f.val} onClick={() => setFilter(f.val)}
-              style={{
-                padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                background: filter === f.val ? '#7C3AED' : '#F1F5F9',
-                color: filter === f.val ? 'white' : '#64748B',
-                fontWeight: 800, fontSize: '0.65rem', transition: '0.2s'
-              }}
-            >{f.label}</button>
-          ))}
+        {/* Filter Tabs & View Mode */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+            {FILTERS.map(f => (
+              <button key={f.val} onClick={() => setFilter(f.val)}
+                style={{
+                  padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                  background: filter === f.val ? '#7C3AED' : '#F1F5F9',
+                  color: filter === f.val ? 'white' : '#64748B',
+                  fontWeight: 800, fontSize: '0.65rem', transition: '0.2s'
+                }}
+              >{f.label}</button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #F3F4F6', paddingTop: 10 }}>
+             <div style={{ display: 'flex', background: '#F1F5F9', padding: 3, borderRadius: 10 }}>
+                <button 
+                  onClick={() => { setViewMode('party'); setSelectedParty(null); }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 800,
+                    background: viewMode === 'party' ? 'white' : 'transparent',
+                    color: viewMode === 'party' ? '#0F0D2E' : '#64748B',
+                    boxShadow: viewMode === 'party' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    transition: '0.2s'
+                  }}
+                >Party Wise</button>
+                <button 
+                  onClick={() => { setViewMode('all'); setSelectedParty(null); }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 800,
+                    background: viewMode === 'all' ? 'white' : 'transparent',
+                    color: viewMode === 'all' ? '#0F0D2E' : '#64748B',
+                    boxShadow: viewMode === 'all' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    transition: '0.2s'
+                  }}
+                >View All</button>
+             </div>
+
+             <button 
+                onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, 
+                  border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer',
+                  fontSize: '0.65rem', fontWeight: 800, color: '#475569'
+                }}
+             >
+               <Calendar size={14} />
+               Date {sortOrder === 'desc' ? '↓' : '↑'}
+             </button>
+          </div>
         </div>
       </div>
 
@@ -360,10 +405,16 @@ export default function BillList({ type }) {
           <h3 style={{ margin: 0, color: '#111827' }}>No bills found</h3>
           <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>{search ? 'Try a different search term' : 'Start by creating a new invoice'}</p>
         </div>
-      ) : !selectedParty ? (
+      ) : (viewMode === 'party' && !selectedParty) ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {groupedByParty.map(party => (
             <PartyCard key={party.name} party={party} onClick={setSelectedParty} />
+          ))}
+        </div>
+      ) : viewMode === 'all' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+           {filtered.map(bill => (
+            <BillCard key={bill._id} bill={bill} onClick={b => navigate(`/bills/${b._id}`)} onDelete={deleteBill} />
           ))}
         </div>
       ) : (
