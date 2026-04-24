@@ -132,7 +132,7 @@ export default function Finance() {
       </div>
 
       {/* Quick Actions Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 10, marginBottom: 24 }}>
         {[
           { icon: TrendingUp, label: 'Income', bg: '#DCFCE7', color: '#16A34A', to: '/finance/add?type=income' },
           { icon: TrendingDown, label: 'Expense', bg: '#FEE2E2', color: '#DC2626', to: '/finance/add?type=expense' },
@@ -140,14 +140,14 @@ export default function Finance() {
           { icon: Wallet, label: 'Parties', bg: '#F3F4F6', color: '#4B5563', to: `${modulePrefix}/parties` },
         ].map(item => (
           <button key={item.label} onClick={() => navigate(item.to)} style={{
-            background: 'white', border: 'none', borderRadius: 16, padding: '12px 6px',
+            background: 'white', border: 'none', borderRadius: 16, padding: '12px 4px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6
           }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <item.icon size={20} color={item.color} />
+            <div style={{ width: 38, height: 38, borderRadius: 12, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <item.icon size={18} color={item.color} />
             </div>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4B5563' }}>{item.label}</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#4B5563' }}>{item.label}</span>
           </button>
         ))}
       </div>

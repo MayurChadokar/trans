@@ -129,17 +129,17 @@ export default function AddMovement() {
             </div>
           </Field>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Date" required>
-              <div style={{ position: 'relative' }}>
-                <Calendar size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-                <input {...register('date')} type="date" className="form-input" style={{ paddingLeft: 38 }} />
+              <div className="input-group">
+                <Calendar size={18} className="input-icon" />
+                <input {...register('date')} type="date" className="form-input" style={{ paddingLeft: 44 }} />
               </div>
             </Field>
             <Field label="Mode">
-              <div style={{ position: 'relative' }}>
-                <CreditCard size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-                <select {...register('paymentMode')} className="form-input" style={{ paddingLeft: 38 }}>
+              <div className="input-group">
+                <CreditCard size={18} className="input-icon" />
+                <select {...register('paymentMode')} className="form-input" style={{ paddingLeft: 44 }}>
                   <option value="cash">Cash</option>
                   <option value="online">Online</option>
                   <option value="bank">Bank</option>
@@ -150,9 +150,9 @@ export default function AddMovement() {
           </div>
 
           <Field label="Related Party (Optional)">
-            <div style={{ position: 'relative' }}>
-              <User size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-              <select {...register('partyId')} className="form-input" style={{ paddingLeft: 38 }}>
+            <div className="input-group">
+              <User size={18} className="input-icon" />
+              <select {...register('partyId')} className="form-input" style={{ paddingLeft: 44 }}>
                 <option value="">— No Party —</option>
                 {parties
                   .filter(p => p.partyType === (user?.role || 'transport'))
@@ -163,16 +163,16 @@ export default function AddMovement() {
           </Field>
 
           <Field label="Category">
-             <div style={{ position: 'relative' }}>
-              <Tag size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-              <input {...register('category')} placeholder="e.g. Fuel, Salary, Rent..." className="form-input" style={{ paddingLeft: 38 }} />
+             <div className="input-group">
+              <Tag size={18} className="input-icon" />
+              <input {...register('category')} placeholder="e.g. Fuel, Salary, Rent..." className="form-input" style={{ paddingLeft: 44 }} />
             </div>
           </Field>
 
           <Field label="Notes">
-            <div style={{ position: 'relative' }}>
-              <FileText size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#9CA3AF' }} />
-              <textarea {...register('notes')} placeholder="Add details..." className="form-input" style={{ paddingLeft: 38, minHeight: 80 }} />
+            <div className="input-group">
+              <FileText size={18} className="input-icon" style={{ top: 18 }} />
+              <textarea {...register('notes')} placeholder="Add details..." className="form-input" style={{ paddingLeft: 44, minHeight: 80 }} />
             </div>
           </Field>
 

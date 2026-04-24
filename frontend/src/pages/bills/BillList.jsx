@@ -261,11 +261,6 @@ export default function BillList({ type }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          {user?.wishingName && (
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#F3811E', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>
-              || {user.wishingName} ||
-            </div>
-          )}
           <h2 style={{ fontWeight: 900, fontSize: window.innerWidth < 640 ? '1.25rem' : '1.5rem', color: '#0F0D2E', margin: 0 }}>
             {moduleType === 'transport' ? 'Transport Bills' : 'Garage Bills'}
           </h2>
@@ -301,28 +296,30 @@ export default function BillList({ type }) {
         </div>
 
         {/* Date Filters */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, background: '#F8FAFC', padding: 12, borderRadius: 16, border: '1px solid #F1F5F9' }}>
-          <div style={{ flex: '1 1 140px' }}>
-            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: 4, marginLeft: 4 }}>From Month</label>
-            <div style={{ position: 'relative' }}>
-              <Calendar size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="flex-1">
+            <label className="form-label" style={{ fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>From Month</label>
+            <div className="input-group">
+              <Calendar size={16} className="input-icon" />
               <input 
                 type="month" 
                 value={startDate} 
                 onChange={e => setStartDate(e.target.value)} 
-                style={{ width: '100%', padding: '10px 12px 10px 34px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: 700, background: 'white' }} 
+                className="form-input"
+                style={{ paddingLeft: 44, height: 44, borderRadius: 12, fontSize: '0.85rem', fontWeight: 700 }}
               />
             </div>
           </div>
-          <div style={{ flex: '1 1 140px' }}>
-            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: 4, marginLeft: 4 }}>To Month</label>
-            <div style={{ position: 'relative' }}>
-              <Calendar size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <div className="flex-1">
+            <label className="form-label" style={{ fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>To Month</label>
+            <div className="input-group">
+              <Calendar size={16} className="input-icon" />
               <input 
                 type="month" 
                 value={endDate} 
                 onChange={e => setEndDate(e.target.value)} 
-                style={{ width: '100%', padding: '10px 12px 10px 34px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: 700, background: 'white' }} 
+                className="form-input"
+                style={{ paddingLeft: 44, height: 44, borderRadius: 12, fontSize: '0.85rem', fontWeight: 700 }}
               />
             </div>
           </div>
