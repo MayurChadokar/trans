@@ -199,9 +199,6 @@ function GarageInvoice({ bill, business, onPayOnline }) {
             }
           </div>
           <div style={{ textAlign: 'right' }}>
-            {business?.wishingName && (
-               <div style={{ fontWeight: 800, fontSize: '0.6rem', color: '#444', textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.05em' }}>|| {business.wishingName} ||</div>
-            )}
             <div style={{ fontWeight: 900, fontSize: '1.125rem', color: '#111' }}>{business?.businessName?.toUpperCase() || 'AUTO REPAIRS'}</div>
             <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: 2, opacity: 0.8 }}>Mob: {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''}</div>
             <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</div>
@@ -311,21 +308,32 @@ function GarageInvoice({ bill, business, onPayOnline }) {
               By signing, customer authorizes {business?.businessName || 'garage'} to proceed with repairs. Estimate valid for 30 days.
             </p>
           </div>
-          <div style={{ paddingTop: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>Customer Signature:</span>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 100 }}>
-                {bill.customerSignatureUrl
-                  ? <img src={bill.customerSignatureUrl} alt="Customer Signature" style={{ maxHeight: 50, maxWidth: 140, objectFit: 'contain', marginBottom: 2 }} />
-                  : <div style={{ height: 32 }} />
-                }
-                <div style={{ borderBottom: '1.5px solid #333', width: '100%' }} />
-                <span style={{ fontSize: '0.6rem', color: '#888', marginTop: 2 }}>Your Name</span>
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, marginBottom: 12, color: '#111' }}>For, {business?.businessName?.toUpperCase()}</div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {/* Garage Owner Photo */}
+              {business?.documents?.photoUrl && (
+                <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${themeColor}`, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                  <img src={business.documents.photoUrl} alt="Owner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 140 }}>
+                <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                  {business?.signatureUrl ? (
+                    <img src={business.signatureUrl} alt="Garage Owner Signature" style={{ maxHeight: '100%', maxWidth: 160, objectFit: 'contain' }} />
+                  ) : (
+                    <div style={{ width: 140, borderBottom: '1.5px solid #111', marginTop: 40 }} />
+                  )}
+                </div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#444', textTransform: 'uppercase', letterSpacing: '0.02em' }}>(Authorized Signatory)</div>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Date:</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, borderBottom: '1.5px solid #333', flex: 1, paddingBottom: 2 }}>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 15 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#666' }}>Date:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#111' }}>
                 {dayjs(bill.billDate).format('DD/MM/YYYY')}
               </span>
             </div>
