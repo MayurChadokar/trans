@@ -201,6 +201,8 @@ function GarageInvoice({ bill, business, onPayOnline }) {
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontWeight: 900, fontSize: '1.125rem', color: '#111' }}>{business?.businessName?.toUpperCase() || 'AUTO REPAIRS'}</div>
             <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: 2, opacity: 0.8 }}>Mob: {business?.phone}{business?.alternatePhone ? `, ${business?.alternatePhone}` : ''}</div>
+            {business?.gstin && <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: 2, opacity: 0.8 }}>GSTIN: {business.gstin}</div>}
+            {business?.panNo && <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: 2, opacity: 0.8 }}>PAN: {business.panNo}</div>}
             <div style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: 4 }}>Bill No: {bill.billNumber || 'Draft'}</div>
           </div>
         </div>
